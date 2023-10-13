@@ -113,6 +113,7 @@ export default {
         this.$refs.canvas.clientWidth,
         this.$refs.canvas.clientHeight - keyboardHeight
       );
+
     },
 
     animate() {

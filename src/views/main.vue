@@ -16,6 +16,10 @@
         <p v-if="isNotChrome">
           We highly recommend using Chrome for better user experience.
         </p>
+        <p v-else="isNotChrome">
+          PianoRoll may behave differently on Chrome, due to recent updates.
+          For now, use Firefox, Safari or other browsers for better user experience.
+        </p>
         <p v-if="isMobile">
           The model may not perform normally on mobile devices. We recommend
           using Desktop computers.
