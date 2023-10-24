@@ -1206,47 +1206,20 @@ export default {
 
         
         zoomInOct() {
-            // ugly code to prevent the user from zooming in too much
-            console.log("range before was ", this.keyboardoctaveEnd - this.keyboardoctaveStart)
-            if (this.keyboardoctaveEnd - this.keyboardoctaveStart <= 1){
-                console.log("MIN was reched before")
-                this.keyboardMinRangeDisplayed = true;
-            } else {
-                if (this.keyboardoctaveEnd - this.keyboardoctaveStart == 2){
-                    this.keyboardoctaveStart = Math.max(0, this.keyboardoctaveStart + 1);
-                } else{
-                    this.keyboardoctaveStart = Math.max(0, this.keyboardoctaveStart + 1);
-                    this.keyboardoctaveEnd = Math.min(8, this.keyboardoctaveEnd - 1);
-                }
-                console.log("this.keyboardoctaveEnd - this.keyboardoctaveStart != 1")
-                if (this.keyboardoctaveEnd - this.keyboardoctaveStart <= 1){
-                    console.log("MIN range reached")
-                    this.keyboardMinRangeDisplayed = true;
-                } else {
-                    this.keyboardMinRangeDisplayed = false;
-                }
-            }   
-            this.keyboardMaxRangeDisplayed = false;
+            if (this.keyboardoctaveEnd - this.keyboardoctaveStart > 2){
+                this.keyboardoctaveStart += 1;
+                this.keyboardoctaveEnd -= 1;
+            }
         },
-
         zoomOutOct() {
-            console.log("range before was ", this.keyboardoctaveEnd - this.keyboardoctaveStart)
-            if (this.keyboardoctaveEnd - this.keyboardoctaveStart >= 8){
-                console.log("MAX was reched before")
-                this.keyboardMaxRangeDisplayed = true;
-            } else {
-                this.keyboardoctaveStart = Math.max(0, this.keyboardoctaveStart - 1);
-                this.keyboardoctaveEnd = Math.min(8, this.keyboardoctaveEnd + 1);
-                console.log("this.keyboardoctaveEnd - this.keyboardoctaveStart != 8")
-                if (this.keyboardoctaveEnd - this.keyboardoctaveStart >= 8){
-                    console.log("MAX range reached")
-                    this.keyboardMaxRangeDisplayed = true;
-                } else {
-                    this.keyboardMaxRangeDisplayed = false;
-                }
-                
-            } 
-            this.keyboardMinRangeDisplayed = false; 
+            this.keyboardoctaveStart -= 1;
+            this.keyboardoctaveEnd += 1;
+            if (this.keyboardoctaveEnd > 8) {
+                this.keyboardoctaveEnd = 8;
+            }
+            if (this.keyboardoctaveStart < 0) {
+                this.keyboardoctaveStart = 0;
+            }
         },
 
         modalCallback() {
@@ -1545,7 +1518,7 @@ export default {
 
 
             <!-- On-screen buttons -->
-            <div style="position: absolute; bottom: 230px; right: 11px">
+            <div style="position: absolute; bottom: 280px; right: 11px">
                 <md-button class="controlBtn" @click="toggleClock" style="width: 40px">
                     <md-icon>{{ localSyncClockStatus ? "pause" : "play_arrow" }}</md-icon>
                 </md-button>
@@ -1558,10 +1531,10 @@ export default {
                 <md-button class="controlBtn" @click="toggleMonitor">
                     <i class="material-symbols-outlined">monitoring</i>
                 </md-button>
-                <!-- <md-button class="controlBtn" @click="zoomInOct">
+                <md-button class="controlBtn" @click="zoomInOct">
                     <i class="material-symbols-outlined">zoom_in</i>
                 </md-button>
-                <md-button class="controlBtn" @click="zoomOutOct">
+                <md-button class="controlBtnSmall" @click="zoomOutOct">
                     <i class="material-symbols-outlined">zoom_out</i>
                 </md-button> -->
             </div>
