@@ -36,7 +36,7 @@ import {NoteEvent} from '@/utils/NoteEvent.js';
 
 export default {
 
-    name: 'mainScreen',
+    name: 'BachDuet',
 
     components: {
         Keyboard,
@@ -59,7 +59,7 @@ export default {
             // Choose the agent.
             // This string should be one of
             // dir names inside public/agents/
-            agentName: 'EmptyAgent',
+            agentName: 'BachDuet',
             // Provide all the config files that should be loaded
             // These should be in public/agents/{agentName}/
             configFiles: ['config.yaml',

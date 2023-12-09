@@ -9,8 +9,23 @@ const router = new VueRouter({
     routes: [
         {
             path: '/',
-            name: 'mainScreen',
-            component: () => import('../views/Euterpe.vue'),
+            name: 'Home',
+            component: () => import('../views/Home.vue'),
+        },
+        {
+            path: '/bachduet',
+            name: 'BachDuet',
+            component: () => import('../views/BachDuet.vue'),
+        },
+        {
+            path: '/pianogenie',
+            name: 'PianoGenie',
+            component: () => import('../views/PianoGenie.vue'),
+        },
+        {
+            path: '/whistle2chords',
+            name: 'WhistleToChords',
+            component: () => import('../views/WhistleToChords.vue'),
         },
     ],
 });
