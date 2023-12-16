@@ -875,7 +875,7 @@ export default {
                         break;
                     case vm.messageType.NOTE_LIST: {
                         const noteEventsList = messageValue;
-                        
+
                         const delayForNoteOn = 0.01;
                         const noteOffEvents = {}; // Store note_off events
 
@@ -1621,7 +1621,7 @@ export default {
                     </div>
                     <markdown-it-vue class="mdClass" :content="intro_text_content" />
                 </div>
-                
+
             </modal>
 
             <div v-if="config.gui.pianoRoll.status">

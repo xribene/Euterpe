@@ -223,7 +223,7 @@
 }
 .modalIntro{
     width: 700px;
-    background-color: red;
+    /* background-color: red; */
 }
 
 /* Important in order the md div to cover
@@ -233,23 +233,29 @@ the whole parent's height */
     /* height: 100%; */
     flex: 1;
 }
+
 /* Don't know how to overwrite the markdown's css
 without using !important */
 .markdown-body {
-    background-color: rgb(0, 255, 0) !important;
-    overflow-y:scroll !important;
-    height: 100% !important;
+    background-color: var(--score-background-color);
+    overflow-y: hidden;
+    height: 100% ;
+    padding-left: 5%;
+    padding-right: 5%;
+    color: var(--keyboard-white-text-color);
+
 }
 
 /* Hide the scrollbar track */
 .markdown-body::-webkit-scrollbar {
-    width: 0;
-    height: 0;
+    width: 10px;
+    height: 10px;
+    display: none;
 }
 
 /* Hide the scrollbar thumb (the draggable part) */
 .markdown-body::-webkit-scrollbar-thumb {
-    background: transparent;
+    background: red;
 }
 
 /* Allow scrolling when the user interacts with the content */
@@ -282,12 +288,18 @@ without using !important */
     justify-content: space-between;
     align-items: center;
 }
+
+.window-header {
+    background-color: var(--grey-background-color);
+    color: var(--text-color);
+}
+
 .modalTitle {
     font-size: 30px;
-    padding-left: 5px;
+    padding-left: 5%;
     display: inline-block;
     font-weight: 800;
-    color: var(--foreground-color);
+    color: var(--button-background-color);
     font-family: roboto;
 }
 
@@ -331,7 +343,7 @@ without using !important */
 }
 
 .vm--modal{
-    padding-right: 20px;
+    padding-right: 0px;
 }
 .babyParent{
     display: flex;
@@ -341,8 +353,8 @@ without using !important */
     overflow-y: scroll;
 }
 .babyParent::-webkit-scrollbar {
-    width: 24px;
-    /* display: none; */
+    /* width: 24px; */
+    display: none;
 }
 
 
@@ -374,14 +386,14 @@ without using !important */
     border-radius: 25px;
 }
 
-.markdown-body {
+/* .markdown-body {
     background-color: var(--grey-background-color);
     color: var(--text-color);
     overflow-y: scroll;
     height: 300px;
     font-size: 16px;
     font-family: roboto;
-}
+} */
 
 li {
     background-color: var(--grey-background-color);
