@@ -50,8 +50,6 @@ export default {
         Mixer,
         Monitor,
         ChromaChart,
-        // VectorBar,
-        // HorizontalSlider,
     },
 
     data() {
@@ -59,7 +57,7 @@ export default {
             // Choose the agent.
             // This string should be one of
             // dir names inside public/agents/
-            agentName: 'EmptyAgent',
+            agentName: 'PianoGenie',
             // Provide all the config files that should be loaded
             // These should be in public/agents/{agentName}/
             configFiles: ['config.yaml',
@@ -150,6 +148,9 @@ export default {
             timeout_IDS_live: [],
 
             mixer_data: null,
+
+            // intro text content
+            intro_text_content: null,
         };
     },
 
@@ -158,6 +159,8 @@ export default {
 
         console.log('created main start');
         this.loadConfigSync();
+        this.loadIntroMdSync();
+        console.log('load intro md sync done');
         console.log('load config sync done');
 
         this.$store.commit('setConfig', this.config);
@@ -1338,8 +1341,8 @@ export default {
             // use paramWriter to write a parameter to the agent
             const buttonPropertyName = `BUTTON_${buttonId}`;
             if (this.paramWriter != null &&
-                        !this.paramWriter.enqueue_change(
-                            this.uiParameterType[buttonPropertyName], 1.0)) {
+                    !this.paramWriter.enqueue_change(
+                        this.uiParameterType[buttonPropertyName], 1.0)) {
                 console.warn('Couldn\'t enqueue.');
             }
         },
@@ -1406,6 +1409,18 @@ export default {
                 this.config = yaml.load(config);
             }
         },
+
+        loadIntroMdSync() {
+            const url = `src/agents/${this.agentName}/${this.config.introModalMarkdown}`;
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', url, false); // Set async to false to make a synchronous request
+            xhr.send();
+            if (xhr.status === 200) {
+                this.intro_text_content = xhr.responseText;
+            } else {
+                throw new Error(`Failed to fetch intro.md file: ${xhr.status}`);
+            }
+        }
     },
 
     computed: {
@@ -1574,32 +1589,39 @@ export default {
         </div>
         <div ref="mainContent" id="mainContent"
             style="justify-content: center; align-items: center;">
-            <div style="
-                background-color: rgb(0, 0, 0);
+            <!-- <div style="
+                background-color: rgb(229, 19, 19);
                 opacity: 0.5;
                 display: fixed;
                 top: 0;
                 right: 0;
                 z-index: 999;
                 ">
-            </div>
+            </div> -->
             <!-- Intro Modal -->
-            <modal v-if="config.introModal" name="introModal" :adaptive="true"
+            <!-- :scrollable="true" -->
+            <!-- :resizable="true" -->
+            <!-- classes="modalIntro" -->
+
+            <modal class="test" draggable=".window-header" name="introModal"
+                :adaptive="true"
+                :width="800"
+                :height="600"
+                :minWidth="500"
+                :minHeight="100"
+                :resizable="true"
+                :scrollable="true"
                 @opened="modalCallback"
                 @closed="modalCallback">
-                <div class="modalDiv">
-                    <p class="modalTitle">
-                        Introduction
-                    </p>
-                    <button class="modalBtn" @click="$modal.hide('introModal')"><md-icon
-                            class="modalIcon">close</md-icon></button>
+                <div class="babyParent">
+                    <div class="window-header">
+                        <p class="modalTitle">
+                            Introduction
+                        </p>
+                    </div>
+                    <markdown-it-vue class="mdClass" :content="intro_text_content" />
                 </div>
-                <div class="modalContent">
-                    <p v-for="(content, index) in config.introModalContent" :key="index">
-                        {{ content }}
-                        <br />
-                    </p>
-                </div>
+                
             </modal>
 
             <div v-if="config.gui.pianoRoll.status">

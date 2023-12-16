@@ -68,9 +68,6 @@ agentSettings:
 
 # Choose the text to be displayed in the splash screen animation
 introModal: false
-introModalContent:
-  - "Hi! This is a basic agent to demonstrate the audio-input capabilities of Euterpe"
-  - "It uses Meyda to estimate rms, chroma features and extract pitch from the audio input"
-  - "and then generates chords based on a simple rule based algorithm "
+introModalMarkdown: "introModal.md" # The text to be displayed in the splash screen
 custom:
   useTriggerRelease: true
