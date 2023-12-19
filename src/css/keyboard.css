@@ -4,6 +4,13 @@ ul{
     padding: 0;
 }
 
+.pianoKeyboard {
+    z-index: 1;
+    position: fixed;
+    bottom: 10px;
+    border-radius: 2px;
+}
+
 .keyboard {
     width: 100vw;
     height: 200px;

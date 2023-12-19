@@ -47,10 +47,10 @@ export default {
             type: Boolean,
             default: true,
         },
-        scoreShown: {
-            type: Boolean,
-            default: true,
-        },
+        // scoreShown: {
+        //     type: Boolean,
+        //     default: true,
+        // },
     },
 
     data() {

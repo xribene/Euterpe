@@ -1,34 +1,4 @@
 @import url('variables.css');
-.pianoKeyboard {
-    z-index: 1;
-    position: fixed;
-    bottom: 10px;
-    border-radius: 2px;
-}
-
-.octaveControls {
-    z-index: 3;
-    color: black;
-    position: fixed;
-    right: 30px;
-    bottom: 230px;
-}
-
-.timingControls {
-    z-index: 3;
-    color: black;
-    position: fixed;
-    left: 30px;
-    bottom: 230px;
-}
-
-#pianoRoll {
-    z-index: 0;
-    padding: 0;
-    margin: 0;
-    position: absolute;
-    bottom: 196px;
-}
 
 #mainLoadingScreen {
     position: absolute;
@@ -155,7 +125,7 @@
     animation: scale-down-center 0.05s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-.loadingTypewriter {
+/* .loadingTypewriter {
     padding: 0;
     margin: 0;
 }
@@ -163,7 +133,7 @@
 .loadingTypewriter .wrap {
     border-right: 0.03em solid rgb(89, 50, 54);
     color: rgb(89, 50, 54);
-}
+} */
 
 @-webkit-keyframes scale-down-center {
     0% {
@@ -185,45 +155,6 @@
         -webkit-transform: scale(0.95);
         transform: scale(0.95);
     }
-}
-
-.settingsSubtitle {
-    margin: 0;
-    font-weight: 800;
-    font-size: 24px;
-    padding-top: 30px;
-    padding-bottom: 10px;
-}
-
-.settingsDiv {
-    height: 70px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    color: var(--text-color);
-}
-
-.settingsOptionTitle {
-    margin: 0;
-    font-weight: 800;
-}
-
-.settingsValue {
-    margin: 0;
-    font-size: 20px;
-}
-
-.settingsSlider {
-    margin-top: -18px;
-    margin-left: 50px;
-}
-
-.settingsBorderedTitle {
-    border-right: 1px dashed var(--foreground-color);
-    width: 100px;
-}
-.modalIntro{
-    width: 700px;
-    /* background-color: red; */
 }
 
 /* Important in order the md div to cover
@@ -270,25 +201,6 @@ without using !important */
     height: 30px;
 }
 
-.modalDiv {
-    z-index: 999;
-    position: absolute;
-    width: 100%;
-    height: 80px;
-    padding: 10px;
-    margin: 0;
-    background: var(--grey-background-color);
-    color: var(--text-color);
-    align-items: center;
-    box-shadow: 0 0 10px 0 var(--background-color);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-    font-family: roboto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
 .window-header {
     background-color: var(--grey-background-color);
     color: var(--text-color);
@@ -325,17 +237,7 @@ without using !important */
     padding: 80px 20px 20px 20px;
     font-size: 32px;
     font-family: roboto;
-
-    /* -ms-overflow-style: none; */
-    /* IE and Edge */
-    /* scrollbar-width: none; */
-    /* Firefox */
 }
-
-
-
-
-
 
 #mainContent {
     display: flex;
@@ -345,6 +247,7 @@ without using !important */
 .vm--modal{
     padding-right: 0px;
 }
+
 .babyParent{
     display: flex;
     flex-direction: column;
@@ -357,23 +260,16 @@ without using !important */
     display: none;
 }
 
-
 .babyParent::-webkit-scrollbar-track {
     -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
     border-radius: 10px;
 }
-
 
 .babyParent::-webkit-scrollbar-thumb {
     border-radius: 5px;
     width: 12px;
     background-color: var(--foreground-color);
     opacity: 0.5;
-}
-
-
-.forceTextColor {
-    color: var(--text-color)!important;
 }
 
 .controlBtn {

@@ -1,5 +1,5 @@
 gui:
-  score: 
+  score:
     status: false
   textBox:
     status: false
@@ -15,12 +15,12 @@ gui:
     octaveEnd: 7
   chromaChart:
     status: true
-  audioMeter: 
+  audioMeter:
     status: true
-  
+
   settingsModal:
     sliders:
-      - id: 1 
+      - id: 1
         label: "Temperature"
         value: 25
         min: 0
@@ -32,7 +32,7 @@ gui:
     buttons:
       - id: 1
         label: "reset"
-        
+
   monitor:
     status: true
     title: "Monitor"
@@ -46,7 +46,7 @@ gui:
           # The 'graph' flag allows you to visualize the value as a time grpah.
           # The 'min' and 'max' indicate the expected range of the parameter.
           - id: 0
-            label: "inference" 
+            label: "inference"
             interval: 50
             graph: true
             min: 0
