@@ -14,8 +14,12 @@
   </div>
 </template>
 
+
+<style scoped src="@/css/score.css">
+</style>
+
 <script>
-import '../css/score.css';
+// import '../css/score.css';
 import '../css/variables.css';
 import {Note, Midi} from '@tonaljs/tonal';
 import * as Vex from 'vexflow';

@@ -33,6 +33,7 @@ import {
 
 import {urlFromFiles, isMobile, isNotChrome} from '@/utils/helpers.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
+import { selectedAgent } from '@/agents/selectedAgent.js'
 
 export default {
 
@@ -57,7 +58,7 @@ export default {
             // Choose the agent.
             // This string should be one of
             // dir names inside public/agents/
-            agentName: 'PianoGenie',
+            agentName: selectedAgent,
             // Provide all the config files that should be loaded
             // These should be in public/agents/{agentName}/
             configFiles: ['config.yaml',

@@ -10,6 +10,7 @@
     <div ref="canvas"></div>
   </div>
 </template>
+
 <script>
 // This project mainly uses Three.js to generate the canvas.
 import * as THREE from 'three';

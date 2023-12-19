@@ -13,8 +13,11 @@
   </div>
 </template>
 
+<style scoped src="@/css/audioMeter.css">
+</style>
+
 <script>
-import '../css/audioMeter.css';
+// import '../css/audioMeter.css';
 
 export default {
     name: 'AudioMeter',

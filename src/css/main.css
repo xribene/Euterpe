@@ -395,9 +395,10 @@ without using !important */
     font-family: roboto;
 } */
 
-li {
+
+/* li {
     background-color: var(--grey-background-color);
     color: var(--text-color);
     border: 0px;
     font-size: 16px;
-}
+} */
