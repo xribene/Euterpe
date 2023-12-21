@@ -33,7 +33,7 @@ import {
 
 import {urlFromFiles, isMobile, isNotChrome} from '@/utils/helpers.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
-import { selectedAgent } from '@/agents/selectedAgent.js'
+// import { selectedAgent } from '/agents/selectedAgent.js'
 
 export default {
 
@@ -58,7 +58,7 @@ export default {
             // Choose the agent.
             // This string should be one of
             // dir names inside public/agents/
-            agentName: selectedAgent,
+            agentName: 'BachDuet',
             // Provide all the config files that should be loaded
             // These should be in public/agents/{agentName}/
             configFiles: ['config.yaml',
@@ -258,7 +258,8 @@ export default {
 
 
         // Initialize agent worker
-        vm.agent = new Worker(`src/agents/${vm.agentName}/agent.js`, {type: 'module'});
+        // vm.agent = new Worker(`src/agents/${vm.agentName}/agent.js`, {type: 'module'});
+        vm.agent = new Worker(`/agents/${vm.agentName}/agent.js`, {type: 'module'});
 
         vm.agent.onmessage = vm.agentCallback;
 
@@ -1385,7 +1386,7 @@ export default {
 
             // First, load all the configs files and merge them into one
             const configFilesURL = this.configFiles.map((file) => {
-                return `src/agents/${this.agentName}/${file}`;
+                return `/agents/${this.agentName}/${file}`;
             });
             // get all files using xhr
             const xhrs = configFilesURL.map((url) => {
@@ -1413,7 +1414,7 @@ export default {
         },
 
         loadIntroMdSync() {
-            const url = `src/agents/${this.agentName}/${this.config.introModalMarkdown}`;
+            const url = `/agents/${this.agentName}/${this.config.introModalMarkdown}`;
             const xhr = new XMLHttpRequest();
             xhr.open('GET', url, false); // Set async to false to make a synchronous request
             xhr.send();
