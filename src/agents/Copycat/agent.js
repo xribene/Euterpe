@@ -126,7 +126,7 @@ function initParameterSharing(content) {
     self.param_writer = new ParameterWriter(
         new RingBuffer(content.sab_par_agent, Uint8Array),
     );
-    uiParameterIntervalID = setInterval(_uiParameterObserver, 100);
+    uiParameterIntervalID = setInterval(_uiParameterObserver, 10);
 }
 
 /**

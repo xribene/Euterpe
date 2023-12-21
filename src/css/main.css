@@ -163,6 +163,7 @@ the whole parent's height */
     height: 520px;
     /* height: 100%; */
     flex: 1;
+    font: monospace !important;
 }
 
 /* Don't know how to overwrite the markdown's css

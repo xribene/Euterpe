@@ -4,9 +4,10 @@ Import custom components
 */
 import Keyboard from '@/components/Keyboard.vue';
 import PianoRoll from '@/components/PianoRoll.vue';
-import Score from '@/components/ScoreWorking.vue';
-import VerticalSlider from '@/components/VerticalSlider.vue';
+import Score from '@/components/Score.vue';
+// import VerticalSlider from '@/components/VerticalSlider.vue';
 // import HorizontalSlider from '@/components/HorizontalSlider.vue'
+import Slider from '@/components/Slider.vue';
 import AudioMeter from '@/components/AudioMeter.vue';
 // import VectorBar from "../components/VectorBar.vue";
 import ChromaChart from '@/components/ChromaChart.vue';
@@ -42,7 +43,8 @@ export default {
         Keyboard,
         Score,
         PianoRoll,
-        VerticalSlider,
+        // VerticalSlider,
+        // Slider,
         AudioMeter,
         TextBox,
         Mixer,

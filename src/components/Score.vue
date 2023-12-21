@@ -1,6 +1,6 @@
-<!-- eslint-disable require-jsdoc -->
 <template>
-  <div ref="score" id="pianoScores">
+  <!-- <div ref="score" id="pianoScores"> -->
+  <div @wheel="onWheel" ref="score" id="pianoScores">
     <div v-touch:swipe.up="triggerCollapse" id="scoreWrapper">
       <div id="fadeBlockStart"></div>
       <div id="grandStaff"></div>
@@ -21,21 +21,19 @@
 <script>
 // import '../css/score.css';
 import '../css/variables.css';
-import {Note} from '@tonaljs/tonal';
+import {Note, Midi} from '@tonaljs/tonal';
 import * as Vex from 'vexflow';
-// Here, we define the separate point between treble clef and bass clef for both staff.
-// const CLEF_SEPARATE_AT = 'B3';
+const CLEF_SEPARATE_AT = 'B3'; // Here, we define the separate point between treble clef and bass clef for both staff.
 
-// eslint-disable-next-line require-jsdoc
-function noteFormatter(note) {
+function NoteFormatter(note) {
     // Expecting input: "C#1" or "C3"
 
     if (note.charAt(1) == '#') {
         return (
             note.charAt(0).toLowerCase() +
-            note.charAt(1) +
-            '/' +
-            note.substring(2, note.length)
+      note.charAt(1) +
+      '/' +
+      note.substring(2, note.length)
         );
     } else {
         return note.charAt(0).toLowerCase() + '/' + note.substring(1, note.length);
@@ -43,12 +41,16 @@ function noteFormatter(note) {
 }
 
 export default {
-    name: 'ScoreComponent',
+    name: 'Score',
     props: {
         scrollStatus: {
             type: Boolean,
             default: true,
         },
+        // scoreShown: {
+        //     type: Boolean,
+        //     default: true,
+        // },
     },
 
     data() {
@@ -87,6 +89,7 @@ export default {
             durations: null,
             lastXOffsetOnBar: null, // TODO delete that after I'm done
             viewX: 30,
+            viewXOnWheel: 30,
             xTreble: 30,
             xBass: 30,
             xCurrent: 30,
@@ -118,14 +121,14 @@ export default {
     },
 
     watch: {
-        // scoreShown: {
-        //   immediate: true,
-        //   handler(newValue, oldValue) {
-        //     if (newValue == true) {
-        //       this.triggerCollapse();
-        //     }
-        //   }
-        // },
+    // scoreShown: {
+    //   immediate: true,
+    //   handler(newValue, oldValue) {
+    //     if (newValue == true) {
+    //       this.triggerCollapse();
+    //     }
+    //   }
+    // },
         scrollEnabled: { // TODO should scrollEnabled be in data() ?
             immediate: true,
             handler(newValue, oldValue) {
@@ -151,13 +154,13 @@ export default {
         const grandStaffChildren = grandStaff.children;
         for (let i = 0; i < grandStaffChildren.length; i++) {
             const grandStaffChildrenChildren = grandStaffChildren[i].children;
-            for (let j = 0; j < grandStaffChildrenChildren.length; j++) {
+            for (var j = 0; j < grandStaffChildrenChildren.length; j++) {
                 grandStaffChildrenChildren[j].style.fill = this.lineColor;
                 grandStaffChildrenChildren[j].style.stroke = this.lineColor;
             }
         }
         const clefs = document.getElementsByClassName('vf-clef');
-        for (let j = 0; j < clefs.length; j++) {
+        for (var j = 0; j < clefs.length; j++) {
             const clefPath = clefs[j].children[0];
             clefPath.style.fill = this.lineColor;
             clefPath.style.stroke = this.lineColor;
@@ -170,7 +173,7 @@ export default {
         },
 
         init() {
-            // const vm = this;
+            const vm = this;
             // Render the grand staff.
             this.grandStaffDiv = document.getElementById('grandStaff');
             this.grandStaffRenderer = new this.VF.Renderer(
@@ -268,17 +271,23 @@ export default {
                     this.scrollScore(1);
                     this.scrollsCounter += 1;
                     this.scrollsNumberPerMeasure =
-                        ((60 / this.$store.getters.getBPM) * 4 * 1000) /
-                        this.scrollStepTime;
+            ((60 / this.$store.getters.getBPM) * 4 * 1000) /
+            this.scrollStepTime;
                 }
             }, this.scrollStepTime);
         },
 
         scrollScore(steps) {
             this.viewX +=
-                (steps * (this.scrollStepTime * this.tickStepPixels)) /
-                ((1000 * 60) / this.$store.getters.getBPM / 4);
+        (steps * (this.scrollStepTime * this.tickStepPixels)) /
+        ((1000 * 60) / this.$store.getters.getBPM / 4);
             this.context.setViewBox(this.viewX, 0, this.screenWidth, 300);
+            this.viewXOnWheel = this.viewX;
+        },
+
+        onWheel(event) {
+            this.viewXOnWheel -= (event.deltaX + event.deltaY);
+            this.context.setViewBox(this.viewXOnWheel, 0, this.screenWidth, 300);
         },
 
         formatQuantizedNote(quantNoteDict, clef = 'treble', afairetis = 0) {
@@ -292,13 +301,13 @@ export default {
                 formName = clef == 'treble' ? 'b/4' : 'd/2';
                 extraR = 'r';
             } else {
-                formName = noteFormatter(Note.fromMidiSharps(quantNoteDict.midi));
+                formName = NoteFormatter(Note.fromMidiSharps(quantNoteDict.midi));
             }
 
             // get formatted duration
-            let durationTokens = null;
-            let durations = null;
-            [durationTokens, durations] = this.durationFormatter(
+            let durationTokens;
+            let durations;
+            [durationTokens, durations] = this.DurationFormatter(
                 quantNoteDict.dur - afairetis,
             );
             // console.log(formName, " ", durationTokens);
@@ -317,10 +326,10 @@ export default {
                     const dot = new vm.VF.Dot();
                     // dot.setDotShiftY(newNote.glyph.dot_shiftY);
                     newNote.addModifier(dot, 0);
-                    // newNote.addDotToAll();
+                // newNote.addDotToAll();
                 }
                 if (formName.charAt(1) == '#') {
-                    // newNote.addAccidental(0, new vm.VF.Accidental("#"));
+                // newNote.addAccidental(0, new vm.VF.Accidental("#"));
                     newNote.addModifier(new vm.VF.Accidental('#'), 0);
                 }
                 notes.push(newNote);
@@ -332,13 +341,15 @@ export default {
         // repeat code
 
         drawTop(quantNoteDict) {
+            let notesToDraw;
+            let durations;
             const processed = this.formatQuantizedNote(
                 quantNoteDict,
                 'treble',
                 this.afairetisHuman,
             );
-            const notesToDraw = processed.notes;
-            const durations = processed.durations;
+            notesToDraw = processed.notes;
+            durations = processed.durations;
             this.tickContexts[0].setX(this.xTreble);
 
             if (durations.length === 1 && durations[0] === 1) {
@@ -356,12 +367,12 @@ export default {
             // So I have to replicate some of its functionallity manually.
             // One problem is that the current X position of the note is not
             // stored as a class field, and that's why I have to maintain the external
-            // variables firstX, lastX
+            // variables first_x, last_x
             const group = this.context.openGroup();
 
             this.lastSvgGroupTreble = group;
             this.lastSvgGroupTrebleXOffset = this.xTreble;
-            let firstX = this.xTreble;
+            let first_x = this.xTreble;
             for (let i = 0; i < notesToDraw.length; i++) {
                 const currentNote = notesToDraw[i];
                 // console.log(i, " ", currentNote);
@@ -375,9 +386,9 @@ export default {
                 this.xTreble += this.tickStepPixels * durations[i];
                 this.tickContexts[0].setX(this.xTreble);
                 if (i == 0 && this.barTieHuman == true) {
-                    // let lastX = this.xTreble;
+                    // let last_x = this.xTreble;
                     // console.log("IN BAR CURVE");
-                    const curve = new this.VF.Curve(
+                    var curve = new this.VF.Curve(
                         this.lastDrawnNote_Human_prevBar,
                         notesToDraw[0],
 
@@ -388,47 +399,46 @@ export default {
                             ],
                             // invert: true,
                             // position_end: 'nearTop',
-                            xShift: 2 * notesToDraw[0].getWidth(),
-                            yShift: 20,
+                            x_shift: 2 * notesToDraw[0].getWidth(),
+                            y_shift: 20,
                         },
                     );
                     curve.setContext(this.context);
                     // curve.draw()
                     curve.renderCurve({
-                        firstX: this.lastSvgGroupTrebleXOffset_lastNote_prevBar + 40,
-                        lastX: this.xTreble + 40,
-                        firstY: this.lastDrawnNote_Human_prevBar.getYs()[0],
-                        lastY: notesToDraw[0].getYs()[0],
+                        first_x: this.lastSvgGroupTrebleXOffset_lastNote_prevBar + 40,
+                        last_x: this.xTreble + 40,
+                        first_y: this.lastDrawnNote_Human_prevBar.getYs()[0],
+                        last_y: notesToDraw[0].getYs()[0],
                         direction: -1,
                     });
                     this.barTieHuman = false;
-                    // firstX = lastX;
+                    // first_x = last_x;
                 }
 
                 if (i > 0) {
-                    const lastX = this.xTreble;
-                    // TODO : this indexing here is not generic,
-                    // it works only if we have 2 notesToDraw
-                    const curve = new this.VF.Curve(notesToDraw[0], notesToDraw[1], {
+                    const last_x = this.xTreble;
+                    // TODO : this indexing here is not generic, it works only if we have 2 notesToDraw
+                    var curve = new this.VF.Curve(notesToDraw[0], notesToDraw[1], {
                         cps: [
                             {x: 0, y: 20},
                             {x: 0, y: 20},
                         ],
                         // invert: true,
                         // position_end: 'nearTop',
-                        xShift: 2 * notesToDraw[0].getWidth(),
-                        yShift: 20,
+                        x_shift: 2 * notesToDraw[0].getWidth(),
+                        y_shift: 20,
                     });
                     curve.setContext(this.context);
                     // curve.draw()
                     curve.renderCurve({
-                        firstX: firstX + 40,
-                        lastX: lastX + 40,
-                        firstY: notesToDraw[0].getYs()[0],
-                        lastY: notesToDraw[1].getYs()[0],
+                        first_x: first_x + 40,
+                        last_x: last_x + 40,
+                        first_y: notesToDraw[0].getYs()[0],
+                        last_y: notesToDraw[1].getYs()[0],
                         direction: -1,
                     });
-                    firstX = lastX;
+                    first_x = last_x;
                 }
             }
             // TODO fix the names and maybe group all the Human and AI variables in one.
@@ -438,13 +448,15 @@ export default {
         },
 
         drawBottom(quantNoteDict) {
+            let notesToDraw;
+            let durations;
             const processed = this.formatQuantizedNote(
                 quantNoteDict,
                 'bass',
                 this.afairetisAI,
             );
-            const notesToDraw = processed.notes;
-            const durations = processed.durations;
+            notesToDraw = processed.notes;
+            durations = processed.durations;
             this.tickContexts[1].setX(this.xBass);
 
             if (durations.length === 1 && durations[0] === 1) {
@@ -493,10 +505,10 @@ export default {
                 this.afairetisAI = 0;
                 this.barTieAI = false;
             }
-            // TODO : localTickDelayed is the same as localTick because
-            // I call draw after I increase localTickDelayed
+            // TODO : localTickDelayed is the same as localTick because I call draw after I increase localTickDelayed
             if (this.$store.getters.getLocalTickDelayed % 16 === 0) {
                 // this.lastDrawnNote_Human_prevBar = this.lastDrawnNote_Human;
+                // this.lastSvgGroupTrebleXOffset_lastNote_prevBar = this.lastSvgGroupTrebleXOffset_lastNote;
                 if (humanQuantNoteDict.dur == 1) {
                     this.afairetisHuman = 0;
                     this.barTieHuman = false;
@@ -542,10 +554,8 @@ export default {
                 );
                 // Scrolling problem. The setTimeout function doesn't behave accurately.
                 // At 60bpm and 10ms interval, it should run 400 (scrolls) per measure, however
-                // it doesn't. Notice that in a previous version of
-                // the code we didn't have this problem
-                // The solution I implement here is that at the end of each bar,
-                // check how many scrolls are missing,
+                // it doesn't. Notice that in a previous version of the code we didn't have this problem
+                // The solution I implement here is that at the end of each bar, check how many scrolls are missing,
                 // and srcoll accordingly. The problem is that this creates sudden "jumps".
                 // To fix that we can try to perform this check more often (i.e every beat)
 
@@ -569,7 +579,7 @@ export default {
             if (this.$store.getters.getLocalTickDelayed % 16 === 15) {
                 this.lastDrawnNote_Human_prevBar = this.lastDrawnNote_Human;
                 this.lastSvgGroupTrebleXOffset_lastNote_prevBar =
-                this.lastSvgGroupTrebleXOffset_lastNote;
+          this.lastSvgGroupTrebleXOffset_lastNote;
             }
         },
 
@@ -589,7 +599,7 @@ export default {
             }
         },
 
-        durationFormatter(duration) {
+        DurationFormatter(duration) {
             // 1 --> 16
             // 2 --> 8
             // 3 --> 8.

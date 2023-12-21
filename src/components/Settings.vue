@@ -1,7 +1,7 @@
 <template>
     <div>
         <modal name="settingsModal" :minWidth=700 :minHeight=600 :adaptive="true">
-            <div style="padding:0; margin: 0; ">
+            <div class="settingsContainer">
                 <div class="settingsHeader">
                     <p class="settingsTitle">
                         Settings
@@ -18,21 +18,17 @@
                             <md-icon class="settingsIcon">history_toggle_off</md-icon> <br />
                             <span style="line-height:36px">Clock</span>
                         </p>
-                        <div class="md-layout md-gutter md-alignment-left settingsBordered">
-                            <div class="md-layout-item md-small-size-50 md-xsmall-size-100">
-                                <div class="settingsDiv">
-                                    <p class="settingsOptionTitle">BPM (Max: {{ maxBPM }})</p>
-                                    <div style="padding-top: 14px">
-                                        <BPMSlider v-model="currentBPM" :min="60" :max="120"
-                                                    @bpmChangeEvent="bpmValueChanged"/>
-                                    </div>
-                                </div>
+                        <div class="settingsDiv">
+                            <p class="settingsOptionTitle">BPM (Max: {{ maxBPM }})</p>
+                            <div style="padding-top: 14px">
+                                <BPMSlider v-model="currentBPM" :min="60" :max="120"
+                                            @bpmChangeEvent="bpmValueChanged"/>
                             </div>
                         </div>
                     </div>
 
                     <div id="MIDISection" style="display:flex;
-                            justify-content:start;align-items:center;margin-top:50px">
+                            justify-content:start;align-items:center;margin-top:30px">
                         <p class="settingsSubtitle settingsBorderedTitle" style="padding:0">
                             <md-icon class="settingsIcon" style="font-weight:400">piano
                             </md-icon> <br />
@@ -51,55 +47,44 @@
                             functionalities.</span>
                     </div>
                     <!-- <modal name="settingsModal" :minWidth="700" :minHeight="600" :adaptive="true"> -->
-                    <p class="settingsSubtitle">Agent Parameters</p>
-                    <!-- <div class="md-layout md-gutter md-alignment-center"> -->
-                        <!-- <div class="md-layout-item md-large-size-50 md-small-size-100">
-                            <div class="md-layout md-gutter md-alignment-center"
-                                style="display:flex;align-items:center;justify-content:center;"> -->
-                                <!-- Sliders for agent Parameters -->
-                                <div v-for="sliderItem in sliders" :key="'slider' + sliderItem.id"
-                                    class="md-layout-item md-large-size-25 md-alignment-center"
-                                    style="display:flex;align-items:center;
-                                        justify-content:center;">
-                                    <HorizontalSlider v-model="sliderItem.value"
-                                                    :min="sliderItem.min" :max=sliderItem.max
-                                        :label="sliderItem.label" />
+                    <div style="display: flex; flex-direction:column;">
+                        <p class="settingsAgentSubtitle">Agent Parameters</p>
+                        <!-- Sliders for agent Parameters -->
+                        <div class="agentParametersContainer">
+                            <div v-if="sliders.length > 0" class="controlCollection">
+                                <div v-for="sliderItem in sliders" :key="'slider' + sliderItem.id">
+                                    <Slider
+                                        v-model="sliderItem.value"
+                                        :min="sliderItem.min"
+                                        :max=sliderItem.max
+                                        :label="sliderItem.label"
+                                    />
                                 </div>
-                            <!-- </div>
-                        </div> -->
-                        <!-- <div class="md-layout-item md-large-size-50 md-small-size-100">
-                            <div class="md-layout md-gutter md-alignment-center"> -->
-                                <!-- Buttons for agent Parameters -->
+                            </div>
+
+                            <!-- Buttons for agent Parameters -->
+                            <div v-if="buttons.length > 0" class="controlCollection">
                                 <div v-for="buttonItem in buttons" :key="'button' + buttonItem.id">
-                                    <!-- class="md-layout-item md-large-size-100"> -->
-                                    <md-button
-                                        @click="buttonAction(buttonItem.id)"
-                                        style="width: 100%">
-                                        <span class="forceTextColor">{{ buttonItem.label }}
-                                        </span>
-                                    </md-button>
+                                    <button class="agentParameterButton"
+                                        @click="buttonAction(buttonItem.id)">
+                                        <!-- <span class="forceTextColor">{{ buttonItem.label }}
+                                        </span> -->
+                                        {{ buttonItem.label }}
+                                    </button>
                                 </div>
-                            <!-- </div>
-                        </div>
-                    </div> -->
-                    <!-- <div class="md-layout md-gutter md-alignment-center">
-                        <div class="md-layout-item md-large-size-100">
-                            <div class="md-layout md-gutter md-alignment-center"> -->
-                                <!-- Switches for agent Parameters -->
-                                <div v-for="swi in switches" :key="'switch' + swi.id">
-                                    <!-- class="md-layout-item md-large-size-25 md-medium-size-50"
-                                    style="display:flex;align-items:center;
-                                        justify-content:center;padding-top:17px"> -->
-                                    <span style="padding:0; margin:0;">{{ swi.label }}</span>
-                                    <div style="display:block; min-width:30px;">
-                                        <toggle-button color="#74601c" v-model="swi.status"
-                                            style="transform: scale(0.9);" />
-                                    </div>
+                            </div>
+                            <!-- Switches for agent Parameters -->
+                            <div v-if="switches.length > 0" class="controlCollection">
+                                <div class="switchContainer" v-for="swi in switches" :key="'switch' + swi.id">
+                                    <div class="switchLabel">{{ swi.label }}</div>
+                                    <toggle-button class="switch"
+                                        color="#e6a100"
+                                        v-model="swi.status"
+                                        />
                                 </div>
-                            <!-- </div>
+                            </div>
                         </div>
-                    </div> -->
-                    <!-- </modal> -->
+                    </div>
                 </div>
             </div>
         </modal>
@@ -107,14 +92,16 @@
 </template>
 
 <script>
-import HorizontalSlider from './HorizontalSlider.vue';
+// import HorizontalSlider from './HorizontalSlider.vue';
+import Slider from './Slider.vue'
 import BPMSlider from './BPMSlider.vue';
 import Dropdown from 'vue-simple-search-dropdown';
 
 export default {
     name: 'SettingsModal',
     components: {
-        HorizontalSlider,
+        // HorizontalSlider,
+        Slider,
         BPMSlider,
         Dropdown
     },
@@ -149,6 +136,18 @@ export default {
         };
     },
 
+    // TODO: Use the sortedCollection to render the controls in the correct order
+    computed: {
+        sortedCollections() {
+            const collections = [
+                { type: "sliders", items: this.sliders, component: "Slider", props: {} },
+                { type: "buttons", items: this.buttons, component: "button", props: {} },
+                { type: "switches", items: this.switches, component: "ToggleButton", props: { color: "#e6a100" } },
+            ];
+            return collections.sort((a, b) => b.items.length - a.items.length);
+        },
+    },
+
     methods: {
         buttonAction(id) {
             // Emit an event to notify the parent about the button action
@@ -163,27 +162,29 @@ export default {
             this.$emit('bpm-change', bpm);
         },
     },
+
 };
 </script>
 
 <style scoped>
-.forceTextColor {
-    color: var(--text-color)!important;
+
+.settingsContainer {
+    display: flex;
+    flex-direction: column;
+    height: 600px;
 }
+
 .settingsTitle {
     font-size: 30px;
-    padding-left: 5%;
-    display: inline-block;
+    padding-left: 2%;
     font-weight: 800;
     color: var(--button-background-color);
     font-family: roboto;
 }
 .settingsHeader {
+    flex: 1;
+    flex-basis: 10%;
     z-index: 999;
-    position: absolute;
-    width: 100%;
-    height: 80px;
-    padding: 10px;
     margin: 0;
     background: var(--grey-background-color);
     color: var(--text-color);
@@ -202,7 +203,29 @@ export default {
     font-weight: 800;
     font-size: 24px;
     padding-top: 30px;
-    padding-bottom: 10px;
+    padding-bottom: 0px;
+}
+
+.agentParametersContainer {
+    display: flex;
+    flex-direction: row;
+}
+
+.controlCollection {
+    flex: 1;
+    flex-basis: 33%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-right: 1px dashed var(--foreground-color);
+    text-align: center;
+}
+.settingsAgentSubtitle {
+    margin: 0;
+    font-weight: 800;
+    font-size: 24px;
+    padding-top: 30px;
+    padding-bottom: 30px;
 }
 
 .settingsDiv {
@@ -215,6 +238,7 @@ export default {
 .settingsOptionTitle {
     margin: 0;
     font-weight: 800;
+    font-size: 20px;
 }
 
 .settingsBorderedTitle {
@@ -238,12 +262,71 @@ export default {
 }
 
 .settingsContent {
+    flex: 1;
+    flex-basis: 90%;
     background-color: var(--grey-background-color);
     color: var(--text-color);
-    height: 100%;
-    padding: 80px 20px 20px 20px;
-    font-size: 32px;
+    font-size: 25px;
     font-family: roboto;
+    overflow-y: scroll;
+    padding-left: 2%;
+    padding-top: 2%;
+}
+
+.slider {
+    writing-mode: bt-lr;
+    /* -webkit-appearance: slider-horizontal; */
+    width: 200px;
+    height: 20px;
+    padding: 0;
+    margin: 0;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+
+
+.agentParameterButton {
+    background-color: var(--grey-background-color);
+    border-radius: 8px;
+    width: 50%;
+    color: var(--button-background-color);
+    font-size: 20px;
+    box-shadow: 0 0 10px 0 var(--background-color);
+}
+
+.agentParameterButton:hover {
+    background-color: var(--button-background-color);
+    border-radius: 8px;
+    width: 50%;
+    color: var(--grey-background-color);
+    font-size: 20px;
+}
+
+.switchContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    border-right: 1px dashed var(--foreground-color);
+    width: 100%;
+    text-align: center;
+}
+
+.switchLabel {
+    flex: 1;
+    flex-basis: 50%;
+    align-content: center;
+    text-align: center;
+}
+
+.switch {
+    flex: 1;
+    flex-basis: 50%;
+    align-content: center;
+    text-align: center;
 }
 
 </style>
