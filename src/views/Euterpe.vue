@@ -258,7 +258,9 @@ export default {
 
 
         // Initialize agent worker
-        vm.agent = new Worker(`src/agents/${vm.agentName}/agent.js`, {type: 'module'});
+        // vm.agent = new Worker(`src/agents/EmptyAgent/agent.js`, {type: 'module'});
+        vm.agent = new Worker(new URL(`../agents/EmptyAgent/agent.js`, import.meta.url), { type: 'module' });
+
 
         vm.agent.onmessage = vm.agentCallback;
 
@@ -1385,7 +1387,7 @@ export default {
 
             // First, load all the configs files and merge them into one
             const configFilesURL = this.configFiles.map((file) => {
-                return `src/agents/${this.agentName}/${file}`;
+                return `/agents/EmptyAgent/${file}`;
             });
             // get all files using xhr
             const xhrs = configFilesURL.map((url) => {
@@ -1413,7 +1415,7 @@ export default {
         },
 
         loadIntroMdSync() {
-            const url = `src/agents/${this.agentName}/${this.config.introModalMarkdown}`;
+            const url = `/agents/EmptyAgent/${this.config.introModalMarkdown}`;
             const xhr = new XMLHttpRequest();
             xhr.open('GET', url, false); // Set async to false to make a synchronous request
             xhr.send();
