@@ -33,7 +33,13 @@ import {
 
 import {urlFromFiles, isMobile, isNotChrome} from '@/utils/helpers.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
-import { selectedAgent } from '@/agents/selectedAgent.js'
+import { selectedAgent } from '@/agent-examples/selectedAgent.js'
+
+import configPlayers from '@/agent/config_players.yaml';
+import configWidgets from '@/agent/config_widgets.yaml';
+import configBase from '@/agent/config.yaml';
+import { markdown } from '@/agent/introModal.md';
+
 
 export default {
 
@@ -61,10 +67,13 @@ export default {
             agentName: selectedAgent,
             // Provide all the config files that should be loaded
             // These should be in public/agents/{agentName}/
-            configFiles: ['config.yaml',
-                'config_widgets.yaml',
-                'config_players.yaml'],
-            config: null,
+            // configFiles: ['config.yaml',
+            //     'config_widgets.yaml',
+            //     'config_players.yaml'],
+            config: { ...configBase, ...configPlayers, ...configWidgets },
+            // intro text content
+            intro_text_content: markdown,
+
             playerType,
             instrumentType,
             eventSourceType,
@@ -149,9 +158,6 @@ export default {
             timeout_IDS_live: [],
 
             mixer_data: null,
-
-            // intro text content
-            intro_text_content: null,
         };
     },
 
@@ -159,8 +165,8 @@ export default {
         const vm = this;
 
         console.log('created main start');
-        this.loadConfigSync();
-        this.loadIntroMdSync();
+        // this.loadConfigSync();
+        // this.loadIntroMdSync();
         console.log('load intro md sync done');
         console.log('load config sync done');
 
@@ -259,7 +265,7 @@ export default {
 
         // Initialize agent worker
         // vm.agent = new Worker(`src/agents/EmptyAgent/agent.js`, {type: 'module'});
-        vm.agent = new Worker(new URL(`../agents/EmptyAgent/agent.js`, import.meta.url), { type: 'module' });
+        vm.agent = new Worker(new URL(`../agent/agent.js`, import.meta.url), { type: 'module' });
 
 
         vm.agent.onmessage = vm.agentCallback;
@@ -1412,6 +1418,7 @@ export default {
             } else {
                 this.config = yaml.load(config);
             }
+
         },
 
         loadIntroMdSync() {
@@ -1424,6 +1431,7 @@ export default {
             } else {
                 throw new Error(`Failed to fetch intro.md file: ${xhr.status}`);
             }
+            let aa = this.intro_text_content_new;
         }
     },
 
