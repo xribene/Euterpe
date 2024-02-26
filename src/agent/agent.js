@@ -1,6 +1,5 @@
-import * as tf from 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.7.0/dist/tf.min.js';
-import 'https://cdn.jsdelivr.net/npm/@magenta/music@1.23.0/es6/piano_genie.js';
-// tf.disableDeprecationWarnings();
+import * as tf from './tf.min.js';
+import './piano_genie.js';
 
 import {
     updateParameter,
