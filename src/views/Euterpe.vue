@@ -61,15 +61,6 @@ export default {
 
     data() {
         return {
-            // Choose the agent.
-            // This string should be one of
-            // dir names inside public/agents/
-            // agentName: selectedAgent,
-            // Provide all the config files that should be loaded
-            // These should be in public/agents/{agentName}/
-            // configFiles: ['config.yaml',
-            //     'config_widgets.yaml',
-            //     'config_players.yaml'],
             config: { ...configBase, ...configPlayers, ...configWidgets },
             // intro text content
             intro_text_content: markdown,
@@ -165,10 +156,6 @@ export default {
         const vm = this;
 
         console.log('created main start');
-        // this.loadConfigSync();
-        // this.loadIntroMdSync();
-        console.log('load intro md sync done');
-        console.log('load config sync done');
 
         this.$store.commit('setConfig', this.config);
         this.$store.commit('initQuantBuffers', this.config);
