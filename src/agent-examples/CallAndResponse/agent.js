@@ -1,6 +1,3 @@
-// importScripts("https://cdn.jsdelivr.net/npm/meyda@5.6.0/dist/web/meyda.min.js")
-import 'https://cdn.jsdelivr.net/npm/meyda@5.6.1/dist/web/meyda.min.js';
-
 import {
     updateParameter,
     loadAlgorithm,
@@ -58,8 +55,8 @@ self.param_writer = null;
     this dictionary to know which note(s) to turn off.
     To be used by the processNoteEvent() hook.
     An example of how to use it can be found
-    in public/agents/pianoGenie/processNoteEvent_hook.js
-    and public/agents/copycat/processNoteEvent_hook.js
+    in src/agent-examples//pianoGenie/processNoteEvent_hook.js
+    and src/agent-examples//copycat/processNoteEvent_hook.js
 */
 self.userToAgentNoteMapping = {};
 
@@ -213,7 +210,7 @@ function initAudio(content) {
     */
     staging = new Float32Array(self.hopSize);
 
-    Meyda.bufferSize = self.config.audioModeSettings.windowSize;
+    // Meyda.bufferSize = self.config.audioModeSettings.windowSize;
     // console.log(self.windowSize, " ", self.Meyda.bufferSize);
     stagingIntervalID = setInterval(_readFromQueue, 10);
     console.log('finished setting up audio');

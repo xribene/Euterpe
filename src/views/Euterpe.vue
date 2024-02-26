@@ -33,7 +33,13 @@ import {
 
 import {urlFromFiles, isMobile, isNotChrome} from '@/utils/helpers.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
-import { selectedAgent } from '@/agents/selectedAgent.js'
+// import { selectedAgent } from '@/agent-examples/selectedAgent.js'
+
+import configPlayers from '@/agent/config_players.yaml';
+import configWidgets from '@/agent/config_widgets.yaml';
+import configBase from '@/agent/config.yaml';
+import { markdown } from '@/agent/introModal.md';
+
 
 export default {
 
@@ -55,16 +61,10 @@ export default {
 
     data() {
         return {
-            // Choose the agent.
-            // This string should be one of
-            // dir names inside public/agents/
-            agentName: selectedAgent,
-            // Provide all the config files that should be loaded
-            // These should be in public/agents/{agentName}/
-            configFiles: ['config.yaml',
-                'config_widgets.yaml',
-                'config_players.yaml'],
-            config: null,
+            config: { ...configBase, ...configPlayers, ...configWidgets },
+            // intro text content
+            intro_text_content: markdown,
+
             playerType,
             instrumentType,
             eventSourceType,
@@ -149,9 +149,6 @@ export default {
             timeout_IDS_live: [],
 
             mixer_data: null,
-
-            // intro text content
-            intro_text_content: null,
         };
     },
 
@@ -159,10 +156,6 @@ export default {
         const vm = this;
 
         console.log('created main start');
-        this.loadConfigSync();
-        this.loadIntroMdSync();
-        console.log('load intro md sync done');
-        console.log('load config sync done');
 
         this.$store.commit('setConfig', this.config);
         this.$store.commit('initQuantBuffers', this.config);
@@ -258,7 +251,7 @@ export default {
 
 
         // Initialize agent worker
-        vm.agent = new Worker(`src/agents/${vm.agentName}/agent.js`, {type: 'module'});
+        vm.agent = new Worker(new URL(`../agent/agent.js`, import.meta.url), { type: 'module' });
 
         vm.agent.onmessage = vm.agentCallback;
 
@@ -1374,55 +1367,6 @@ export default {
                 };
             }
         },
-
-        loadConfigSync() {
-            // Read about sync and async requests here:
-            // eslint-disable-next-line max-len
-            // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Synchronous_and_Asynchronous_Requests
-            // In our case, we need to load the config asap, since
-            // the config contains also info to generate the UI.
-            // If not, the app will crash anyway, so it's worth waiting for it.
-
-            // First, load all the configs files and merge them into one
-            const configFilesURL = this.configFiles.map((file) => {
-                return `src/agents/${this.agentName}/${file}`;
-            });
-            // get all files using xhr
-            const xhrs = configFilesURL.map((url) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', url, false); // Set async to false
-                xhr.send();
-                return xhr;
-            });
-            // go over the xhrs, check which are 200, and concat them
-            // for the rest of the files, throw an error
-            let config = '';
-            xhrs.forEach((xhr) => {
-                if (xhr.status === 200) {
-                    config += xhr.responseText + '\n';
-                } else {
-                    throw new Error(`Failed to fetch config file: ${xhr.status}`);
-                }
-            });
-
-            if (config === '') {
-                throw new Error('Failed to fetch config file: empty');
-            } else {
-                this.config = yaml.load(config);
-            }
-        },
-
-        loadIntroMdSync() {
-            const url = `src/agents/${this.agentName}/${this.config.introModalMarkdown}`;
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', url, false); // Set async to false to make a synchronous request
-            xhr.send();
-            if (xhr.status === 200) {
-                this.intro_text_content = xhr.responseText;
-            } else {
-                throw new Error(`Failed to fetch intro.md file: ${xhr.status}`);
-            }
-        }
     },
 
     computed: {

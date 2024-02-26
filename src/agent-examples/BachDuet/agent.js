@@ -1,3 +1,6 @@
+// Import tensorflow.js
+import * as tf from 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.7.0/dist/tf.min.js';
+
 import {
     updateParameter,
     loadAlgorithm,
@@ -56,8 +59,8 @@ self.param_writer = null;
     this dictionary to know which note(s) to turn off.
     To be used by the processNoteEvent() hook.
     An example of how to use it can be found
-    in public/agents/pianoGenie/processNoteEvent_hook.js
-    and public/agents/copycat/processNoteEvent_hook.js
+    in src/agent-examples/pianoGenie/processNoteEvent_hook.js
+    and src/agent-examples/copycat/processNoteEvent_hook.js
 */
 self.userToAgentNoteMapping = {};
 
@@ -126,7 +129,7 @@ function initParameterSharing(content) {
     self.param_writer = new ParameterWriter(
         new RingBuffer(content.sab_par_agent, Uint8Array),
     );
-    uiParameterIntervalID = setInterval(_uiParameterObserver, 10);
+    uiParameterIntervalID = setInterval(_uiParameterObserver, 100);
 }
 
 /**
