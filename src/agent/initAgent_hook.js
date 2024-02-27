@@ -45,7 +45,7 @@ export function updateParameter(newUpdate) {
 
 export async function loadExternalFiles(content) {
     // Put your code here
-    await fetch('globalTokenIndexDict.json').then((response) => {
+    await fetch('/globalTokenIndexDict.json').then((response) => {
         return response.json();
     }).then((data) => {
         self.tokenIndexDict = data;
