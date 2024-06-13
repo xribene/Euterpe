@@ -1,6 +1,6 @@
 ---
 # The name of your system
-title: "Empty Agent"
+title: "Call & Response"
 subtitle: "Built with Euterpe"
 
 # Set the correct flags based on the type of your music interaction algorithm
@@ -12,11 +12,11 @@ noteModeSettings:
   eventBased:
     # If eventBased.status: true, then the worker's processNoteEvent() hook is active
     # for instant processing of each user's MIDI event.
-    status: false
+    status: true
   gridBased:
     # If gridBased.status: true, then the worker's processClockEvent() hook is active
     # for processing raw and quantized MIDI events buffers at every "clock-tick"
-    status: false
+    status: true
     # Choose what information you want Euterpe to provide to your algorithm (Worker)
     # when calling the processClockEvent() hook, at every clock-tick (or grid slot)
     eventBuffer: false # A buffer with all the MIDI events played by the user since the last tick (grid slot).
