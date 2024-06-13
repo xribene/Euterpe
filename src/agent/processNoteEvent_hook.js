@@ -34,5 +34,3 @@ export function processNoteEvent(noteEvent) {
         [self.messageType.NOTE_LIST]: noteList,
     };
 }
-
-

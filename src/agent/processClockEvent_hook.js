@@ -1,56 +1,111 @@
-import {
-    euterpeNoteToBachDuetNote,
-    bachDuetNoteToEuterpeNote,
-    euterpeTickToBachDuetTick,
-    bachDuetInference,
-} from './bachDuetUtils.js';
+import {NoteEvent} from '@/utils/NoteEvent.js';
+import {average2d, shiftRight} from '@/utils/math.js';
+
+let lastNote = null;
+let prevStartTime = performance.now();
 
 /**
- * Processes a clock event and returns a message with the agent's output notes.
- * @param {Object} content - The clock event content.
- * @return {Object} - The message with the agent's output notes.
+ *
+ * @param {Object} content
+ * @return {Object}
  */
 export function processClockEvent(content) {
-    // userQuantizedNotes is an array of NoteEvent objects
-    // it contains note_on and note_hold events for the current tick
-    const numUserNotes = content.userQuantizedNotes.length;
-    if (numUserNotes > 1) {
-        console.error('BachDuet can only handle monophonic input. ' +
-        'Make sure to set polyphony.input:1 in config.yaml');
+    const startTime = performance.now();
+    const timeDiff = startTime - prevStartTime;
+    prevStartTime = startTime;
+
+    const quantizedEvents = content.userQuantizedNotes;
+    const noteList = [];
+    const message = {};
+
+    // filter the notes with note.type === self.noteType.NOTE_ON
+    const noteOnEvents = quantizedEvents.filter((note) => note.type === self.noteType.NOTE_ON);
+    const noteHoldEvents = quantizedEvents.filter((note) => note.type === self.noteType.NOTE_HOLD);
+    if (noteOnEvents.length > 0) {
+        if (lastNote) {
+            // create a note off event
+            const noteOffResponse = new NoteEvent();
+            noteOffResponse.player = self.playerType.AGENT;
+            noteOffResponse.instrument = self.instrumentType.PIANO;
+            noteOffResponse.type = self.noteType.NOTE_OFF;
+            noteOffResponse.midi = lastNote.midi;
+            noteOffResponse.velocity = lastNote.velocity;
+            noteOffResponse.playAfter = {
+                tick: self.delay,
+                seconds: 0,
+            };
+            noteList.push(noteOffResponse);
+            lastNote = null;
+        }
+
+        const currentNote = noteOnEvents[0];
+        const noteOnResponse = new NoteEvent();
+        noteOnResponse.player = self.playerType.AGENT;
+        noteOnResponse.instrument = self.instrumentType.PIANO;
+        noteOnResponse.type = currentNote.type;
+        noteOnResponse.midi = currentNote.midi + self.pitchShift + Math.floor(Math.random() * self.randomness);
+        noteOnResponse.velocity = currentNote.velocity;
+        noteOnResponse.playAfter = {
+            tick: self.delay,
+            seconds: 0,
+        },
+        noteList.push(noteOnResponse);
+        lastNote = noteOnResponse;
+        self.userToAgentNoteMapping[currentNote.midi] = noteOnResponse.midi;
+        console.log('agent generated note: ' + noteOnResponse.midi);
+    } else if (noteOnEvents.length === 0 && noteHoldEvents.length > 0) {
+        if (lastNote) {
+            // console.log(noteHoldEvents[0].midi, " ", lastNote.midi);
+            // if (lastNote.midi + 12 !== noteHoldEvents[0].midi) {
+            if (lastNote.midi !== self.userToAgentNoteMapping[noteHoldEvents[0].midi]) {
+                // create a note off event
+                const noteOffResponse = new NoteEvent();
+                noteOffResponse.player = self.playerType.AGENT;
+                noteOffResponse.instrument = self.instrumentType.PIANO;
+                noteOffResponse.type = self.noteType.NOTE_OFF;
+                noteOffResponse.midi = lastNote.midi;
+                noteOffResponse.velocity = lastNote.velocity;
+                noteOffResponse.playAfter = {
+                    tick: self.delay,
+                    seconds: 0,
+                };
+                noteList.push(noteOffResponse);
+                lastNote = null;
+            }
+        }
+    } else if (noteOnEvents.length === 0 && noteHoldEvents.length === 0) {
+        if (lastNote) {
+            // create a note off event
+            const noteOffResponse = new NoteEvent();
+            noteOffResponse.player = self.playerType.AGENT;
+            noteOffResponse.instrument = self.instrumentType.PIANO;
+            noteOffResponse.type = self.noteType.NOTE_OFF;
+            noteOffResponse.midi = lastNote.midi;
+            noteOffResponse.velocity = lastNote.velocity;
+            noteOffResponse.playAfter = {
+                tick: self.delay,
+                seconds: 0,
+            };
+            noteList.push(noteOffResponse);
+            lastNote = null;
+        }
     }
-    // If there is no user note, then we have a rest
-    // BachDuet expects the 'rest' token/note
-    let userInputBD;
-    if (numUserNotes == 0) {
-        // self.restNote has been initialized in initAgent_hook.js
-        userInputBD = self.restNote;
-    } else {
-        // utility function to convert Euterpe's note to BachDuet's note
-        // i.e MIDI note 60 onset becomes '60_1'
-        userInputBD = euterpeNoteToBachDuetNote(content.userQuantizedNotes[0]);
-    }
-    // Convert the tick from Euterpe's format to BachDuet's format
-    const tickBD = euterpeTickToBachDuetTick(content.tick);
 
-    // Prepare the input tensors for the neural network
-    const midiInputTensor = tf.tensor2d([[self.lastBachDuetNote.midiArticInd,
-        userInputBD.midiArticInd]]);
-    const cpcInputTensor = tf.tensor2d([[self.lastBachDuetNote.cpc, userInputBD.cpc]]);
-    const tickTensor = tf.tensor2d([[tickBD]]);
 
-    // Neural network inference
-    const currentBachDuetNote = bachDuetInference(midiInputTensor, cpcInputTensor, tickTensor);
+    const actualPeriod = timeDiff;
+    const actualBPM = 60 / (actualPeriod / 1000) / self.config.clockSettings.ticksPerBeat;
+    console.log(actualBPM);
+    self.param_writer.enqueue_change(3, actualBPM);
 
-    // Convert the bachDuet's note output to Euterpe's note format
-    const agentOutputNoteList = bachDuetNoteToEuterpeNote(currentBachDuetNote);
+    // Chroma extraction from audio buffers
+    const features = self.audio_features_queue.toArrayAndClear();
+    const chromas = features.map((f) => f.chroma);
+    const averageChroma = average2d(chromas);
+    // The chroma's we get from Meyda seem to be shifted by 1 left.
+    // That's probably a bug in Meyda. We'll shift it back here.
+    shiftRight(averageChroma);
 
-    // Update the last note (it'll be used in the next tick)
-    self.lastBachDuetNote = currentBachDuetNote;
-
-    // Add your messages to Euterpe here
-    const message = {
-        [self.messageType.NOTE_LIST]: agentOutputNoteList,
-    };
-
+    message[self.messageType.NOTE_LIST] = noteList;
+    message[self.messageType.VECTOR] = averageChroma;
     return message;
 }

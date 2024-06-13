@@ -1,12 +1,12 @@
 ---
 # The name of your system
-title: "BachDuet"
+title: "GUI Demo"
 subtitle: "Built with Euterpe"
 
 # Set the correct flags based on the type of your music interaction algorithm
 interactionMode: 
   noteMode: true
-  audioMode: false
+  audioMode: true
 
 noteModeSettings:
   eventBased:
@@ -26,9 +26,8 @@ noteModeSettings:
     polyphony:
       input: 1
     # Optional feature to better align the user's input with the metronome
-    # It drastically improves the displayed score due to better the better alignment.
     # For details, check our paper (section 3.4.1)
-    # Use only when necessary though, as it might introduce clock/tempo instabilities.
+    # Use only when necessary, as it might introduce clock/tempo instabilities
     delayedExecution: true
 
 audioModeSettings:
@@ -64,10 +63,10 @@ clockSettings:
 # Agent related settings.
 agentSettings:
   # For Agents that require warmup (such as neural networks)
-  warmupRounds: 10
+  warmupRounds: 2
 
 # Choose the text to be displayed in the splash screen animation
-introModal: true
+introModal: false
 introModalMarkdown: "introModal.md" # The text to be displayed in the splash screen
 custom:
   useTriggerRelease: true
