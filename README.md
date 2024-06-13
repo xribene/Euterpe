@@ -1,62 +1,92 @@
-# Euterpe
+<div align="center">
+    <h1>Euterpe</h1>
+    <img src="public/img/heroImage.svg" style="filter: drop-shadow(0px 1px 0px Grey);" alt="Hero Image" width="500" height="200">
+</div>
+
 Euterpe is a framework designed to bridge the gap between music interaction and creation research and its deployment into user-friendly systems accessible to the general public on the web. Euterpe aims to be a template or starting point, from which you can develop your own music interaction system.
 
 ## Deployed Systems Using Euterpe
-- [BachDuet]()
-- [PianoGenie]()
-- [Copycat]()
+- [BachDuet](https://bachduet-euterpe.netlify.app/)
+- [PianoGenie](https://piano-genie-euterpe.netlify.app/)
+- [Copycat](https://copycat-euterpe.netlify.app/)
 - [GridyCopycat]()
 - [CallAndResponse]()
 - [MeydaDemo]()
 - [JazzTrio]()
 
 
-## Features
-
-### UI 
-    
-The UI is the main thread of Euterpe and it performs the following operations:
-- Receiving and displaying the user input (e.g., PianoRoll, Score, etc.)
-- Processing input and sending it to your music interaction algorithm
-- Receiving the output from your music interaction algorithm and displaying it to the user
-
-### Agent 
-
-The Agent is a separate thread that hosts your music interaction algorithm.
-The Agent receives input from the UI in a timely manner, and sends back its output to the UI.
-    
-### Music Interaction Communication Protocol (MICP)
-
-The communication protocol that both UI and the Agent need to adhere to in order to communicate with each other. The protocol is designed to support various types of music interaction modes and data types:
-- Time-grid based (e.g., 16th-note quantization algorithms)
-- Event-based
-- 'Simultaneous' or 'Call and Response' playing
-- MIDI, Audio and data transfering
 ---
-
 ## Installation
-Euterpe is built on top of Vue.js, therefore need Node.js to be installed on your system. You can download Node.js from [here](https://nodejs.org/en/download/).
 
-Once Node.js is installed, you can install Euterpe by running the following command in the root directory of the project:
+### Node.js
 
-```sh
-npm install
+If you don't have node.js installed, we recommend using the Node environment manager NVM. If you already have node.js installed but it is older than v16, we suggest you install a newer one.
+
+In your terminal, you can check if you have Node.js or NVM installed by running
+
+```bash
+# For NVM
+nvm -v
+# For Node
+node -v
 ```
 
-## Usage
-After the first installation, you can run Euterpe by running the following command in the root directory of the project to start the development server:
+Based on that, you can follow one of the options below
 
-```sh
-npm run dev
+- Install Node.js using NVM
+  1. Installing NVM
+     Instructions for [MacOS](https://catalins.tech/node-version-manager-macos/), [Linux](https://github.com/nvm-sh/nvm#installing-and-updating) and [Windows](https://github.com/coreybutler/nvm-windows#installation--upgrades)
+  2. Installing Node
+     ```bash
+     nvm install v21.1.0
+     nvm use 21.1.0
+     # verify that Node.js is correctly installed:
+     node -v
+     ```
+- Install Node.js without NVM
+  1. Choose the correct pre-build [installers](https://nodejs.org/en/download) for your platform
+  2. Or use some other package manager that your platform provides (i.e Homebrew for macOS)
+
+### Euterpe
+
+Now that you have Node.js set up, you can proceed to install Euterpe by following these steps:
+
+- Getting the source code
+
+  ```bash
+  git clone https://github.com/xribene/Euterpe.git
+  ```
+
+- Installing dependencies
+
+    ```bash
+    # Navigate to the Euterpe folder
+    cd Euterpe
+    # Install the package manager pnpm
+    npm install -g pnpm
+    # Use pnpm to install all dependencies
+    pnpm install
+    ```
+
+
+---
+## Run Euterpe examples
+
+To confirm everything was installed correctly run the following command from the Euterpe directory:
+
+```bash
+pnpm run dev
 ```
 
- The development server by default will be available at [http://localhost:5173](http://localhost:5173).
+If successful, this command will start a local development server on port `5173`.
+Visit [http://localhost:5173](http://localhost:5173) and try the deployed web-app.
 
+---
 ## Deployment
 
 When you are ready to deploy Euterpe, you can run the following command in the root directory of the project:
 ```sh
-npm run build
+pnpm run build
 ```
 
 This will by default generate a `dist` folder in the root directory of the project. You can then deploy the contents of the `dist` folder to your web server.
