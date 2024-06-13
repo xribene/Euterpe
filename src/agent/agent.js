@@ -224,7 +224,6 @@ function initAudio(content) {
  * @param {Object} obj
  */
 async function onMessageFunction(obj) {
-    console.log("AAAA ONMESSAGE")
     if (self.config == null) {
         await initAgent(obj.data.content);
         // make sure that the config is loaded
