@@ -45,7 +45,7 @@ export function updateParameter(newUpdate) {
 
 export async function loadExternalFiles(content) {
     // Put your code here
-    await fetch('/globalTokenIndexDict.json').then((response) => {
+    await fetch('/resources/globalTokenIndexDict.json').then((response) => {
         return response.json();
     }).then((data) => {
         self.tokenIndexDict = data;
@@ -57,8 +57,8 @@ export async function loadExternalFiles(content) {
 export async function loadAlgorithm() {
     tf.setBackend('webgl');
     try {
-        self.modelLstm = await tf.loadLayersModel('/checkpoints/modelsFinal_Lstm/model.json');
-        self.modelEmb = await tf.loadLayersModel('/checkpoints/modelsFinal_Emb/model_cleaned.json');
+        self.modelLstm = await tf.loadLayersModel('/resources/checkpoints/modelsFinal_Lstm/model.json');
+        self.modelEmb = await tf.loadLayersModel('/resources/checkpoints/modelsFinal_Emb/model_cleaned.json');
     } catch (error) {
         console.error(error);
     }
