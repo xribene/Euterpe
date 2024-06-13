@@ -1,5 +1,3 @@
-import * as tf from './tf.min.js';
-
 import {
     updateParameter,
     loadAlgorithm,
@@ -11,14 +9,13 @@ import {processAudioBuffer} from './processAudioBuffer_hook.js';
 import {deinterleaveCustom} from '@/utils/helpers.js';
 import {LIFOQueue} from '@/utils/dataStructures.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
-
 import {
     AudioReader,
     ParameterReader,
     ParameterWriter,
     RingBuffer,
 } from 'ringbuf.js';
-// } from '/libraries/ringbuffer/index_rb_exports.js';
+
 // Global variables shared between the agent.js and the hooks
 // need to be declared using the self keyword
 // Local variables can be declared using the let keyword (or const)
@@ -58,8 +55,8 @@ self.param_writer = null;
     this dictionary to know which note(s) to turn off.
     To be used by the processNoteEvent() hook.
     An example of how to use it can be found
-    in src/agent-examples/pianoGenie/processNoteEvent_hook.js
-    and src/agent-examples/copycat/processNoteEvent_hook.js
+    in src/agent-examples//pianoGenie/processNoteEvent_hook.js
+    and src/agent-examples//copycat/processNoteEvent_hook.js
 */
 self.userToAgentNoteMapping = {};
 

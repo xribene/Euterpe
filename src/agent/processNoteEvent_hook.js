@@ -1,4 +1,5 @@
-// import {NoteEvent} from '@/utils/NoteEvent.js';
+import {NoteEvent} from '@/utils/NoteEvent.js';
+import {clamp} from '@/utils/math.js';
 
 /**
  * Hook for processing single user note events.
@@ -34,5 +35,3 @@ export function processNoteEvent(noteEvent) {
         [self.messageType.NOTE_LIST]: noteList,
     };
 }
-
-
