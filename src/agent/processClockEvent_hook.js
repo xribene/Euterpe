@@ -1,48 +1,52 @@
-/**
- * A hook for processing note/MIDI events from the user.
- *
- * For this hook to be invoked, make sure that in `config.yaml`,
- * the following flags are set to true:
- * - `interactionMode.noteMode: true`
- * - `nodeModeSettings.gridBased.status: true`
- *
- * This hook is invoked in sync with the clock, and provides:
- * 1) a list with all the raw NoteEvents since the last clock tick.
- *    For this list to be provided, set the following in `config.yaml`:
- *    - `noteModeSettings.gridBased.eventBuffer: true`
- *
- * 2) a list of all the time-quantized events for the current tick.
- *    For this buffer to be provided, set the following in `config.yaml`:
- *    - `noteModeSettings.gridBased.quantizedEvents: true`
- *
- * The time spent in this hook should be less than the time between two clock ticks.
- * If not, you'll see a warning in the console and in the UI.
- *
- * @param {object} content - content is an object that contains the following:
- * 1) (optional) a list with all the raw NoteEvents since the last clock tick.
- *    For this list to be provided, set the following in `config.yaml`:
- *    - `noteModeSettings.gridBased.eventBuffer: true`
- *
- * 2) (optional) a list of all the time-quantized events for the current tick.
- *    For this buffer to be provided, set the following in `config.yaml`:
- *    - `noteModeSettings.gridBased.quantizedEvents: true`
- * 3) the current clock tick number
- *
- * @return {Object} - An optional object containing results to be sent to the UI.
- *  For example, you can send a list of notes to be played using the
- * `NOTE_LIST` message type.
- */
+import {average2d, shiftRight, average1d} from '@/utils/math.js';
+import {RunningHistogram, getChord, 
+        chordToNoteEvents, chromaToPitch,
+        } from './utils.js';
+
+const runningNoteHistogram = new RunningHistogram(12, 0.9);
+let lastChord = null;
+
 export function processClockEvent(content) {
     // Put your code here
-    const agentOutputNoteList = [];
+    const message = {}
 
-    /*
-    At this stage, the agent has finished processing the clock event
-    and may send results to the UI. We can send a list of notes to be
-    played using the `NOTE_LIST` message type.
-    e.g.:
-    */
-    return {
-        [self.messageType.NOTE_LIST]: agentOutputNoteList,
-    };
+    if (lastChord) {
+        message[self.messageType.TEXT] = lastChord.root + lastChord.type;
+        let noteEvents = chordToNoteEvents(content.tick, lastChord);
+        if (noteEvents){
+            message[self.messageType.NOTE_LIST] = noteEvents;
+        }
+    }
+
+    // self.audio_features_queue is initialized in initAgent_hook.js
+    // and populated in processAudioEvent_hook.js
+    const features = self.audio_features_queue.toArrayAndClear();
+    // chromaFrames is a list of chroma vectors for each audio frame
+    // since the last clock event (tick)
+    const chromaFrames = features.map((f) => f.chroma);
+    // chromaVector is the average chroma vector across all frames
+    const chromaVector = average2d(chromaFrames);
+    // The chroma's we get from Meyda seem to be shifted by 1 left.
+    // We'll shift it back here so that 0-index = 'C'
+    shiftRight(chromaVector);
+    // Add your messages to Euterpe here using the VECTOR message type
+    message[self.messageType.VECTOR] = runningNoteHistogram.getHistogram()
+
+    let rmsFrames = features.map(f => f.rms);
+    let rms = average1d(rmsFrames);
+
+    if (rms < 0.01) {
+        return message;
+    }
+    
+    let currentPitch = chromaToPitch(chromaVector);
+    console.log(currentPitch);
+    if (currentPitch) {
+        runningNoteHistogram.process(currentPitch);
+        let userNoteHistogram = runningNoteHistogram.getHistogram();
+        let chord = getChord(userNoteHistogram);
+        lastChord = chord;
+    }
+
+    return message;
 }

@@ -15,8 +15,9 @@ export function processAudioBuffer(buffer) {
     And they are overlaped according to the hopSize (config.yaml)
     */
 
+    // console.log("audio buffer received")
     // Υou can use Meyda to extract audio features from the left channel
-    // let features = Meyda.extract(['rms', 'chroma'], buffer[0]);
+    const features = Meyda.extract(['rms', 'chroma'], buffer[0]);
 
     /*
     Υou have the option to send those features to the UI for visualization.
@@ -33,7 +34,7 @@ export function processAudioBuffer(buffer) {
     and the second arg is the float value you want to send.
     */
 
-    // self.param_writer.enqueue_change(0, features.rms);
+    self.param_writer.enqueue_change(0, features.rms);
 
     /*
     Here we push the overlapped audio frames and their features
@@ -42,6 +43,7 @@ export function processAudioBuffer(buffer) {
     processClockEvent() and processNoteEvent() hooks.
     */
 
-    // self.audio_frames_queue.push(buffer[0]);
-    // self.audio_features_queue.push(features);
+    self.audio_frames_queue.push(buffer[0]);
+    self.audio_features_queue.push(features);
+    // console.log("audio buffer processed")
 }

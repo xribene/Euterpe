@@ -67,17 +67,17 @@ export function updateParameter(newUpdate) {
     }
 }
 
+
 /**
  * If you have any external JSON files, you can load them here.
  *
  */
 export async function loadExternalFiles() {
-    // For example:
-    // await fetch('extraData.json').then(response => {
-    //     return response.json();
-    // }).then(data => {
-    //     self.externalData = data;
-    // });
+    await fetch('/resources/chord_histograms_majmin.json').then(response => {
+        return response.json();
+    }).then(data => {
+        self.chordDict = data;
+    });
 }
 
 /**
@@ -135,9 +135,9 @@ export async function loadAlgorithm() {
         hookType: self.agentHookType.INIT_AGENT,
         message: {
             [self.messageType.STATUS]:
-                            self.statusType.SUCCESS,
+                    self.statusType.SUCCESS,
             [self.messageType.TEXT]:
-                            'The Agent is ready to interact with you!',
+                    'The Agent is ready to interact with you!',
         },
     });
 }
