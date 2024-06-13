@@ -1,7 +1,10 @@
 # Musical Agents
 
 ## Agent Files
-Agent-specific files are located in `src/agents/{agentName}/`:
+
+The currently active agent in `src/agent/` is **EmptyAgent**. This agent is a template for creating your own agent. It includes the basic structure and boilerplate code for the agent's lifecycle hooks.
+The Agent-specific files in `src/agent/` are as follows:
+
 - `agent.js`: This is the main agent script that Euterpe calls to initialize the agent. It includes boilerplate code for the basic audio and MIDI functionalities of the agent and determines which hook to invoke based on messages received from Euterpe.
 
 - `initAgent_hook.js`: This file contains hook functions, such as `loadAlgorithm()`, and `loadExternalFiles()`. These hooks are invoked only at the beginning of the agent's lifecycle.
@@ -21,9 +24,8 @@ Agent-specific files are located in `src/agents/{agentName}/`:
 
 ## Examples
 
-In the directory where you cloned or downloaded the `Euterpe` code, you should find an empty template agent located in `src/agents/`, named **EmptyAgent**. This is the starting point for creating your own agent. 
+Additionally we provide some examples of already implemented agents in `agent-examples/` to demonstrate the various interaction paradigms supported in Euterpe. Read the `HowToUse.md` file in each agent's directory to learn how to use them.
 
-Additionally we provide some examples of already implemented agents in the same folder to demonstrate the various interaction paradigms supported in Euterpe.
 - **GridyCopycat**
     - This is an agent that copies the user's input with a delay set by a slider. It's a monophonic 16th note grid-based interaction where both PianoRoll and the Score are used to visualize the musical interaction.
 - **CallAndResponse**
