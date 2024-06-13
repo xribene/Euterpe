@@ -1,6 +1,6 @@
 import {average1d, max1d} from '@/utils/math.js';
+import {NoteEvent} from '@/utils/NoteEvent.js';
 
-import { NoteEvent } from '../../../src/utils/NoteEvent.js';
 
 export const NOTE_PITCHES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', "A", "A#", "B"];
 const CHORD_TYPES = {

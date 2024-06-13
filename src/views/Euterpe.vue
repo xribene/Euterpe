@@ -258,6 +258,7 @@ export default {
         // Send a message to agent with some necessary
         // configurations and constants to store inside the agent
         // TODO : i removed await
+        console.log("SE PARAKALW")
         vm.agent.postMessage({
             hookType: vm.agentHookType.INIT_AGENT,
             content: {
