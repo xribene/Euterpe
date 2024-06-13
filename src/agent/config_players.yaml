@@ -11,8 +11,12 @@ players:
         mute: false
         volume: 7
         default: true
+      - id: "synth"
+        label: "Synth"
+        mute: false
+        volume: 7
   agent:
-    label: 'Empty Agent'
+    label: 'Agent'
     mute: false
     volume: 7
     instruments:
@@ -20,13 +24,16 @@ players:
         label: "Piano"
         mute: false
         volume: 7
-        default: true
-  # metronome:
-  #   label: 'Metronome'
-  #   mute: true
-  #   volume: 5
-  #   instruments:
-  #     - id: "click"
-  #       label: "Click"
-  #       mute: false
-  #       volume: 5
+      - id: "drums"
+        label: "Drums"
+        mute: false
+        volume: 5
+  metronome:
+    label: 'Metronome'
+    mute: false
+    volume: 7
+    instruments:
+      - id: "click"
+        label: "Click"
+        mute: false
+        volume: 7

@@ -1,5 +1,4 @@
-import {NoteEvent} from '@/utils/NoteEvent.js';
-import {clamp} from '@/utils/math.js';
+// import {NoteEvent} from '@/utils/NoteEvent.js';
 
 /**
  * Hook for processing single user note events.

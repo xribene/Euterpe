@@ -1,48 +1,71 @@
-/**
- * A hook for processing note/MIDI events from the user.
- *
- * For this hook to be invoked, make sure that in `config.yaml`,
- * the following flags are set to true:
- * - `interactionMode.noteMode: true`
- * - `nodeModeSettings.gridBased.status: true`
- *
- * This hook is invoked in sync with the clock, and provides:
- * 1) a list with all the raw NoteEvents since the last clock tick.
- *    For this list to be provided, set the following in `config.yaml`:
- *    - `noteModeSettings.gridBased.eventBuffer: true`
- *
- * 2) a list of all the time-quantized events for the current tick.
- *    For this buffer to be provided, set the following in `config.yaml`:
- *    - `noteModeSettings.gridBased.quantizedEvents: true`
- *
- * The time spent in this hook should be less than the time between two clock ticks.
- * If not, you'll see a warning in the console and in the UI.
- *
- * @param {object} content - content is an object that contains the following:
- * 1) (optional) a list with all the raw NoteEvents since the last clock tick.
- *    For this list to be provided, set the following in `config.yaml`:
- *    - `noteModeSettings.gridBased.eventBuffer: true`
- *
- * 2) (optional) a list of all the time-quantized events for the current tick.
- *    For this buffer to be provided, set the following in `config.yaml`:
- *    - `noteModeSettings.gridBased.quantizedEvents: true`
- * 3) the current clock tick number
- *
- * @return {Object} - An optional object containing results to be sent to the UI.
- *  For example, you can send a list of notes to be played using the
- * `NOTE_LIST` message type.
- */
-export function processClockEvent(content) {
-    // Put your code here
-    const agentOutputNoteList = [];
+import {NoteEvent} from '@/utils/NoteEvent.js';
 
-    /*
-    At this stage, the agent has finished processing the clock event
-    and may send results to the UI. We can send a list of notes to be
-    played using the `NOTE_LIST` message type.
-    e.g.:
-    */
-    return {
-        [self.messageType.NOTE_LIST]: agentOutputNoteList,
+// variables local to this file
+let lastNote = null;
+let prevStartTime = performance.now();
+
+function createNote(midi, type) {
+    const noteOn = new NoteEvent();
+    noteOn.player = self.playerType.AGENT;
+    noteOn.instrument = self.instrumentType.PIANO;
+    noteOn.type = type;
+    noteOn.midi = midi;
+    noteOn.velocity = 127;
+    // Play it instantly
+    noteOn.playAfter = {
+        tick: self.delay,
+        seconds: 0,
     };
+    return noteOn;
+}
+
+export function processClockEvent(content) {
+
+    // Calculations for monitoring the true BPM
+    const startTime = performance.now();
+    const timeDiff = startTime - prevStartTime;
+    prevStartTime = startTime;
+
+    // Get the clock-aligned user note events from the content
+    const quantizedEvents = content.userQuantizedNotes;
+    const noteList = [];
+    const message = {};
+
+    // filter the notes with note.type === self.noteType.NOTE_ON
+    const noteOnEvents = quantizedEvents.filter((note) => note.type === self.noteType.NOTE_ON);
+    const noteHoldEvents = quantizedEvents.filter((note) => note.type === self.noteType.NOTE_HOLD);
+    if (noteOnEvents.length > 0) {
+        if (lastNote) {
+            // This means there is alread a note on, so we need to turn it off
+            // we do that to ensure our agent outputs a monophonic melody
+            // which is necessary for the score visualization to work
+            noteList.push(createNote(lastNote.midi, self.noteType.NOTE_OFF));
+            lastNote = null;
+        }
+        const currentNote = noteOnEvents[0];
+        let outputMidi = currentNote.midi + self.pitchShift + Math.floor(Math.random() * self.randomness);
+        const noteOnResponse = createNote(outputMidi, self.noteType.NOTE_ON)
+        noteList.push(noteOnResponse);
+        // update the lastNote variable
+        lastNote = noteOnResponse;
+        // update the user-to-agent note mapping
+        // we'll use that to turn off the note later
+        self.userToAgentNoteMapping[currentNote.midi] = noteOnResponse.midi;
+    } else if (noteOnEvents.length === 0 && noteHoldEvents.length === 0) {
+        // If there is no note on or hold event, it means the user has 
+        // released all the notes, so we need to turn off the last note
+        if (lastNote) {
+            // create a note off event
+            noteList.push(createNote(lastNote.midi, self.noteType.NOTE_OFF));
+            lastNote = null;
+        }
+    }
+
+    // calculations for monitoring the true BPM
+    const actualPeriod = timeDiff;
+    const actualBPM = 60 / (actualPeriod / 1000) / self.config.clockSettings.ticksPerBeat;
+    self.param_writer.enqueue_change(3, actualBPM);
+
+    message[self.messageType.NOTE_LIST] = noteList;
+    return message;
 }
