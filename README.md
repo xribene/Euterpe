@@ -9,10 +9,10 @@ Euterpe is a framework designed to bridge the gap between music interaction and 
 - [BachDuet](https://bachduet-euterpe.netlify.app/)
 - [PianoGenie](https://piano-genie-euterpe.netlify.app/)
 - [Copycat](https://copycat-euterpe.netlify.app/)
-- [GridyCopycat]()
-- [CallAndResponse]()
-- [MeydaDemo]()
-- [JazzTrio]()
+- [GridyCopycat](https://gridy-copycat-euterpe.netlify.app/)
+- [CallAndResponse](https://call-response-euterpe.netlify.app/)
+- [Whistle-2-Chords](https://whistle2chords-euterpe.netlify.app/)
+- [JazzTrio](https://jazz-improv-pilot.netlify.app/)
 
 
 ---
