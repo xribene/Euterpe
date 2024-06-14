@@ -1,5 +1,6 @@
 // importScripts("https://cdn.jsdelivr.net/npm/meyda@5.6.0/dist/web/meyda.min.js")
-import 'https://cdn.jsdelivr.net/npm/meyda@5.6.1/dist/web/meyda.min.js';
+// import 'https://cdn.jsdelivr.net/npm/meyda@5.6.1/dist/web/meyda.min.js';
+ import './meyda.min.js';
 
 import {
     updateParameter,
