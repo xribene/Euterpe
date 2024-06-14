@@ -37,8 +37,12 @@
   </div>
 </template>
 
+<style scoped src="@/css/keyboard.css">
+</style>
+
 <script>
-import '../css/keyboard.css';
+
+// import '../css/keyboard.css';
 
 // import * as Tone from 'tone';
 import {clamp} from '@/utils/math';

@@ -4,22 +4,22 @@ Import custom components
 */
 import Keyboard from '@/components/Keyboard.vue';
 import PianoRoll from '@/components/PianoRoll.vue';
-import Score from '@/components/ScoreWorking.vue';
-import VerticalSlider from '@/components/VerticalSlider.vue';
+import Score from '@/components/Score.vue';
+// import VerticalSlider from '@/components/VerticalSlider.vue';
 // import HorizontalSlider from '@/components/HorizontalSlider.vue'
+import Slider from '@/components/Slider.vue';
 import AudioMeter from '@/components/AudioMeter.vue';
-import BPMSlider from '@/components/BPMSlider.vue';
 // import VectorBar from "../components/VectorBar.vue";
 import ChromaChart from '@/components/ChromaChart.vue';
 import Monitor from '@/components/Monitor.vue';
 import Mixer from '@/components/Mixer.vue';
 import TextBox from '@/components/TextBox.vue';
+import SettingsModal from '@/components/Settings.vue';
 
 import '../css/main.css';
 import * as Tone from 'tone';
 import {Midi} from '@tonaljs/tonal';
 import {WebMidi} from 'webmidi';
-import Dropdown from 'vue-simple-search-dropdown';
 import AudioKeys from 'audiokeys';
 
 import yaml from 'js-yaml';
@@ -33,6 +33,13 @@ import {
 
 import {urlFromFiles, isMobile, isNotChrome} from '@/utils/helpers.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
+// import { selectedAgent } from '@/agent-examples/selectedAgent.js'
+
+import configPlayers from '@/agent/config_players.yaml';
+import configWidgets from '@/agent/config_widgets.yaml';
+import configBase from '@/agent/config.yaml';
+import { markdown } from '@/agent/introModal.md';
+
 
 export default {
 
@@ -42,30 +49,22 @@ export default {
         Keyboard,
         Score,
         PianoRoll,
-        VerticalSlider,
-        BPMSlider,
-        Dropdown,
+        // VerticalSlider,
+        // Slider,
         AudioMeter,
         TextBox,
         Mixer,
         Monitor,
         ChromaChart,
-        // VectorBar,
-        // HorizontalSlider,
+        SettingsModal
     },
 
     data() {
         return {
-            // Choose the agent.
-            // This string should be one of
-            // dir names inside public/agents/
-            agentName: 'WhistleToChords',
-            // Provide all the config files that should be loaded
-            // These should be in public/agents/{agentName}/
-            configFiles: ['config.yaml',
-                'config_widgets.yaml',
-                'config_players.yaml'],
-            config: null,
+            config: { ...configBase, ...configPlayers, ...configWidgets },
+            // intro text content
+            intro_text_content: markdown,
+
             playerType,
             instrumentType,
             eventSourceType,
@@ -89,7 +88,7 @@ export default {
             dataForMonitoring: {},
 
             // Score status
-            scoreShown: true,
+            // scoreShown: true,
             // TODO: Too many flags for score
             scrollStatus: true,
             scoreStatus: true,
@@ -157,8 +156,6 @@ export default {
         const vm = this;
 
         console.log('created main start');
-        this.loadConfigSync();
-        console.log('load config sync done');
 
         this.$store.commit('setConfig', this.config);
         this.$store.commit('initQuantBuffers', this.config);
@@ -172,7 +169,7 @@ export default {
 
         // Update the score properties
         // TODO: unclear use in Score.vue
-        this.scoreShown = this.config.gui.score.status;
+        // this.scoreShown = this.config.gui.score.status;
         // this.scrollEnabled = this.config.gui.score;
         // Set the textBox title
         this.textBoxTitle = this.config.gui.textBox.title;
@@ -254,7 +251,7 @@ export default {
 
 
         // Initialize agent worker
-        vm.agent = new Worker(`src/agents/${vm.agentName}/agent.js`, {type: 'module'});
+        vm.agent = new Worker(new URL(`../agent/agent.js`, import.meta.url), { type: 'module' });
 
         vm.agent.onmessage = vm.agentCallback;
 
@@ -872,7 +869,7 @@ export default {
                         break;
                     case vm.messageType.NOTE_LIST: {
                         const noteEventsList = messageValue;
-                        
+
                         const delayForNoteOn = 0.01;
                         const noteOffEvents = {}; // Store note_off events
 
@@ -1308,7 +1305,8 @@ export default {
             this.keyboardMinRangeDisplayed = false;
         },
 
-        modalCallback() {
+        modalCallback(eventName) {
+            console.log('modal callback', eventName);
             this.$store.commit('changeModalStatus');
         },
 
@@ -1338,8 +1336,8 @@ export default {
             // use paramWriter to write a parameter to the agent
             const buttonPropertyName = `BUTTON_${buttonId}`;
             if (this.paramWriter != null &&
-                        !this.paramWriter.enqueue_change(
-                            this.uiParameterType[buttonPropertyName], 1.0)) {
+                    !this.paramWriter.enqueue_change(
+                        this.uiParameterType[buttonPropertyName], 1.0)) {
                 console.warn('Couldn\'t enqueue.');
             }
         },
@@ -1367,43 +1365,6 @@ export default {
                     };
                     vm.handleMixerUpdate(changeEvent);
                 };
-            }
-        },
-
-        loadConfigSync() {
-            // Read about sync and async requests here:
-            // eslint-disable-next-line max-len
-            // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Synchronous_and_Asynchronous_Requests
-            // In our case, we need to load the config asap, since
-            // the config contains also info to generate the UI.
-            // If not, the app will crash anyway, so it's worth waiting for it.
-
-            // First, load all the configs files and merge them into one
-            const configFilesURL = this.configFiles.map((file) => {
-                return `src/agents/${this.agentName}/${file}`;
-            });
-            // get all files using xhr
-            const xhrs = configFilesURL.map((url) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', url, false); // Set async to false
-                xhr.send();
-                return xhr;
-            });
-            // go over the xhrs, check which are 200, and concat them
-            // for the rest of the files, throw an error
-            let config = '';
-            xhrs.forEach((xhr) => {
-                if (xhr.status === 200) {
-                    config += xhr.responseText + '\n';
-                } else {
-                    throw new Error(`Failed to fetch config file: ${xhr.status}`);
-                }
-            });
-
-            if (config === '') {
-                throw new Error('Failed to fetch config file: empty');
-            } else {
-                this.config = yaml.load(config);
             }
         },
     },
@@ -1441,32 +1402,6 @@ export default {
     },
 
     watch: {
-        // screenWidth: {
-        //     // At every screenWidth data change, this would
-        //     // automatically change the keyboard's octave number.
-        //     immediate: true,
-        //     handler(newValue) {
-        //         let octaves;
-        //         if (newValue <= 750) {
-        //             octaves = 2;
-        //         } else if (newValue <= 1024) {
-        //             // for iPads. 1024 * 768.
-        //             octaves = 3;
-        //         } else if (newValue <= 1366) {
-        //             // for iPad Pros. 1366 * 1024.
-        //             octaves = 4;
-        //         } else if (newValue <= 1920) {
-        //             // for 1920 * 1080 screens.
-        //             octaves = 5;
-        //         } else {
-        //             octaves = 6;
-        //         }
-        //         this.keyboardoctaveEnd = this.keyboardoctaveStart + octaves;
-        //         // A trick, to force keyboard re-render itself.
-        //         this.keyboardKey += 1;
-        //     },
-        // },
-
         misalignErrCount: {
             immediate: true,
             handler(newValue) {
@@ -1574,71 +1509,78 @@ export default {
         </div>
         <div ref="mainContent" id="mainContent"
             style="justify-content: center; align-items: center;">
-            <div style="
-                background-color: rgb(0, 0, 0);
-                opacity: 0.5;
-                display: fixed;
-                top: 0;
-                right: 0;
-                z-index: 999;
-                ">
-            </div>
-            <!-- Intro Modal -->
-            <modal v-if="config.introModal" name="introModal" :adaptive="true"
+
+            <modal class="test" draggable=".window-header" name="introModal"
+                :adaptive="true"
+                :width="800"
+                :height="600"
+                :minWidth="500"
+                :minHeight="100"
+                :resizable="true"
+                :scrollable="true"
                 @opened="modalCallback"
                 @closed="modalCallback">
-                <div class="modalDiv">
-                    <p class="modalTitle">
-                        Introduction
-                    </p>
-                    <button class="modalBtn" @click="$modal.hide('introModal')"><md-icon
-                            class="modalIcon">close</md-icon></button>
+                <div class="babyParent">
+                    <div class="window-header">
+                        <p class="modalTitle">
+                            Introduction
+                        </p>
+                    </div>
+                    <markdown-it-vue class="mdClass" :content="intro_text_content" />
                 </div>
-                <div class="modalContent">
-                    <p v-for="(content, index) in config.introModalContent" :key="index">
-                        {{ content }}
-                        <br />
-                    </p>
-                </div>
+
             </modal>
 
-            <div v-if="config.gui.pianoRoll.status">
-                <PianoRoll id="pianoRoll" style="position:absolute; z-index:0; top:0; left:0;" />
-            </div>
+            <SettingsModal
+                :switches="switches"
+                :sliders="sliders"
+                :buttons="buttons"
+                :maxBPM="maxBPM"
+                :initBPM="localBPM"
+                :WebMIDISupport="WebMIDISupport"
+                @button-click="buttonAction"
+                @midi-device-change="onMIDIDeviceSelectedChange"
+                @bpm-change="bpmValueChanged"
+            ></SettingsModal>
 
-            <div v-if="config.gui.keyboard.status">
-                <Keyboard id="pianoKeyboard" class="pianoKeyboard" ref="keyboard" :key="keyboardKey"
-                    :octave-start="keyboardoctaveStart" :octave-end="keyboardoctaveEnd" />
-            </div>
+            <!-- <div v-if="config.gui.pianoRoll.status"> -->
+                <PianoRoll :show="config.gui.pianoRoll.status" id="pianoRoll" />
+            <!-- </div> -->
+
+
+            <!-- v-if="config.gui.keyboard.status" -->
+            <Keyboard id="pianoKeyboard" class="pianoKeyboard" ref="keyboard" :key="keyboardKey"
+                :octave-start="keyboardoctaveStart" :octave-end="keyboardoctaveEnd" />
 
             <Mixer @newEventSignal="handleMixerUpdate" />
 
             <div v-if="showMonitor">
                 <Monitor :dataFromParent="dataForMonitoring" />
             </div>
-
             <div v-if="config.gui.score.status">
-                <Score :scoreShown="scoreShown" :scrollStatus="scrollStatus" />
+                <Score :scrollStatus="scrollStatus"/>
+            </div>"
+
+            <div v-if="audioAndChroma">
+                <ChromaChart/>
             </div>
 
+            <div v-if="textBoxStatus">
+                <TextBox :height=100 :width=180 :title="textBoxTitle" :text="textBoxText"
+                    style="position: absolute; bottom: 300px; right: 20px; z-index:8" />
+            </div>
+                style="position: absolute; bottom: 300px; right: 20px; z-index:8" />
             <div v-if="audioAndMeter">
                 <AudioMeter ref="audioMeter" :width=300 :height="100"
                     :fft_bins="128" orientation="top"
                     style="position:absolute; z-index:0;
-                        top:0px; left:0px; background-color:transparent" />
+                    top:0px; left:0px; background-color:transparent" />
             </div>
 
             <!-- <VectorBar ref="vectorBar" :width=300 :height="100"
                     :num_bars="12" orientation="top"
                     style="position:absolute; z-index:0; top:0px;
                         right:0px; background-color:transparent" /> -->
-            <div v-if="audioAndChroma">
-                <ChromaChart />
-            </div>
-            <div v-if="textBoxStatus">
-                <TextBox :height=100 :width=180 :title="textBoxTitle" :text="textBoxText"
-                    style="position: absolute; bottom: 300px; right: 20px; z-index:8" />
-            </div>
 
 
             <!-- On-screen buttons -->
@@ -1679,113 +1621,6 @@ export default {
                 <!-- <md-icon>arrow_forward</md-icon> -->
                 <i class="material-symbols-outlined">zoom_out</i>
             </md-button>
-
-
-            <!-- Settings Modal -->
-            <modal name="settingsModal" :minWidth=700 :minHeight=600 :adaptive="true"
-                @opened="modalCallback"
-                @closed="modalCallback">
-                <!-- overflow-y: scroll; -->
-                <div style="padding:0; margin: 0; ">
-                    <div class="modalDiv">
-                        <p class="modalTitle">
-                            Settings
-                        </p>
-                        <button class="modalBtn" @click="$modal.hide('settingsModal')">
-                            <md-icon class="modalIcon"
-                                style="padding:0;margin:0;height:24px">close</md-icon>
-                        </button>
-                    </div>
-                    <div class="modalContent" style="overflow-y: scroll; height:600px">
-                        <div id="ClockSection" class="settingsBorderedTitle"
-                            style="display:flex;justify-content:start;align-items:center">
-                            <p class="settingsSubtitle" style="padding:0; margin-right:50px">
-                                <md-icon class="modalIcon">history_toggle_off</md-icon> <br />
-                                <span style="line-height:36px">Clock</span>
-                            </p>
-                            <div class="md-layout md-gutter md-alignment-left settingsBordered">
-                                <div class="md-layout-item md-small-size-50 md-xsmall-size-100">
-                                    <div class="settingsDiv">
-                                        <p class="settingsOptionTitle">BPM (Max: {{ maxBPM }})</p>
-                                        <div style="padding-top: 14px">
-                                            <BPMSlider v-model="localBPM" :min="60" :max="120"
-                                                        @bpmChangeEvent="bpmValueChanged"/>
-                                            <!-- @bpmChangeEvent="bpmValueChanged" -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="MIDISection" style="display:flex;
-                                justify-content:start;align-items:center;margin-top:50px">
-                            <p class="settingsSubtitle settingsBorderedTitle" style="padding:0">
-                                <md-icon class="modalIcon" style="font-weight:400">piano
-                                </md-icon> <br />
-                                <span style="line-height:36px">MIDI</span>
-                            </p>
-                            <div class="MIDIInput" style="padding-left: 8px" v-if="WebMIDISupport">
-                                <Dropdown :options="activeDevices"
-                                    v-on:selected="onMIDIDeviceSelectedChange"
-                                    placeholder="Type here to search for MIDI device">
-                                </Dropdown>
-                            </div>
-                            <span v-else>
-                                Currently, Using MIDI devices in browser is only supported by Google
-                                Chrome v43+, Opera v30+ and Microsoft Edge v79+. Please update to
-                                one of those browsers if you want to use Web MIDI
-                                functionalities.</span>
-                        </div>
-                        <p class="settingsSubtitle">Agent Parameters</p>
-                        <div class="md-layout md-gutter md-alignment-center">
-                            <div class="md-layout-item md-large-size-50 md-small-size-100">
-                                <div class="md-layout md-gutter md-alignment-center"
-                                    style="display:flex;align-items:center;justify-content:center;">
-                                    <!-- Sliders for agent Parameters -->
-                                    <div v-for="sliderItem in sliders" :key="sliderItem.id"
-                                        class="md-layout-item md-large-size-25 md-alignment-center"
-                                        style="display:flex;align-items:center;
-                                            justify-content:center;">
-                                        <VerticalSlider v-model="sliderItem.value"
-                                                        :min="sliderItem.min" :max=sliderItem.max
-                                            :label="sliderItem.label" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="md-layout-item md-large-size-50 md-small-size-100">
-                                <div class="md-layout md-gutter md-alignment-center">
-                                    <!-- Buttons for agent Parameters -->
-                                    <div v-for="buttonItem in buttons" :key="buttonItem.id"
-                                        class="md-layout-item md-large-size-100">
-                                        <md-button
-                                            @click="buttonAction(buttonItem.id)"
-                                            style="width: 100%">
-                                            <span class="forceTextColor">{{ buttonItem.label }}
-                                            </span>
-                                        </md-button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="md-layout md-gutter md-alignment-center">
-                            <div class="md-layout-item md-large-size-100">
-                                <div class="md-layout md-gutter md-alignment-center">
-                                    <!-- Switches for agent Parameters -->
-                                    <div v-for="swi in switches" :key="swi.id"
-                                        class="md-layout-item md-large-size-25 md-medium-size-50"
-                                        style="display:flex;align-items:center;
-                                            justify-content:center;padding-top:17px">
-                                        <span style="padding:0; margin:0;">{{ swi.label }}</span>
-                                        <div style="display:block; min-width:30px;">
-                                            <toggle-button color="#74601c" v-model="swi.status"
-                                                style="transform: scale(0.9);" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </modal>
         </div>
     </div>
 </template>

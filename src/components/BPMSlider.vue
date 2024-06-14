@@ -59,10 +59,10 @@ export default {
         handleSliderDrag(value) {
             // Update the background image for the slider
             const percent100 = (value - this.min) / (this.max - this.min) * 100;
-            const bg = `linear-gradient(90deg, 
-                var(--bg-value-color) 0%, 
-                var(--bg-value-color) ${percent100}%, 
-                var(--bg-range-color) ${percent100}%, 
+            const bg = `linear-gradient(90deg,
+                var(--bg-value-color) 0%,
+                var(--bg-value-color) ${percent100}%,
+                var(--bg-range-color) ${percent100}%,
                 var(--bg-range-color) 100%)`;
             this.$el.querySelector('input').style.backgroundImage = bg;
         },

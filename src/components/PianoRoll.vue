@@ -10,6 +10,19 @@
     <div ref="canvas"></div>
   </div>
 </template>
+
+<style scoped>
+/* #pianoRoll {
+    z-index: 0;
+    padding: 0;
+    margin: 0;
+    top: 0;
+    left: 0;
+    position: absolute;
+    bottom: 196px;
+} */
+</style>
+
 <script>
 // This project mainly uses Three.js to generate the canvas.
 import * as THREE from 'three';

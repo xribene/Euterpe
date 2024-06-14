@@ -11,12 +11,14 @@ import 'vue-material/dist/vue-material.min.css';
 import 'vue-material/dist/theme/default.css';
 import 'remixicon/fonts/remixicon.css';
 import Dropdown from 'vue-simple-search-dropdown';
+import MarkdownItVue from 'markdown-it-vue'
 
 Vue.use(MdButton);
 Vue.use(MdIcon);
 Vue.use(MdField);
 Vue.use(Dropdown);
-Vue.use(VModal);
+Vue.use(VModal,  { dynamicDefault: { draggable: true, resizable: true } });
+Vue.use(MarkdownItVue);
 Vue.use(Toasted, {
     duration: 1000,
 });

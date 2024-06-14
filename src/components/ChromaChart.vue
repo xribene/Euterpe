@@ -37,9 +37,13 @@
 
   </template>
 
+
+<style scoped src="@/css/vectorBar.css">
+</style>
+
 <script>
 import {Bar} from 'vue-chartjs/legacy';
-import '../css/vectorBar.css';
+// import '../css/vectorBar.css';
 
 import {
     Chart as ChartJS,
