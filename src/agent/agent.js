@@ -1,4 +1,5 @@
-import 'https://cdn.jsdelivr.net/npm/meyda@5.6.1/dist/web/meyda.js';
+// import 'https://cdn.jsdelivr.net/npm/meyda@5.6.1/dist/web/meyda.js';
+import './meyda.min.js'
 import {
     updateParameter,
     loadAlgorithm,
