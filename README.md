@@ -97,11 +97,12 @@ This will by default generate a `dist` folder in the root directory of the proje
 - [WebAudio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 - [Tone.js](https://tonejs.github.io/)
 - [ringbuf.js](https://github.com/padenot/ringbuf.js/)
-- [tonaljs](tonaljs)
+- [tonaljs](https://tonaljs.github.io/tonal/docs/)
 - [audiokeys](https://github.com/kylestetz/AudioKeys)
-- [vexflow]()
+- [vexflow](https://www.vexflow.com/)
 - [three.js](https://threejs.org/)
 - [vue-chartjs](https://vue-chartjs.org/)
+- [tweakpane](https://tweakpane.github.io/docs/)
 
 
 
