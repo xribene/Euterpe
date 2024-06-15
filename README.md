@@ -7,8 +7,8 @@ Euterpe is a framework designed to bridge the gap between music interaction and 
 
 ## Deployed Systems Using Euterpe
 > [!TIP]
-> Euterpe is currently using web features that are available only on **Chrome based browsers**
-> We also suggest you to access the demos in `icognito mode`.
+> Euterpe is currently using web features that are available only on **Chrome based browsers**.
+> We also suggest you to access the demos in `incognito mode`.
 
 - [BachDuet](https://bachduet-euterpe.netlify.app/)
 - [PianoGenie](https://piano-genie-euterpe.netlify.app/)
