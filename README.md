@@ -6,6 +6,10 @@
 Euterpe is a framework designed to bridge the gap between music interaction and creation research and its deployment into user-friendly systems accessible to the general public on the web. Euterpe aims to be a template or starting point, from which you can develop your own music interaction system.
 
 ## Deployed Systems Using Euterpe
+> [!TIP]
+> Euterpe is currently using web features that are available only on **Chrome based browsers**
+> We also suggest you to access the demos in `icognito mode`.
+
 - [BachDuet](https://bachduet-euterpe.netlify.app/)
 - [PianoGenie](https://piano-genie-euterpe.netlify.app/)
 - [Copycat](https://copycat-euterpe.netlify.app/)
