@@ -212,6 +212,45 @@ export default {
     async mounted() {
         console.log('main mounted');
         const vm = this;
+        /*
+        * Minor
+        */
+        window.onresize = () => {
+            return (() => {
+                window.screenWidth = document.body.clientWidth;
+                vm.screenWidth = window.screenWidth;
+            })();
+        };
+
+        // Prevent spacebar trigger any button
+        // document.querySelectorAll('button').forEach(function(item) {
+        //     item.addEventListener('focus', function() {
+        //         this.blur();
+        //     });
+        // });
+        document.querySelectorAll('button').forEach((item) => {
+            item.addEventListener('focus', () => {
+                item.blur();
+            });
+        });
+
+        // spacebar trigger play btn
+        document.addEventListener('keypress', function(event) {
+            if (event.code == 'Space' && !vm.$store.getters.getModalStatus) {
+                // spacebar could toggle clock
+                vm.toggleClock();
+            }
+        });
+
+        document.addEventListener('visibilitychange', function() {
+            console.log('Visibility changed');
+            console.log(vm.$refs.entryBtn.style.visibility);
+        });
+
+        window.onload = function() {
+            console.log('window loaded');
+        };
+        
         if (vm.showMonitor) {
             console.log('MA DEN EPREPE');
             vm.$root.$refs.monitor.loadMonitorConfig(vm.config.gui.monitor);
@@ -349,11 +388,15 @@ export default {
             navigator.requestMIDIAccess().then(function(access) {
                 vm.WebMIDISupport = true;
                 access.onstatechange = vm.onEnabled;
+            })
+            .catch(function(err) {
+                console.log('requestMIDIAccess Error: ' + err);
             });
+            
             // Enable WebMIDI, then call onEnabled method.
             WebMidi.enable()
                 .then(vm.onEnabled)
-                .catch((err) => this.$toasted.show('WebMIDI Error: ' + err));
+                .catch((err) => console.log('WebMIDI Error: ' + err));
         }
 
         /*
@@ -418,36 +461,7 @@ export default {
             vm.processUserNoteEvent(newNoteEvent);
         });
 
-        /*
-        * Minor
-        */
-        window.onresize = () => {
-            return (() => {
-                window.screenWidth = document.body.clientWidth;
-                vm.screenWidth = window.screenWidth;
-            })();
-        };
-
-        // Prevent spacebar trigger any button
-        // document.querySelectorAll('button').forEach(function(item) {
-        //     item.addEventListener('focus', function() {
-        //         this.blur();
-        //     });
-        // });
-        document.querySelectorAll('button').forEach((item) => {
-            item.addEventListener('focus', () => {
-                item.blur();
-            });
-        });
-
-        // spacebar trigger play btn
-        document.addEventListener('keypress', function(event) {
-            if (event.code == 'Space' && !vm.$store.getters.getModalStatus) {
-                // spacebar could toggle clock
-                vm.toggleClock();
-            }
-        });
-
+        
         vm.modelLoadTime = Date.now();
         console.log('TONE TONE TONE ', Tone.now());
     },
