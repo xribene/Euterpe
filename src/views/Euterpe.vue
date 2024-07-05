@@ -336,68 +336,88 @@ export default {
             /*
             * Initialize Audio Recorder (for audio recording).
             */
+            // vm.audio_sucess = true;
+            // try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
                 video: false,
             });
+            console.log('Audio stream initialized');    
+            vm.audio_success = true;
+            // } catch (error) {
+            //     console.error('Error accessing the microphone: ', error);
+            //     vm.audio_success = false;
+            // }
 
-            vm.mediaStreamSource = vm.audioContext.createMediaStreamSource(
-                stream,
-            );
+            if (vm.audio_success) {
+                
+                vm.mediaStreamSource = vm.audioContext.createMediaStreamSource(
+                    stream,
+                );
+                console.log('Audio stream initialized');
+
+                vm.analyserNode = vm.audioContext.createAnalyser();
+
+                vm.mediaStreamSource.connect(vm.analyserNode);
+
+                if (vm.config.gui.audioMeter.status) {
+                    vm.$root.$refs.audioMeter.init(vm.analyserNode);
+                    vm.$root.$refs.audioMeter.updateAnalysis();
+                }
+            
+                // vm.$root.$refs.vectorBar.init();
+                // vm.$root.$refs.vectorBar.updateAnalysis();
+                vm.audioContext.resume(); // ?
+
+                const recorderWorkletUrl = await urlFromFiles(
+                    ['recorder-worklet.js', 'libraries/index_rb.js'],
+                );
+                await vm.audioContext.audioWorklet.addModule(recorderWorkletUrl);
 
 
-            vm.analyserNode = vm.audioContext.createAnalyser();
+                vm.recorderWorkletNode = new AudioWorkletNode(
+                    vm.audioContext,
+                    'recorder-worklet',
+                    {processorOptions: vm.sab},
+                );
 
-            vm.mediaStreamSource.connect(vm.analyserNode);
+                vm.recorderWorkletNode.port.postMessage('ping');
 
-            if (vm.config.gui.audioMeter.status) {
-                vm.$root.$refs.audioMeter.init(vm.analyserNode);
-                vm.$root.$refs.audioMeter.updateAnalysis();
+                vm.recorderWorkletNode.port.addEventListener('message', (event) => {
+                    console.log('Received from Worklet' + event.data);
+                });
+                // vm.recorderWorkletNode.port.start(); # TODO do I need this for ping/pong ?
+                // send the mic to the recorderNode --> recorderWorklet
+                vm.mediaStreamSource.connect(vm.recorderWorkletNode);
+                // vm.agentPlayer = new Tone.Player().toDestination();
             }
-
-            // vm.$root.$refs.vectorBar.init();
-            // vm.$root.$refs.vectorBar.updateAnalysis();
-            vm.audioContext.resume(); // ?
-
-            const recorderWorkletUrl = await urlFromFiles(
-                ['recorder-worklet.js', 'libraries/index_rb.js'],
-            );
-            await vm.audioContext.audioWorklet.addModule(recorderWorkletUrl);
-
-
-            vm.recorderWorkletNode = new AudioWorkletNode(
-                vm.audioContext,
-                'recorder-worklet',
-                {processorOptions: vm.sab},
-            );
-
-            vm.recorderWorkletNode.port.postMessage('ping');
-
-            vm.recorderWorkletNode.port.addEventListener('message', (event) => {
-                console.log('Received from Worklet' + event.data);
-            });
-            // vm.recorderWorkletNode.port.start(); # TODO do I need this for ping/pong ?
-            // send the mic to the recorderNode --> recorderWorklet
-            vm.mediaStreamSource.connect(vm.recorderWorkletNode);
-            // vm.agentPlayer = new Tone.Player().toDestination();
         }
         vm.audioContext.resume(); // ?
         /*
         * Web MIDI logic
         */
-        if (navigator.requestMIDIAccess) {
-            navigator.requestMIDIAccess().then(function(access) {
-                vm.WebMIDISupport = true;
-                access.onstatechange = vm.onEnabled;
-            })
-            .catch(function(err) {
-                console.log('requestMIDIAccess Error: ' + err);
-            });
+        // if (navigator.requestMIDIAccess) {
+        //     navigator.requestMIDIAccess().then(function(access) {
+        //         vm.WebMIDISupport = true;
+        //         access.onstatechange = vm.onEnabled;
+        //     })
+        //     .catch(function(err) {
+        //         console.log('requestMIDIAccess Error: ' + err);
+        //     });
             
-            // Enable WebMIDI, then call onEnabled method.
-            WebMidi.enable()
-                .then(vm.onEnabled)
-                .catch((err) => console.log('WebMIDI Error: ' + err));
+        //     // Enable WebMIDI, then call onEnabled method.
+        //     WebMidi.enable()
+        //         .then(vm.onEnabled)
+        //         .catch((err) => console.log('WebMIDI Error: ' + err));
+        // }
+        try {
+            if (navigator.requestMIDIAccess) {
+                // Await MIDI permission
+                await this.initializeMIDI();
+                console.log('MIDI initialized');
+            }
+        } catch (error) {
+            console.error('Error initializing MIDI: ', error);
         }
 
         /*
@@ -1144,8 +1164,20 @@ export default {
         },
 
         /*
-            * Web MIDI
-            */
+        * Web MIDI
+        */
+        async initializeMIDI() {
+            try {
+                const access = await navigator.requestMIDIAccess();
+                this.WebMIDISupport = true;
+                access.onstatechange = this.onEnabled;
+
+                await WebMidi.enable();
+                this.onEnabled();
+            } catch (err) {
+                console.error('WebMIDI Error:', err);
+            }
+        },
         onEnabled() {
             const vm = this;
             if (WebMidi.inputs.length < 1) {
