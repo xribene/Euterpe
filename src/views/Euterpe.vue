@@ -149,6 +149,11 @@ export default {
             timeout_IDS_live: [],
 
             mixer_data: null,
+
+            agentLoaded: false,
+            permissionAudio: false,
+            permissionMIDI: false,
+            permissionsGranted: false
         };
     },
 
@@ -338,18 +343,21 @@ export default {
             */
             // vm.audio_sucess = true;
             // try {
+
+            // TODO: this is not correct. Needs to be in a try/catch
+            // but for some reason it doesn't work
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
                 video: false,
             });
             console.log('Audio stream initialized');    
-            vm.audio_success = true;
+            vm.permissionAudio = true;
             // } catch (error) {
             //     console.error('Error accessing the microphone: ', error);
             //     vm.audio_success = false;
             // }
 
-            if (vm.audio_success) {
+            if (vm.permissionAudio) {
                 
                 vm.mediaStreamSource = vm.audioContext.createMediaStreamSource(
                     stream,
@@ -415,6 +423,7 @@ export default {
                 // Await MIDI permission
                 await this.initializeMIDI();
                 console.log('MIDI initialized');
+                vm.permissionMIDI = true;
             }
         } catch (error) {
             console.error('Error initializing MIDI: ', error);
@@ -485,6 +494,11 @@ export default {
         
         vm.modelLoadTime = Date.now();
         console.log('TONE TONE TONE ', Tone.now());
+
+        // Now set the permissionsGrated flag
+        // It is true if  (permissionMIDI is true) AND (permissionAudio is true OR vm.config.interactionMode.audioMode is false)
+        vm.permissionsGranted = vm.permissionMIDI && (vm.permissionAudio || !vm.config.interactionMode.audioMode);
+        vm.displayPlayBtn();
     },
     methods: {
 
@@ -896,10 +910,10 @@ export default {
                     switch (messageType) {
                     case vm.messageType.STATUS:
                         if (messageValue == vm.statusType.SUCCESS) {
-                            vm.$refs.entryBtn.classList.add('fade-in');
-                            vm.$refs.entryBtn.style.visibility = 'visible';
+                            vm.agentLoaded = true;
+                            vm.displayPlayBtn();
                             vm.modelLoadTime = Date.now() - vm.modelLoadTime;
-                            console.log('success');
+                            // console.log('agent loaded');
                         }
                         break;
                     case vm.messageType.NOTE_LIST: {
@@ -1284,6 +1298,17 @@ export default {
             console.log('TONE ENTRY ', Tone.now());
             if (vm.config.clockSettings.autoStart === true) {
                 vm.toggleClock();
+            }
+        },
+
+        displayPlayBtn() {
+            console.log('in displayPlayBtn');
+            if (this.agentLoaded && this.permissionsGranted) {
+                const vm = this;
+                // vm.$refs.entryBtn.classList.remove('fade-out');
+                console.log('AAAAAAAAAAAAAAAAAAAAAAAA');
+                vm.$refs.entryBtn.classList.add('fade-in');
+                vm.$refs.entryBtn.style.visibility = 'visible';
             }
         },
 
