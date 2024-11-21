@@ -1329,8 +1329,8 @@ export default {
                 // outputDevice.send([0x90, noteNumber, velocity]);
                 outputDevice.playNote(noteEvent.midi, {channels: [channel]});
                 console.log(`Sent Note On to external device`);
-            } else {
-                console.error('No output device selected.');
+            // } else {
+            //     console.error('No output device selected.');
             }
         },
 
@@ -1344,8 +1344,8 @@ export default {
                 else
                     outputDevice.playNote(noteEvent.name, {channels: [channel], duration: duration});
                 console.log(`Sent Note On to external device`);
-            } else {
-                console.error('No output device selected.');
+            // } else {
+            //     console.error('No output device selected.');
             }
         },
 
@@ -1355,9 +1355,9 @@ export default {
             if (outputDevice) {
                 // Note Off message is sent as [0x80 + channel, noteNumber, 0]
                 outputDevice.stopNote(noteEvent.midi, {time: after, channels: [channel]});
-                console.log(`Sent Note Off: Note ${noteEvent.midi} to external device`);
-            } else {
-                console.error('No output device selected.');
+                // console.log(`Sent Note Off: Note ${noteEvent.midi} to external device`);
+            // } else {
+            //     console.error('No output device selected.');
             }
         },
 
@@ -1368,6 +1368,7 @@ export default {
             for (let i = 0; i < 128; i++) {
                 this.sendNoteOff({midi: i}, 1, "+200");
             }
+            console.log('Killed all notes on the external midi device');
         },
 
         startRecording() {
