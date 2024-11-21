@@ -1185,13 +1185,10 @@ export default {
             try {
                 const access = await navigator.requestMIDIAccess();
                 this.WebMIDISupport = true;
-                access.onstatechange = this.onEnabled;
 
-                // // Get MIDI outputs
-                // this.midiOutputs = Array.from(access.outputs.values());
-                // if (this.midiOutputs.length > 0) {
-                //     this.selectedMIDIOutputDevice = this.midiOutputs[0].id; // Select the first available output
-                // }
+                access.onstatechange = (event) => {
+                    this.onMidiStateChange(event);
+                };
 
                 await WebMidi.enable();
                 this.onEnabled();
@@ -1199,39 +1196,39 @@ export default {
                 console.error('WebMIDI Error:', err);
             }
         },
+
+        onMidiStateChange(state) {
+            if (state.port.state === 'connected') {
+                console.log('MIDI device connected:', state.port.name);
+            } else if (state.port.state === 'disconnected') {
+                console.log('MIDI device disconnected:', state.port.name);
+            }
+            // this.onEnabled();
+            // Find a non-buggy way to correctly update the MIDI devices
+        },
+
         onEnabled() {
             const vm = this;
             vm.activeDevices = [];
             vm.activeDevices.push({id: 1123581321, name: 'None'})
-            // if (WebMidi.inputs.length < 1) {
-                
-            // } else {
-                // vm.activeDevices.push({id: 1123581321, name: 'None'})
-                WebMidi.inputs.forEach((device) => {
-                    vm.activeDevices.push({id: device.id, name: device.name});
-                });
-                // this.selectedMIDIDevice = this.activeDevices[0].id;
-                // this.messageListener();
-            // }
-            // if (vm.activeDevices.length == 0) {
-                vm.selectedMIDIDevice = vm.activeDevices[0].id;
-            // }
+            WebMidi.inputs.forEach((device) => {
+                vm.activeDevices.push({id: device.id, name: device.name});
+            });
+            vm.selectedMIDIDevice = vm.activeDevices[0].id;
 
-            if (WebMidi.outputs.length < 1) {
-                vm.activeMidiOutputDevices = [];
-            } else {
-                vm.activeMidiOutputDevices.push({id: 1123581321, name: 'None'})
-                WebMidi.outputs.forEach((device) => {
-                    vm.activeMidiOutputDevices.push({id: device.id, name: device.name});
-                });
-                // this.selectedMIDIOutputDevice = this.activeMidiOutputDevices[0].id;
-            }
+            vm.activeMidiOutputDevices = [];
+            vm.activeMidiOutputDevices.push({id: 1123581321, name: 'None'})
+            WebMidi.outputs.forEach((device) => {
+                vm.activeMidiOutputDevices.push({id: device.id, name: device.name});
+            });
+            vm.selectedMIDIOutputDevice = vm.activeMidiOutputDevices[0].id;
+
         },
 
         onMIDIDeviceSelectedChange(state) {
             const vm = this;
-            if (state.id) {
-                if (vm.selectedMIDIDevice !== state.id) {
+            if (state.currentTarget.value) {
+                if (vm.selectedMIDIDevice !== state.currentTarget.value) {
 
                     if (vm.selectedMIDIDevice != 1123581321) {
                         const inputDevice = WebMidi.getInputById(this.selectedMIDIDevice);
@@ -1243,8 +1240,8 @@ export default {
                                 channel.removeListener();
                         }
                     }
-                    vm.selectedMIDIDevice = state.id;
-                    if (state.id != 1123581321) {
+                    vm.selectedMIDIDevice = state.currentTarget.value;
+                    if (state.currentTarget.value != 1123581321) {
                         vm.messageListener();
                     }
                     
@@ -1253,13 +1250,13 @@ export default {
         },
         onMIDIOutputDeviceSelectedChange(state) {
             const vm = this;
-            if (state.id) {
-                if (vm.selectedMIDIOutputDevice !== state.id) {
-                    if (state.id == 1123581321) {
+            if (state.currentTarget.value) {
+                if (vm.selectedMIDIOutputDevice !== state.currentTarget.value) {
+                    if (state.currentTarget.value == 1123581321) {
                         vm.selectedMIDIOutputDevice = 1123581321;
                     } 
                     else {
-                        vm.selectedMIDIOutputDevice = state.id;
+                        vm.selectedMIDIOutputDevice = state.currentTarget.value;
                     }
                     // vm.sendNoteOn();
                 }
