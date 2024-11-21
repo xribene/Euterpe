@@ -10,7 +10,7 @@ players:
         volume: 8
         default: true
   agent:
-    label: 'Empty Agent'
+    label: 'Agent'
     mute: false
     volume: 8
     instruments:

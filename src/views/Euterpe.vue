@@ -556,6 +556,8 @@ export default {
             } else {
                 vm.stopRecording();
                 vm.clockWorker.postMessage({action: 'stopClock'});
+                // kill all notes in the external midi devices
+                vm.killAllNotes();
             }
             vm.localSyncClockStatus = !vm.localSyncClockStatus;
             vm.$store.commit('changeClockStatus');
@@ -597,6 +599,9 @@ export default {
                     seconds: 0,
                 };
                 this.$store.dispatch('samplerOn', metronomeNote);
+                // channel = 10, duration = 2sec (doesn't matter because percusive)
+                let currentMidi = currentNote === 'C0' ? 60 : 57;
+                this.sendNoteOnOff({midi: currentMidi}, 10, 2000)
             }
         },
 
@@ -1114,12 +1119,14 @@ export default {
                     }
                 } else {
                     this.$store.dispatch('samplerOn', noteEvent);
+                    this.sendNoteOn(noteEvent);
                 }
                 // this.$store.dispatch("samplerOn", noteEvent);
                 this.uiNoteOnAgent(noteEvent);
             } else if (noteEvent.type === vm.noteType.NOTE_OFF) {
                 if (!noteEvent.hasOwnProperty('custom')) {
                     this.$store.dispatch('samplerOff', noteEvent);
+                    this.sendNoteOff(noteEvent, 1);
                 }
                 // console.log("about to call uiNoteOffAgent");
                 this.uiNoteOffAgent(noteEvent);
@@ -1315,27 +1322,51 @@ export default {
         },
 
         // Method to send MIDI messages (for example, a Note On message)
-        sendNoteOn() {
+        sendNoteOn(noteEvent, channel = 1) {
             const outputDevice = WebMidi.getOutputById(this.selectedMIDIOutputDevice);
             if (outputDevice) {
                 // Note On message is sent as [0x90 + channel, noteNumber, velocity]
                 // outputDevice.send([0x90, noteNumber, velocity]);
-                outputDevice.playNote('C4', {duration: 1000});
-                console.log(`Sent Note On`);
+                outputDevice.playNote(noteEvent.midi, {channels: [channel]});
+                console.log(`Sent Note On to external device`);
+            } else {
+                console.error('No output device selected.');
+            }
+        },
+
+        sendNoteOnOff(noteEvent, channel = 1, duration = 1000) {
+            const outputDevice = WebMidi.getOutputById(this.selectedMIDIOutputDevice);
+            if (outputDevice) {
+                // Note On message is sent as [0x90 + channel, noteNumber, velocity]
+                // outputDevice.send([0x90, noteNumber, velocity]);
+                if (noteEvent.midi)
+                    outputDevice.playNote(noteEvent.midi, {channels: [channel], duration: duration});
+                else
+                    outputDevice.playNote(noteEvent.name, {channels: [channel], duration: duration});
+                console.log(`Sent Note On to external device`);
             } else {
                 console.error('No output device selected.');
             }
         },
 
         // Method to send MIDI messages (for example, a Note Off message)
-        sendNoteOff(noteNumber) {
+        sendNoteOff(noteEvent, channel = 1, after = "+0") {
             const outputDevice = WebMidi.getOutputById(this.selectedMIDIOutputDevice);
             if (outputDevice) {
                 // Note Off message is sent as [0x80 + channel, noteNumber, 0]
-                outputDevice.send([0x80, noteNumber, 0]);
-                console.log(`Sent Note Off: Note ${noteNumber}`);
+                outputDevice.stopNote(noteEvent.midi, {time: after, channels: [channel]});
+                console.log(`Sent Note Off: Note ${noteEvent.midi} to external device`);
             } else {
                 console.error('No output device selected.');
+            }
+        },
+
+        // kill all notes on the external midi device
+        killAllNotes() {
+            // use the sendNoteOff method to send a note off message to all notes
+            // that are currently playing on the external midi device
+            for (let i = 0; i < 128; i++) {
+                this.sendNoteOff({midi: i}, 1, "+200");
             }
         },
 
