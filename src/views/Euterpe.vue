@@ -127,7 +127,9 @@ export default {
             pageLoadTime: null,
             modelLoadTime: null,
             activeDevices: [],
-            selectedMIDIDevice: '',
+            selectedMIDIDevice: 1123581321, // id for the "None" device
+            selectedMIDIOutputDevice: 1123581321, // id for the "None" device
+            activeMidiOutputDevices: [], // To store MIDI output devices
 
             noteOffEventForNextTick: null,
 
@@ -1185,6 +1187,12 @@ export default {
                 this.WebMIDISupport = true;
                 access.onstatechange = this.onEnabled;
 
+                // // Get MIDI outputs
+                // this.midiOutputs = Array.from(access.outputs.values());
+                // if (this.midiOutputs.length > 0) {
+                //     this.selectedMIDIOutputDevice = this.midiOutputs[0].id; // Select the first available output
+                // }
+
                 await WebMidi.enable();
                 this.onEnabled();
             } catch (err) {
@@ -1193,14 +1201,30 @@ export default {
         },
         onEnabled() {
             const vm = this;
-            if (WebMidi.inputs.length < 1) {
-                vm.activeDevices = [];
-            } else {
+            vm.activeDevices = [];
+            vm.activeDevices.push({id: 1123581321, name: 'None'})
+            // if (WebMidi.inputs.length < 1) {
+                
+            // } else {
+                // vm.activeDevices.push({id: 1123581321, name: 'None'})
                 WebMidi.inputs.forEach((device) => {
                     vm.activeDevices.push({id: device.id, name: device.name});
                 });
-                this.selectedMIDIDevice = this.activeDevices[0].id;
-                this.messageListener();
+                // this.selectedMIDIDevice = this.activeDevices[0].id;
+                // this.messageListener();
+            // }
+            // if (vm.activeDevices.length == 0) {
+                vm.selectedMIDIDevice = vm.activeDevices[0].id;
+            // }
+
+            if (WebMidi.outputs.length < 1) {
+                vm.activeMidiOutputDevices = [];
+            } else {
+                vm.activeMidiOutputDevices.push({id: 1123581321, name: 'None'})
+                WebMidi.outputs.forEach((device) => {
+                    vm.activeMidiOutputDevices.push({id: device.id, name: device.name});
+                });
+                // this.selectedMIDIOutputDevice = this.activeMidiOutputDevices[0].id;
             }
         },
 
@@ -1208,8 +1232,36 @@ export default {
             const vm = this;
             if (state.id) {
                 if (vm.selectedMIDIDevice !== state.id) {
+
+                    if (vm.selectedMIDIDevice != 1123581321) {
+                        const inputDevice = WebMidi.getInputById(this.selectedMIDIDevice);
+                        // iterate over all channels in inputDevice.channels
+                        // and do channel.removeListener();  
+                        for (let i = 1; i <= 16; i++) {
+                            let channel = inputDevice.channels[i];
+                            if (channel)
+                                channel.removeListener();
+                        }
+                    }
                     vm.selectedMIDIDevice = state.id;
-                    vm.messageListener();
+                    if (state.id != 1123581321) {
+                        vm.messageListener();
+                    }
+                    
+                }
+            }
+        },
+        onMIDIOutputDeviceSelectedChange(state) {
+            const vm = this;
+            if (state.id) {
+                if (vm.selectedMIDIOutputDevice !== state.id) {
+                    if (state.id == 1123581321) {
+                        vm.selectedMIDIOutputDevice = 1123581321;
+                    } 
+                    else {
+                        vm.selectedMIDIOutputDevice = state.id;
+                    }
+                    // vm.sendNoteOn();
                 }
             }
         },
@@ -1263,6 +1315,31 @@ export default {
 
                 vm.processUserNoteEvent(newNoteEvent);
             });
+        },
+
+        // Method to send MIDI messages (for example, a Note On message)
+        sendNoteOn() {
+            const outputDevice = WebMidi.getOutputById(this.selectedMIDIOutputDevice);
+            if (outputDevice) {
+                // Note On message is sent as [0x90 + channel, noteNumber, velocity]
+                // outputDevice.send([0x90, noteNumber, velocity]);
+                outputDevice.playNote('C4', {duration: 1000});
+                console.log(`Sent Note On`);
+            } else {
+                console.error('No output device selected.');
+            }
+        },
+
+        // Method to send MIDI messages (for example, a Note Off message)
+        sendNoteOff(noteNumber) {
+            const outputDevice = WebMidi.getOutputById(this.selectedMIDIOutputDevice);
+            if (outputDevice) {
+                // Note Off message is sent as [0x80 + channel, noteNumber, 0]
+                outputDevice.send([0x80, noteNumber, 0]);
+                console.log(`Sent Note Off: Note ${noteNumber}`);
+            } else {
+                console.error('No output device selected.');
+            }
         },
 
         startRecording() {
@@ -1609,8 +1686,11 @@ export default {
                 :maxBPM="maxBPM"
                 :initBPM="localBPM"
                 :WebMIDISupport="WebMIDISupport"
+                :activeDevices="activeDevices"
+                :activeMidiOutputDevices="activeMidiOutputDevices"
                 @button-click="buttonAction"
                 @midi-device-change="onMIDIDeviceSelectedChange"
+                @midi-output-device-change="onMIDIOutputDeviceSelectedChange"
                 @bpm-change="bpmValueChanged"
             ></SettingsModal>
 

@@ -35,10 +35,39 @@
                             <span style="line-height:36px">MIDI</span>
                         </p>
                         <div class="MIDIInput" style="padding-left: 8px" v-if="WebMIDISupport">
-                            <Dropdown :options="activeDevices"
+                            <!-- <Dropdown :options="activeDevices"
                                 v-on:selected="onMIDIDeviceSelectedChange"
-                                placeholder="Type here to search for MIDI device">
-                            </Dropdown>
+                                placeholder="MIDI Input Device"
+                                v-model="selectedMIDIInputDevice"
+                                >
+                            </Dropdown> -->
+                            <!-- Output Device Selection -->
+                            <!-- <Dropdown 
+                                :options="activeMidiOutputDevices"
+                                v-on:selected="onMIDIOutputDeviceSelectedChange"
+                                placeholder="MIDI Output Device"
+                                v-model="selectedMIDIOutputDevice"
+                                >
+                            </Dropdown> -->
+                            <div class="dropdown-container">
+                                <label for="midi-input">Input Device</label>
+                                <select id="midi-input" v-model="selectedMIDIInputDevice" @change="onMIDIDeviceSelectedChange">
+                                    <!-- <option value="None" disabled>Input Device</option> -->
+                                    <option v-for="device in activeDevices" :key="device.id" :value="device.id">
+                                        {{ device.name }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="dropdown-container">
+                                <label for="midi-output">Output Device</label>
+                                <select id="midi-output" v-model="selectedMIDIOutputDevice" @change="onMIDIOutputDeviceSelectedChange">
+                                    <!-- <option value="None" disabled>Output Device</option> -->
+                                    <option v-for="device in activeMidiOutputDevices" :key="device.id" :value="device.id">
+                                        {{ device.name }}
+                                    </option>
+                                </select>
+                            </div>
                         </div>
                         <span v-else>
                             Currently, Using MIDI devices in browser is only supported by Google
@@ -122,6 +151,10 @@ export default {
             type: Array,
             default: () => [],
         },
+        activeMidiOutputDevices: {
+            type: Array,
+            default: () => [],
+        },
         WebMIDISupport: {
             type: Boolean,
             default: false,
@@ -133,6 +166,8 @@ export default {
     data() {
         return {
             currentBPM: this.$props.initBPM,
+            selectedMIDIInputDevice: 1123581321, // id for "None" option 
+            selectedMIDIOutputDevice: 1123581321 // id for "None" option
         };
     },
 
@@ -157,6 +192,10 @@ export default {
             // Emit an event to notify the parent about the MIDI device change
             this.$emit('midi-device-change', device);
         },
+        onMIDIOutputDeviceSelectedChange(device) {
+            // Emit an event to notify the parent about the MIDI output device change
+            this.$emit('midi-output-device-change', device);
+        },
         bpmValueChanged(bpm) {
             // Emit an event to notify the parent about the BPM change
             this.$emit('bpm-change', bpm);
@@ -166,7 +205,28 @@ export default {
 };
 </script>
 
+
 <style scoped>
+
+.dropdown-container {
+    display: inline-block;
+    margin-right: 20px; /* Add space between the dropdowns */
+    vertical-align: top;
+}
+
+.dropdown-container label {
+    display: block;
+    margin-bottom: 5px; /* Space between label and select */
+    /* font-weight: bold; */
+    font-size: medium;
+}
+
+select {
+    width: 200px; /* Adjust width as needed */
+    padding: 5px;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
 
 .settingsContainer {
     display: flex;
