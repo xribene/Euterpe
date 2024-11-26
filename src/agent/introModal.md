@@ -2,7 +2,7 @@
 
 **BachDuet** is your baroque-style counterpoint improvisation partner.
 
-This is a re-implementation of the [**BachDuet**](https://labsites.rochester.edu/air/projects/BachDuet.html) system  using the **Euterpe** framework.
+This is a re-implementation of the [**BachDuet**](https://labsites.rochester.edu/air/projects/BachDuet.html) system  using the [**Euterpe**](https://euterpeframework.org/) framework.
 
 ## Instructions
 
