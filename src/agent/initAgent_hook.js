@@ -60,6 +60,7 @@ const MODELS = [
     {name: 'Frankenstein chorales', dir: '/checkpoints_frank', primed: '/primedStates_frank'},
     {name: 'RL cadence (long)', dir: '/checkpoints_rlcad', primed: '/primedStates_rlcad'},
     {name: 'RL β 0.3', dir: '/checkpoints_rlb03', primed: '/primedStates_rlb03'},
+    {name: 'RL Frankenstein (best)', dir: '/checkpoints_rlfrank', primed: '/primedStates_rlfrank'},
 ];
 const modelCache = {};
 
