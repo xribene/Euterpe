@@ -32,15 +32,8 @@ export function processClockEvent(content) {
     // Convert the tick from Euterpe's format to BachDuet's format
     const tickBD = euterpeTickToBachDuetTick(content.tick);
 
-    // Prepare the input tensors for the neural network
-    const midiInputTensor = tf.tensor2d([[self.lastBachDuetNote.midiArticInd,
-        userInputBD.midiArticInd]]);
-    const cpcInputTensor = tf.tensor2d([[self.lastBachDuetNote.cpc, userInputBD.cpc]]);
-    const tickTensor = tf.tensor2d([[tickBD]]);
-
-    // Neural network inference
-    const currentBachDuetNote = bachDuetInference(midiInputTensor, cpcInputTensor, tickTensor);
-    tf.dispose([midiInputTensor, cpcInputTensor, tickTensor]);
+    // Neural network inference (uses self.lastBachDuetNote as BachDuet's current note)
+    const currentBachDuetNote = bachDuetInference(userInputBD, tickBD);
 
     // Convert the bachDuet's note output to Euterpe's note format
     const agentOutputNoteList = bachDuetNoteToEuterpeNote(currentBachDuetNote);

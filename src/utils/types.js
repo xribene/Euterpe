@@ -63,6 +63,10 @@ export const uiParameterType = {
     SWITCH_2: 9,
     SWITCH_3: 10,
     SWITCH_4: 11,
+    DROPDOWN_1: 12,
+    DROPDOWN_2: 13,
+    DROPDOWN_3: 14,
+    DROPDOWN_4: 15,
 };
 
 export const agentHookType = {

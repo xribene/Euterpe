@@ -23,6 +23,37 @@ gui:
         value: 25
         min: 1
         max: 300
+      # Anticipation: a role-swapped copy of the network predicts the user's next note and
+      # BachDuet favours notes consonant with it (and stays on the other side of the user).
+      # 0 turns it off.
+      - id: 2
+        label: "Anticipation"
+        value: 6
+        min: 0
+        max: 10
+      # Avoid rests: how strongly BachDuet is steered away from resting. 0 turns it off.
+      - id: 3
+        label: "Avoid rests"
+        value: 2
+        min: 0
+        max: 5
     buttons:
       - id: 1
         label: "Reset"
+    # Dropdowns send the index of the selected option to the agent.
+    # intro: true also shows the dropdown on the loading screen, next to the Play button.
+    dropdowns:
+      - id: 1
+        label: "Starting key"
+        intro: true
+        value: 0
+        options: ["C major", "C minor", "D♭ major", "C♯ minor", "D major", "D minor",
+                  "E♭ major", "E♭ minor", "E major", "E minor", "F major", "F minor",
+                  "F♯ major", "F♯ minor", "G major", "G minor", "A♭ major", "G♯ minor",
+                  "A major", "A minor", "B♭ major", "B♭ minor", "B major", "B minor"]
+      - id: 2
+        label: "Starting voice"
+        intro: true
+        value: 0
+        options: ["I play the upper voice", "I play the lower voice"]
+    dropdownsNote: "This only sets how BachDuet starts (and what Reset returns to). It follows you when you modulate or switch register."

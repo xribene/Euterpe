@@ -1,6 +1,7 @@
 /* eslint-disable require-jsdoc */
 import {getThreadsCount} from '@tensorflow/tfjs-backend-wasm';
 import {resetBachDuetState} from './bachDuetUtils.js';
+import {parseTokens} from './bachDuetDecoding.js';
 
 /**
  * Even though you can initialize variables outside of any function,
@@ -11,8 +12,15 @@ import {resetBachDuetState} from './bachDuetUtils.js';
  */
 export function initAgentVariables() {
     console.log('just entered initAgentVariables');
-    // GUI controleld parameters
-    self.temperature = 0.1;
+    // GUI controlled parameters start at their defaults in config_widgets.yaml (the UI only
+    // sends a value once the user changes it). ??= keeps a value the user already chose
+    // while the agent was loading (the start selectors are on the loading screen).
+    self.temperature ??= widgetValue('sliders', 1) ?? 25;
+    self.anticipation ??= widgetValue('sliders', 2) ?? 0;
+    self.restBias ??= widgetValue('sliders', 3) ?? 0;
+    self.startKey ??= dropdownOption(1, widgetValue('dropdowns', 1) ?? 0) ?? 'C major';
+    self.startVoice ??= voiceFromOption(dropdownOption(2, widgetValue('dropdowns', 2) ?? 0));
+    self.tokens = parseTokens(self.tokenIndexDict.midiArtic.index2token);
 
     // Other variables necessary for BachDuet
     const restMidi = 0;
@@ -29,13 +37,43 @@ export function initAgentVariables() {
     self.lastBachDuetNote = self.restNote;
 }
 
+// Current value of a widget in config_widgets.yaml (gui.settingsModal.<type>, by id)
+function widgetValue(type, id) {
+    return self.config.gui.settingsModal?.[type]?.find((w) => w.id === id)?.value;
+}
+
+function dropdownOption(id, index) {
+    return self.config.gui.settingsModal?.dropdowns?.find((w) => w.id === id)?.options?.[index];
+}
+
+// 'I play the lower voice' -> 'lower', anything else -> 'upper'
+function voiceFromOption(option) {
+    return /lower/i.test(option ?? '') ? 'lower' : 'upper';
+}
+
 export function updateParameter(newUpdate) {
     switch (newUpdate.index) {
     case self.uiParameterType.SLIDER_1:
         self.temperature = newUpdate.value;
         break;
+    case self.uiParameterType.SLIDER_2:
+        self.anticipation = newUpdate.value;
+        break;
+    case self.uiParameterType.SLIDER_3:
+        self.restBias = newUpdate.value;
+        break;
     case self.uiParameterType.BUTTON_1:
         // button 1 is the reset button
+        resetBachDuetState();
+        break;
+    case self.uiParameterType.DROPDOWN_1:
+        // starting key: re-prime BachDuet for it (like Reset)
+        self.startKey = dropdownOption(1, newUpdate.value) ?? self.startKey;
+        resetBachDuetState();
+        break;
+    case self.uiParameterType.DROPDOWN_2:
+        // starting voice of the user: re-prime BachDuet for it (like Reset)
+        self.startVoice = voiceFromOption(dropdownOption(2, newUpdate.value));
         resetBachDuetState();
         break;
     default:
@@ -45,14 +83,16 @@ export function updateParameter(newUpdate) {
 }
 
 export async function loadExternalFiles(content) {
-    // Put your code here
-    await fetch('/globalTokenIndexDict.json').then((response) => {
-        return response.json();
-    }).then((data) => {
-        self.tokenIndexDict = data;
-        console.log('just loaded tokenIndexDict');
-        initAgentVariables();
-    });
+    const [tokenIndexDict, primedIndex, primedData] = await Promise.all([
+        fetch('/globalTokenIndexDict.json').then((response) => response.json()),
+        fetch('/primedStates.json').then((response) => response.json()),
+        fetch('/primedStates.bin').then((response) => response.arrayBuffer()),
+    ]);
+    self.tokenIndexDict = tokenIndexDict;
+    console.log('just loaded tokenIndexDict');
+    // LSTM states primed for each starting key and voice (see tools/primed-states)
+    self.primedStates = {...primedIndex, data: new Float32Array(primedData)};
+    initAgentVariables();
 }
 
 /**
@@ -77,7 +117,7 @@ async function selectBackend() {
     throw new Error('No TF.js backend could be initialized');
 }
 
-export async function loadAlgorithm() {
+export async function loadAlgorithm(externalFilesLoaded) {
     await selectBackend();
     try {
         self.modelLstm = await tf.loadLayersModel('/checkpoints/modelsFinal_Lstm/model.json');
@@ -113,8 +153,7 @@ export async function loadAlgorithm() {
             const embCpcC = tf.concat([embCpc.slice([0, 0, 0], [1, 1, 150]),
                 embCpc.slice([0, 1, 0], [1, 1, 150])], 2);
             const totalInp = tf.concat([embMidiC, embCpcC, embRhy], 2);
-            const out = self.modelLstm.predict([totalInp,
-                self.states1A, self.states1B, self.states2A, self.states2B]);
+            const out = self.modelLstm.predict([totalInp, ...self.agentStates]);
             // wait for the result, so the warmup times are real
             out[0].dataSync();
         });
@@ -136,6 +175,8 @@ export async function loadAlgorithm() {
         });
     }
     tf.dispose([midiInp, cpcInp, rhyInp]);
+    // the primed states and the starting key/voice come with the external files
+    await externalFilesLoaded;
     resetBachDuetState();
     console.log(`BachDuet warmup on ${tf.getBackend()}: ` +
         inferenceTimes.map((t) => t.toFixed(1)).join(', ') + ' ms');

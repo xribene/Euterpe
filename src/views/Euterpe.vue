@@ -79,6 +79,8 @@ export default {
             switches: [],
             sliders: [],
             buttons: [],
+            dropdowns: [],
+            dropdownsNote: '',
             // Information about the players and
             // instruments available to each player.
             // It's used to create the mixer modal.
@@ -191,6 +193,8 @@ export default {
             this.switches = this.config.gui.settingsModal.switches ?? this.switches;
             this.sliders = this.config.gui.settingsModal.sliders ?? this.sliders;
             this.buttons = this.config.gui.settingsModal.buttons ?? this.buttons;
+            this.dropdowns = this.config.gui.settingsModal.dropdowns ?? this.dropdowns;
+            this.dropdownsNote = this.config.gui.settingsModal.dropdownsNote ?? this.dropdownsNote;
         }
 
         this.players = this.config.players;
@@ -1562,6 +1566,15 @@ export default {
                 return {...a};
             });
         },
+        computedDropdowns: function() {
+            return this.dropdowns.map((a) => {
+                return {...a};
+            });
+        },
+        // Dropdowns that are also shown on the loading screen, next to the Play button
+        introDropdowns: function() {
+            return this.dropdowns.filter((d) => d.intro);
+        },
         audioAndMeter: function() {
             return this.config.gui.audioMeter.status && this.config.interactionMode.audioMode;
         },
@@ -1652,6 +1665,28 @@ export default {
                 });
             },
         },
+
+        computedDropdowns: {
+            deep: true,
+            handler(newStates, oldStates) {
+                newStates.forEach((newState, index) => {
+                    const oldValue = oldStates.length == 0 ? null : oldStates[index].value;
+                    if (newState.value !== oldValue) {
+                        // the agent gets the index of the selected option
+                        const dropdownPropertyName = `DROPDOWN_${newState.id}`;
+                        if (
+                            this.paramWriter != null &&
+                                            !this.paramWriter.enqueue_change(
+                                                this.uiParameterType[dropdownPropertyName],
+                                                newState.value,
+                                            )
+                        ) {
+                            console.warn('Couldn\'t enqueue.');
+                        }
+                    }
+                });
+            },
+        },
     },
 };
 
@@ -1669,6 +1704,18 @@ export default {
                 <p ref="agentStatus" class="loadingStatus">
                     Loading the Agent...
                 </p>
+                <div v-if="introDropdowns.length > 0" class="introDropdowns">
+                    <div v-for="dropdownItem in introDropdowns" :key="'introDropdown' + dropdownItem.id"
+                        class="introDropdown">
+                        <label :for="'introDropdown' + dropdownItem.id">{{ dropdownItem.label }}</label>
+                        <select :id="'introDropdown' + dropdownItem.id" v-model.number="dropdownItem.value">
+                            <option v-for="(option, i) in dropdownItem.options" :key="i" :value="i">
+                                {{ option }}
+                            </option>
+                        </select>
+                    </div>
+                    <p v-if="dropdownsNote" class="introDropdownsNote">{{ dropdownsNote }}</p>
+                </div>
                 <div id="entryBtnContainer" style="width:100%;height:60px;">
                     <button @click="entryProgram" ref="entryBtn"
                         class="entryBtn" style="visibility: hidden;">
@@ -1712,6 +1759,8 @@ export default {
                 :switches="switches"
                 :sliders="sliders"
                 :buttons="buttons"
+                :dropdowns="dropdowns"
+                :dropdownsNote="dropdownsNote"
                 :maxBPM="maxBPM"
                 :initBPM="localBPM"
                 :WebMIDISupport="WebMIDISupport"
@@ -1806,6 +1855,31 @@ export default {
 </template>
 
 <style>
+.introDropdowns {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 24px;
+    margin: 8px 16px 16px;
+}
+
+.introDropdown label {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.introDropdown select {
+    padding: 4px;
+    font-size: 14px;
+}
+
+.introDropdownsNote {
+    flex-basis: 100%;
+    font-size: 13px;
+    opacity: 0.8;
+    margin: 0;
+}
+
 @media (min-width: 1024px) {
     .main {
         min-height: 100vh;

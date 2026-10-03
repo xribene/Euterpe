@@ -91,6 +91,20 @@
                                 </div>
                             </div>
 
+                            <!-- Dropdowns for agent Parameters -->
+                            <div v-if="dropdowns.length > 0" class="controlCollection">
+                                <div v-for="dropdownItem in dropdowns" :key="'dropdown' + dropdownItem.id"
+                                    class="dropdown-container">
+                                    <label :for="'dropdown' + dropdownItem.id">{{ dropdownItem.label }}</label>
+                                    <select :id="'dropdown' + dropdownItem.id" v-model.number="dropdownItem.value">
+                                        <option v-for="(option, i) in dropdownItem.options" :key="i" :value="i">
+                                            {{ option }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <p v-if="dropdownsNote" class="dropdownsNote">{{ dropdownsNote }}</p>
+                            </div>
+
                             <!-- Buttons for agent Parameters -->
                             <div v-if="buttons.length > 0" class="controlCollection">
                                 <div v-for="buttonItem in buttons" :key="'button' + buttonItem.id">
@@ -146,6 +160,14 @@ export default {
         switches: {
             type: Array,
             default: () => [],
+        },
+        dropdowns: {
+            type: Array,
+            default: () => [],
+        },
+        dropdownsNote: {
+            type: String,
+            default: '',
         },
         activeDevices: {
             type: Array,
@@ -207,6 +229,11 @@ export default {
 
 
 <style scoped>
+
+.dropdownsNote {
+    font-size: 13px;
+    opacity: 0.8;
+}
 
 .dropdown-container {
     display: inline-block;

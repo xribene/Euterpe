@@ -298,8 +298,8 @@ async function initAgent(content) {
     console.log('inside initAgent');
     try {
         loadConfig(content);
-        loadExternalFiles();
-        loadAlgorithm();
+        const externalFilesLoaded = loadExternalFiles();
+        loadAlgorithm(externalFilesLoaded);
         initAudio(content);
         initParameterSharing(content);
         console.log('Initialization complete');
