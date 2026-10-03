@@ -57,6 +57,9 @@ const MODELS = [
     {name: 'BachDuet 2018 (deployed)', dir: '/checkpoints', primed: '/primedStates'},
     {name: 'BachDuet v2 (new)', dir: '/checkpoints_v2', primed: '/primedStates_v2'},
     {name: 'BachDuet v2 chorales (m2)', dir: '/checkpoints_m2', primed: '/primedStates_m2'},
+    {name: 'Frankenstein chorales', dir: '/checkpoints_frank', primed: '/primedStates_frank'},
+    {name: 'RL cadence (long)', dir: '/checkpoints_rlcad', primed: '/primedStates_rlcad'},
+    {name: 'RL β 0.3', dir: '/checkpoints_rlb03', primed: '/primedStates_rlb03'},
 ];
 const modelCache = {};
 
