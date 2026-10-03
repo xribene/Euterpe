@@ -1,4 +1,17 @@
-import * as tf from './tf.min.js';
+import * as tf from '@tensorflow/tfjs';
+import {setWasmPaths} from '@tensorflow/tfjs-backend-wasm';
+import wasmUrl from '@tensorflow/tfjs-backend-wasm/dist/tfjs-backend-wasm.wasm?url';
+import wasmSimdUrl from '@tensorflow/tfjs-backend-wasm/dist/tfjs-backend-wasm-simd.wasm?url';
+import wasmThreadedSimdUrl from '@tensorflow/tfjs-backend-wasm/dist/tfjs-backend-wasm-threaded-simd.wasm?url';
+
+// Let Vite bundle the WASM binaries (same version as the JS) instead of fetching them from a CDN
+setWasmPaths({
+    'tfjs-backend-wasm.wasm': wasmUrl,
+    'tfjs-backend-wasm-simd.wasm': wasmSimdUrl,
+    'tfjs-backend-wasm-threaded-simd.wasm': wasmThreadedSimdUrl,
+});
+// The hooks use tf as a global (it used to be set by the tf.min.js UMD bundle)
+self.tf = tf;
 
 import {
     updateParameter,

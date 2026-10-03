@@ -99,25 +99,29 @@ export function bachDuetNoteToEuterpeNote(bachDuetNote) {
  * @return {Object}
  */
 export function bachDuetInference(midiInputTensor, cpcInputTensor, rhythmInputTensor) {
-    const exodos = self.modelEmb.predict([midiInputTensor, cpcInputTensor, rhythmInputTensor]);
-    const embMidi = exodos[0];
-    const embCpc = exodos[1];
-    const embRhy = exodos[2];
-    const embMidiC = tf.concat([embMidi.slice([0, 0, 0], [1, 1, 150]),
-        embMidi.slice([0, 1, 0], [1, 1, 150])], 2);
-    const embCpcC = tf.concat([embCpc.slice([0, 0, 0], [1, 1, 150]),
-        embCpc.slice([0, 1, 0], [1, 1, 150])], 2);
-    const totalInp = tf.concat([embMidiC, embCpcC, embRhy], 2);
-    const out = self.modelLstm.predict([totalInp,
-        self.states1A, self.states1B, self.states2A, self.states2B]);
-    self.states1A = out[1];
-    self.states1B = out[2];
-    self.states2A = out[3];
-    self.states2B = out[4];
-    const logits = out[0];
-    const logitsTemp = logits.div(self.temperature/100);
-    const predictedNote = tf.multinomial(logitsTemp, 2);
-    const midiArticInd = predictedNote.dataSync()[0];
+    // tf.tidy frees every intermediate tensor; only the new LSTM states are kept
+    const midiArticInd = tf.tidy(() => {
+        const exodos = self.modelEmb.predict([midiInputTensor, cpcInputTensor, rhythmInputTensor]);
+        const embMidi = exodos[0];
+        const embCpc = exodos[1];
+        const embRhy = exodos[2];
+        const embMidiC = tf.concat([embMidi.slice([0, 0, 0], [1, 1, 150]),
+            embMidi.slice([0, 1, 0], [1, 1, 150])], 2);
+        const embCpcC = tf.concat([embCpc.slice([0, 0, 0], [1, 1, 150]),
+            embCpc.slice([0, 1, 0], [1, 1, 150])], 2);
+        const totalInp = tf.concat([embMidiC, embCpcC, embRhy], 2);
+        const out = self.modelLstm.predict([totalInp,
+            self.states1A, self.states1B, self.states2A, self.states2B]);
+        disposeStates();
+        self.states1A = tf.keep(out[1]);
+        self.states1B = tf.keep(out[2]);
+        self.states2A = tf.keep(out[3]);
+        self.states2B = tf.keep(out[4]);
+        const logits = out[0];
+        const logitsTemp = logits.div(self.temperature/100);
+        const predictedNote = tf.multinomial(logitsTemp, 2);
+        return predictedNote.dataSync()[0];
+    });
     const midiArtic = self.tokenIndexDict.midiArtic.index2token[midiArticInd];
     const midi = parseInt(midiArtic.split('_')[0]);
     const artic = parseInt(midiArtic.split('_')[1]);
@@ -132,8 +136,13 @@ export function bachDuetInference(midiInputTensor, cpcInputTensor, rhythmInputTe
 /**
  * Resets the BachDuet state
  */
+function disposeStates() {
+    tf.dispose([self.states1A, self.states1B, self.states2A, self.states2B].filter(Boolean));
+}
+
 export function resetBachDuetState() {
     console.log('reseting state');
+    disposeStates();
     // self.states1A = tf.zeros([1,600]);
     // self.states1B = tf.zeros([1,600]);
     // self.states2A = tf.zeros([1,600]);

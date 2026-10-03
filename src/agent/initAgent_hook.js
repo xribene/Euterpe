@@ -1,4 +1,5 @@
 /* eslint-disable require-jsdoc */
+import {getThreadsCount} from '@tensorflow/tfjs-backend-wasm';
 import {resetBachDuetState} from './bachDuetUtils.js';
 
 /**
@@ -54,8 +55,30 @@ export async function loadExternalFiles(content) {
     });
 }
 
+/**
+ * Pick the first TF.js backend that works. WASM (multi-threaded when the page is
+ * cross-origin isolated) is fastest for BachDuet's tiny per-tick inference and doesn't
+ * need a GPU; WebGL is the fallback, plain JS (cpu) the last resort.
+ */
+async function selectBackend() {
+    for (const backend of ['wasm', 'webgl', 'cpu']) {
+        try {
+            if (await tf.setBackend(backend)) {
+                await tf.ready();
+                const threads = backend === 'wasm' ? `, threads: ${getThreadsCount()}` : '';
+                console.log(`TF.js ${tf.version.tfjs} backend: ${backend}${threads}` +
+                    `, crossOriginIsolated: ${self.crossOriginIsolated}`);
+                return backend;
+            }
+        } catch (error) {
+            console.warn(`TF.js backend ${backend} failed`, error);
+        }
+    }
+    throw new Error('No TF.js backend could be initialized');
+}
+
 export async function loadAlgorithm() {
-    tf.setBackend('webgl');
+    await selectBackend();
     try {
         self.modelLstm = await tf.loadLayersModel('/checkpoints/modelsFinal_Lstm/model.json');
         self.modelEmb = await tf.loadLayersModel('/checkpoints/modelsFinal_Emb/model_cleaned.json');
@@ -80,17 +103,21 @@ export async function loadAlgorithm() {
     const inferenceTimes = [];
     for (let i = 0; i < self.config.agentSettings.warmupRounds; i++) {
         const start = performance.now();
-        const exodos = self.modelEmb.predict([midiInp, cpcInp, rhyInp]);
-        const embMidi = exodos[0];
-        const embCpc = exodos[1];
-        const embRhy = exodos[2];
-        const embMidiC = tf.concat([embMidi.slice([0, 0, 0], [1, 1, 150]),
-            embMidi.slice([0, 1, 0], [1, 1, 150])], 2);
-        const embCpcC = tf.concat([embCpc.slice([0, 0, 0], [1, 1, 150]),
-            embCpc.slice([0, 1, 0], [1, 1, 150])], 2);
-        const totalInp = tf.concat([embMidiC, embCpcC, embRhy], 2);
-        self.modelLstm.predict([totalInp,
-            self.states1A, self.states1B, self.states2A, self.states2B]);
+        tf.tidy(() => {
+            const exodos = self.modelEmb.predict([midiInp, cpcInp, rhyInp]);
+            const embMidi = exodos[0];
+            const embCpc = exodos[1];
+            const embRhy = exodos[2];
+            const embMidiC = tf.concat([embMidi.slice([0, 0, 0], [1, 1, 150]),
+                embMidi.slice([0, 1, 0], [1, 1, 150])], 2);
+            const embCpcC = tf.concat([embCpc.slice([0, 0, 0], [1, 1, 150]),
+                embCpc.slice([0, 1, 0], [1, 1, 150])], 2);
+            const totalInp = tf.concat([embMidiC, embCpcC, embRhy], 2);
+            const out = self.modelLstm.predict([totalInp,
+                self.states1A, self.states1B, self.states2A, self.states2B]);
+            // wait for the result, so the warmup times are real
+            out[0].dataSync();
+        });
 
         const inferenceTime = performance.now() - start;
         inferenceTimes.push(inferenceTime);
@@ -108,7 +135,10 @@ export async function loadAlgorithm() {
             },
         });
     }
+    tf.dispose([midiInp, cpcInp, rhyInp]);
     resetBachDuetState();
+    console.log(`BachDuet warmup on ${tf.getBackend()}: ` +
+        inferenceTimes.map((t) => t.toFixed(1)).join(', ') + ' ms');
 
     // Once your model/agent is ready to play,
     // UI expects a success message, don't forget to send it.

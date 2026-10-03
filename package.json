@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@magenta/music": "^1.23.1",
-    "@tensorflow/tfjs": "^3.21.0",
+    "@tensorflow/tfjs": "4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "4.22.0",
     "@tonaljs/note": "^4.6.5",
     "@tonaljs/tonal": "^4.6.5",
     "audiokeys": "^0.1.1",

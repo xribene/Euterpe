@@ -40,6 +40,7 @@ export function processClockEvent(content) {
 
     // Neural network inference
     const currentBachDuetNote = bachDuetInference(midiInputTensor, cpcInputTensor, tickTensor);
+    tf.dispose([midiInputTensor, cpcInputTensor, tickTensor]);
 
     // Convert the bachDuet's note output to Euterpe's note format
     const agentOutputNoteList = bachDuetNoteToEuterpeNote(currentBachDuetNote);
