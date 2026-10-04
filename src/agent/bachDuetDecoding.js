@@ -86,6 +86,10 @@ function sample(weights, random) {
  * @param {number} [p.side=0] - -1 agent below the user, +1 above, 0 no preference
  * @param {number} [p.restBias=0] - subtracted from rest logits
  * @param {boolean} [p.weakStep=false] - the next step is a 16th off-beat
+ * @param {number} [p.parLam=0] - penalty for parallel 5ths/8ves with the user's predicted motion
+ * @param {number} [p.hiddenLam=0] - penalty for hidden 5ths/8ves (similar motion into a perfect interval)
+ * @param {number} [p.strongMult=1] - anticipation weight multiplier on beats 1 and 3
+ * @param {boolean} [p.strongStep=false] - the next step is beat 1 or 3
  * @param {function} [p.random=Math.random]
  * @return {number} token index
  */
@@ -106,15 +110,41 @@ export function chooseToken(p) {
         restBias: 0});
 }
 
+// Interval classes of perfect consonances (unison/octave, 5th), for the parallel / hidden checks
+const isPerfect = (ic) => ic === 0 || ic === 7;
+
+// Expected number of parallel and hidden 5ths/8ves if the agent moves from agentPitch to p while the
+// user moves from userPitch to a pitch drawn from userDist (similar motion into a perfect interval;
+// parallel if the interval class stays the same, hidden otherwise)
+function motionPenalties(userDist, agentPitch, userPitch, p) {
+    let par = 0;
+    let hidden = 0;
+    if (agentPitch == null || userPitch == null || p === agentPitch) return [par, hidden];
+    const ic0 = intervalClass(userPitch, agentPitch);
+    const agentDir = Math.sign(p - agentPitch);
+    for (const [q, prob] of userDist) {
+        if (q === userPitch || Math.sign(q - userPitch) !== agentDir) continue;
+        const ic1 = intervalClass(q, p);
+        if (!isPerfect(ic1)) continue;
+        if (isPerfect(ic0) && ic1 === ic0) par += prob;
+        else hidden += prob;
+    }
+    return [par, hidden];
+}
+
 function chooseAdjusted({tokens, logits, swapLogits, agentPitch, userPitch, temperature,
-    antLam = 0, crossLam = 0, side = 0, restBias = 0, random = Math.random}) {
+    antLam = 0, crossLam = 0, side = 0, restBias = 0, parLam = 0, hiddenLam = 0, strongMult = 1,
+    strongStep = false, random = Math.random}) {
     const n = tokens.length;
     const adjusted = Array.from(logits);
     const isRest = tokens.map(([midi]) => midi === 0);
+    const motionTerms = parLam > 0 || hiddenLam > 0;
+    // anticipation counts more when the next step is beat 1 or 3
+    const ant = strongStep ? antLam * strongMult : antLam;
 
     // Distribution over the user's next pitch (rests are neutral, so they are left out)
     let userDist = null;
-    if (antLam > 0 && swapLogits) {
+    if ((antLam > 0 || motionTerms) && swapLogits) {
         userDist = new Map();
         let z = 0;
         softmax(Array.from(swapLogits)).forEach((p, i) => {
@@ -134,10 +164,14 @@ function chooseAdjusted({tokens, logits, swapLogits, agentPitch, userPitch, temp
             const p = nextPitch(tokens, i, agentPitch);
             let h = 0;
             if (crossLam > 0 && side !== 0 && userPitch != null && (p - userPitch) * side <= 0) h -= crossLam;
-            if (userDist) {
+            if (userDist && antLam > 0) {
                 let consonant = 0;
                 for (const [q, prob] of userDist) if (CONSONANT.has(intervalClass(q, p))) consonant += prob;
-                h += antLam * Math.log(consonant + 0.05);
+                h += ant * Math.log(consonant + 0.05);
+            }
+            if (userDist && motionTerms) {
+                const [par, hidden] = motionPenalties(userDist, agentPitch, userPitch, p);
+                h -= parLam * par + hiddenLam * hidden;
             }
             harmony[i] = h;
         }

@@ -8,6 +8,11 @@ const BEAT = [0, -2, -1, -2, 0, -2, -1, -2, 0, -2, -1, -2, 0, -2, -1, -2];
 const ACCENT =[0, -3, -2, -3, -2, -4, -3, -4, -1, -3, -2, -3, -2, -4, -3, -4];
 // Penalty for being on the wrong side of the user, active whenever anticipation is on
 const CROSS_PENALTY = 8;
+// Counterpoint terms, active whenever anticipation is on (chosen with bdv2's counterpoint eval, see
+// COUNTERPOINT.md in xribene/bachduet-v2): penalty for parallel 5ths/8ves with the user's predicted motion,
+// and twice the anticipation weight when the next step is beat 1 or 3
+const PARALLEL_PENALTY = 8;
+const STRONG_BEAT_MULT = 2;
 
 
 function createNote(midi, type) {
@@ -158,8 +163,11 @@ export function bachDuetInference(userNote, tickBD, tick) {
         crossLam: self.anticipation > 0 ? CROSS_PENALTY : 0,
         side: self.side,
         restBias: self.restBias,
+        parLam: self.anticipation > 0 ? PARALLEL_PENALTY : 0,
+        strongMult: STRONG_BEAT_MULT,
         // BachDuet's note is played on the next tick
         weakStep: (tick + 1) % 2 === 1,
+        strongStep: (tick + 1) % 16 === 0 || (tick + 1) % 16 === 8,
     });
     const [midi, artic] = self.tokens[midiArticInd];
     const cpc = (midi === 0) ? 12 : midi % 12;
