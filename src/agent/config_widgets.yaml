@@ -61,5 +61,5 @@ gui:
       - id: 2
         label: "Model"
         value: 0
-        options: ["BachDuet 2018 (deployed)", "BachDuet v2 (new)"]
+        options: ["BachDuet 2018 (deployed)", "BachDuet v2 (new)", "BachDuet v2 chorales (m2)"]
     dropdownsNote: "Starting key only sets how BachDuet starts (and what Reset returns to). It follows you when you modulate."

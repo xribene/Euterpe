@@ -56,6 +56,7 @@ function dropdownOption(id, index) {
 const MODELS = [
     {name: 'BachDuet 2018 (deployed)', dir: '/checkpoints', primed: '/primedStates'},
     {name: 'BachDuet v2 (new)', dir: '/checkpoints_v2', primed: '/primedStates_v2'},
+    {name: 'BachDuet v2 chorales (m2)', dir: '/checkpoints_m2', primed: '/primedStates_m2'},
 ];
 const modelCache = {};
 
