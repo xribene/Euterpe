@@ -224,4 +224,13 @@ export function resetBachDuetState() {
     }
     // BachDuet starts below the user (-1 below, +1 above)
     self.side = -1;
+    // The key display starts from the starting key and then follows the music
+    if (self.keyEstimator) {
+        self.keyEstimator.reset(self.startKey);
+        self.shownKey = self.keyEstimator.getKey();
+        postMessage({
+            hookType: self.agentHookType.INIT_AGENT,
+            message: {[self.messageType.LABEL]: self.shownKey, [self.messageType.KEY]: self.shownKey},
+        });
+    }
 }

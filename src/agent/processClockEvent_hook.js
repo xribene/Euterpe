@@ -32,6 +32,9 @@ export function processClockEvent(content) {
     // Convert the tick from Euterpe's format to BachDuet's format
     const tickBD = euterpeTickToBachDuetTick(content.tick);
 
+    // Update the key estimate with what both voices sound at this tick (display only)
+    self.keyEstimator.update(userInputBD.midi, self.lastBachDuetNote.midi, content.tick);
+
     // Neural network inference (uses self.lastBachDuetNote as BachDuet's current note)
     const currentBachDuetNote = bachDuetInference(userInputBD, tickBD, content.tick);
 
@@ -45,6 +48,12 @@ export function processClockEvent(content) {
     const message = {
         [self.messageType.NOTE_LIST]: agentOutputNoteList,
     };
+    const key = self.keyEstimator.getKey();
+    if (key !== self.shownKey) {
+        self.shownKey = key;
+        message[self.messageType.LABEL] = key;
+        message[self.messageType.KEY] = key;
+    }
 
     return message;
 }

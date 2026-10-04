@@ -7,6 +7,8 @@ const state = {
     frequency: null,
     // randomness: null,
     modalStatus: false,
+    // Key estimate from the agent ('E♭ major'), used to spell notes (C♯ vs D♭); null spells with sharps
+    estimatedKey: null,
 };
 
 const getters = {
@@ -27,6 +29,9 @@ const getters = {
     // },
     getModalStatus(state) {
         return state.modalStatus;
+    },
+    getEstimatedKey(state) {
+        return state.estimatedKey;
     },
     getTSNom(state) {
         // if (state.config.event-based) return null;
@@ -53,6 +58,9 @@ const getters = {
 const actions = {};
 
 const mutations = {
+    setEstimatedKey(state, key) {
+        state.estimatedKey = key;
+    },
     setConfig(state, config) {
         state.config = config;
         state.currentBPM = config.clockSettings.defaultBPM;

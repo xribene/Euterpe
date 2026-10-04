@@ -976,6 +976,9 @@ export default {
                     case vm.messageType.LABEL:
                         this.textBoxText = messageValue;
                         break;
+                    case vm.messageType.KEY:
+                        this.$store.commit('setEstimatedKey', messageValue);
+                        break;
                     case vm.messageType.TEXT:
                         if (hookType == vm.agentHookType.INIT_AGENT) {
                             const agentStatus = vm.$refs.agentStatus;

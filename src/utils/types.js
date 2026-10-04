@@ -31,6 +31,7 @@ export const messageType = {
     CHORD_LABEL: 12,
     LABEL: 14,
     TEXT: 13,
+    KEY: 15, // the agent's current key estimate, e.g. 'E♭ major' (used to spell notes)
     CLOCK_TIME: 1,
     INFERENCE_TIME: 2,
 };

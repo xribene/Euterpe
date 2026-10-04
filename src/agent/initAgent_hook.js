@@ -2,6 +2,7 @@
 import {getThreadsCount} from '@tensorflow/tfjs-backend-wasm';
 import {resetBachDuetState} from './bachDuetUtils.js';
 import {parseTokens} from './bachDuetDecoding.js';
+import {KeyEstimator} from './keyEstimator.js';
 
 /**
  * Even though you can initialize variables outside of any function,
@@ -20,6 +21,8 @@ export function initAgentVariables() {
     self.restBias ??= widgetValue('sliders', 3) ?? 0;
     self.startKey ??= dropdownOption(1, widgetValue('dropdowns', 1) ?? 0) ?? 'C major';
     self.tokens = parseTokens(self.tokenIndexDict.midiArtic.index2token);
+    // Key estimate from both voices, shown in the Key text box (display only)
+    self.keyEstimator ??= new KeyEstimator(self.startKey);
 
     // Other variables necessary for BachDuet
     const restMidi = 0;

@@ -30,8 +30,8 @@
         <p v-if="key.name in audioKeysMap"
             style="font-family: roboto;line-height:15px;margin-bottom:0px">
             <span style="font-size:20px;">{{ audioKeysMap[key.name] }}</span> <br />
-            <span style="opacity: 0.5;font-size:12px">{{ key.name }}</span></p>
-        <span style="opacity: 0.3; font-family: roboto" v-else >{{ key.name }}</span>
+            <span style="opacity: 0.5;font-size:12px">{{ keyLabel(key.name) }}</span></p>
+        <span style="opacity: 0.3; font-family: roboto" v-else >{{ keyLabel(key.name) }}</span>
       </li>
     </ul>
   </div>
@@ -52,6 +52,7 @@ import {
     noteType,
 } from '@/utils/types.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
+import {spellLabel} from '@/utils/spelling.js';
 
 
 // Here, a set of constants are defined.
@@ -198,6 +199,15 @@ export default {
     },
 
     methods: {
+        /**
+         * Label shown on a key: black keys are spelled for the agent's current key estimate
+         * (e.g. E♭4 in flat keys), white keys keep their names. key.name itself ('D#4') is unchanged,
+         * it identifies the key.
+         */
+        keyLabel(name) {
+            if (!name.includes('#')) return name;
+            return spellLabel(Note.midi(name), this.$store.getters.getEstimatedKey);
+        },
         noteActive(note) {
             // If the note is active, the state of that note is true.
             // const midi = Note.midi(note);

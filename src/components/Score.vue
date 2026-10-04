@@ -21,24 +21,9 @@
 <script>
 // import '../css/score.css';
 import '../css/variables.css';
-import {Note, Midi} from '@tonaljs/tonal';
 import * as Vex from 'vexflow';
+import {spellVexFlow} from '@/utils/spelling.js';
 const CLEF_SEPARATE_AT = 'B3'; // Here, we define the separate point between treble clef and bass clef for both staff.
-
-function NoteFormatter(note) {
-    // Expecting input: "C#1" or "C3"
-
-    if (note.charAt(1) == '#') {
-        return (
-            note.charAt(0).toLowerCase() +
-      note.charAt(1) +
-      '/' +
-      note.substring(2, note.length)
-        );
-    } else {
-        return note.charAt(0).toLowerCase() + '/' + note.substring(1, note.length);
-    }
-}
 
 export default {
     name: 'Score',
@@ -105,6 +90,8 @@ export default {
             scrollsNumberPerMeasure: 400,
             preDur: 1,
             scrollEnabled: false,
+            // spelling of the notes currently drawn, by `${clef}:${startTick}:${midi}`
+            spellings: new Map(),
         };
     },
 
@@ -290,10 +277,28 @@ export default {
             this.context.setViewBox(this.viewXOnWheel, 0, this.screenWidth, 300);
         },
 
+        /**
+         * VexFlow key + accidental for a note, spelled in the key that was current when the note started
+         * (the agent's key estimate, see src/utils/spelling.js). The spelling is remembered, so a note that
+         * keeps growing (and is redrawn every tick) never changes its accidental.
+         */
+        spelledNote(quantNoteDict, clef) {
+            const id = `${clef}:${quantNoteDict.startTick}:${quantNoteDict.midi}`;
+            let spelled = this.spellings.get(id);
+            if (!spelled) {
+                spelled = spellVexFlow(quantNoteDict.midi, this.$store.getters.getEstimatedKey);
+                this.spellings.set(id, spelled);
+                // only the notes still being drawn need to be remembered
+                if (this.spellings.size > 64) this.spellings.delete(this.spellings.keys().next().value);
+            }
+            return spelled;
+        },
+
         formatQuantizedNote(quantNoteDict, clef = 'treble', afairetis = 0) {
             const vm = this;
 
             let formName;
+            let accidental = '';
             let extraR = '';
 
             // Get formatted name
@@ -301,7 +306,7 @@ export default {
                 formName = clef == 'treble' ? 'b/4' : 'd/2';
                 extraR = 'r';
             } else {
-                formName = NoteFormatter(Note.fromMidiSharps(quantNoteDict.midi));
+                ({key: formName, accidental} = this.spelledNote(quantNoteDict, clef));
             }
 
             // get formatted duration
@@ -328,9 +333,8 @@ export default {
                     newNote.addModifier(dot, 0);
                 // newNote.addDotToAll();
                 }
-                if (formName.charAt(1) == '#') {
-                // newNote.addAccidental(0, new vm.VF.Accidental("#"));
-                    newNote.addModifier(new vm.VF.Accidental('#'), 0);
+                if (accidental) {
+                    newNote.addModifier(new vm.VF.Accidental(accidental), 0);
                 }
                 notes.push(newNote);
             }
