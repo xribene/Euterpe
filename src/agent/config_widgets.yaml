@@ -20,21 +20,24 @@ gui:
     sliders:
       - id: 1 
         label: "Temperature"
-        value: 25
+        # 1 = practically always the network's top choice (what bachduet.com effectively does,
+        # and what felt best in live A/B tests); higher values sample more freely
+        value: 1
         min: 1
         max: 300
       # Anticipation: a role-swapped copy of the network predicts the user's next note and
       # BachDuet favours notes consonant with it (and stays on the other side of the user).
       # 0 turns it off.
+      # Off by default: in live play it scored better in simulations but felt worse.
       - id: 2
         label: "Anticipation"
-        value: 6
+        value: 0
         min: 0
         max: 10
       # Avoid rests: how strongly BachDuet is steered away from resting. 0 turns it off.
       - id: 3
         label: "Avoid rests"
-        value: 2
+        value: 0
         min: 0
         max: 5
     buttons:
