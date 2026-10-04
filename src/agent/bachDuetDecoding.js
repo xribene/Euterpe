@@ -8,6 +8,9 @@
  *  - keep the agent on the other side of the user (crossLam). The side follows the user's current
  *    register (see updateSide), so it never locks the agent into the starting voice,
  *  - steer away from rests (restBias).
+ * On 16th off-beats the network alone decides whether to hold, start a note or rest, and anticipation
+ * only picks the pitch: letting it re-attack there to dodge predicted clashes produced 16th-note
+ * rhythms that don't exist in chorales.
  * With antLam = 0 and restBias = 0 it is plain sampling from softmax(logits / T), like before.
  */
 
@@ -58,6 +61,17 @@ function nextPitch(tokens, i, current) {
     return (artic === 0 && midi === current) ? current : midi;
 }
 
+// Sample an index with probability proportional to weights
+function sample(weights, random) {
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = random() * total;
+    for (let i = 0; i < weights.length; i++) {
+        r -= weights[i];
+        if (r <= 0 && weights[i] > 0) return i;
+    }
+    return weights.findLastIndex((w) => w > 0);
+}
+
 /**
  * Choose the next agent token.
  * @param {Object} p
@@ -71,10 +85,28 @@ function nextPitch(tokens, i, current) {
  * @param {number} [p.crossLam=0] - penalty for being on the wrong side of the user
  * @param {number} [p.side=0] - -1 agent below the user, +1 above, 0 no preference
  * @param {number} [p.restBias=0] - subtracted from rest logits
+ * @param {boolean} [p.weakStep=false] - the next step is a 16th off-beat
  * @param {function} [p.random=Math.random]
  * @return {number} token index
  */
-export function chooseToken({tokens, logits, swapLogits, agentPitch, userPitch, temperature,
+export function chooseToken(p) {
+    const {tokens, logits, agentPitch, temperature, antLam = 0, restBias = 0, weakStep = false,
+        random = Math.random} = p;
+    if (!(weakStep && antLam > 0)) return chooseAdjusted(p);
+
+    // 16th off-beat: hold / new note / rest from the network (and the rest bias) only
+    const kind = tokens.map(([midi, artic]) =>
+        midi === 0 ? 'rest' : (artic === 0 && midi === agentPitch) ? 'hold' : 'note');
+    const probs = softmax(Array.from(logits, (l, i) => (kind[i] === 'rest' ? l - restBias : l)), temperature);
+    const events = ['note', 'hold', 'rest'];
+    const event = events[sample(events.map((e) => probs.reduce((a, x, i) => a + (kind[i] === e ? x : 0), 0)), random)];
+    if (event !== 'note') return sample(probs.map((x, i) => (kind[i] === event ? x : 0)), random);
+    // a new note: anticipation and the side rule pick which one
+    return chooseAdjusted({...p, logits: Array.from(logits, (l, i) => (kind[i] === 'note' ? l : -Infinity)),
+        restBias: 0});
+}
+
+function chooseAdjusted({tokens, logits, swapLogits, agentPitch, userPitch, temperature,
     antLam = 0, crossLam = 0, side = 0, restBias = 0, random = Math.random}) {
     const n = tokens.length;
     const adjusted = Array.from(logits);
@@ -125,11 +157,5 @@ export function chooseToken({tokens, logits, swapLogits, agentPitch, userPitch, 
 
     if (restBias > 0) for (let i = 0; i < n; i++) if (isRest[i]) adjusted[i] -= restBias;
 
-    const probs = softmax(adjusted, temperature);
-    let r = random();
-    for (let i = 0; i < n; i++) {
-        r -= probs[i];
-        if (r <= 0) return i;
-    }
-    return n - 1;
+    return sample(softmax(adjusted, temperature), random);
 }

@@ -33,7 +33,7 @@ export function processClockEvent(content) {
     const tickBD = euterpeTickToBachDuetTick(content.tick);
 
     // Neural network inference (uses self.lastBachDuetNote as BachDuet's current note)
-    const currentBachDuetNote = bachDuetInference(userInputBD, tickBD);
+    const currentBachDuetNote = bachDuetInference(userInputBD, tickBD, content.tick);
 
     // Convert the bachDuet's note output to Euterpe's note format
     const agentOutputNoteList = bachDuetNoteToEuterpeNote(currentBachDuetNote);

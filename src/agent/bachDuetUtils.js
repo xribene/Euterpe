@@ -130,9 +130,10 @@ function networkStep(states, midiPair, cpcPair, tickBD) {
  * chooses BachDuet's next note (see bachDuetDecoding.js).
  * @param {Object} userNote - the user's note at this tick, in BachDuet format
  * @param {number} tickBD - BachDuet rhythm token index
+ * @param {number} tick - Euterpe's tick in the measure (0-15 on the 16th grid)
  * @return {Object} BachDuet's next note
  */
-export function bachDuetInference(userNote, tickBD) {
+export function bachDuetInference(userNote, tickBD, tick) {
     const last = self.lastBachDuetNote;
     const agent = networkStep(self.agentStates,
         [last.midiArticInd, userNote.midiArticInd], [last.cpc, userNote.cpc], tickBD);
@@ -156,6 +157,8 @@ export function bachDuetInference(userNote, tickBD) {
         crossLam: self.anticipation > 0 ? CROSS_PENALTY : 0,
         side: self.side,
         restBias: self.restBias,
+        // BachDuet's note is played on the next tick
+        weakStep: (tick + 1) % 2 === 1,
     });
     const [midi, artic] = self.tokens[midiArticInd];
     const cpc = (midi === 0) ? 12 : midi % 12;
