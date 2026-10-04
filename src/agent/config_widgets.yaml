@@ -40,6 +40,9 @@ gui:
     buttons:
       - id: 1
         label: "Reset"
+      # Downloads the session (what you and BachDuet played, tick by tick) as JSON + MIDI
+      - id: 2
+        label: "Save session"
     # Dropdowns send the index of the selected option to the agent.
     # intro: true also shows the dropdown on the loading screen, next to the Play button.
     dropdowns:

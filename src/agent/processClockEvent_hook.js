@@ -4,6 +4,7 @@ import {
     euterpeTickToBachDuetTick,
     bachDuetInference,
 } from './bachDuetUtils.js';
+import {logTick} from './sessionLog.js';
 
 /**
  * Processes a clock event and returns a message with the agent's output notes.
@@ -37,6 +38,8 @@ export function processClockEvent(content) {
 
     // Neural network inference (uses self.lastBachDuetNote as BachDuet's current note)
     const currentBachDuetNote = bachDuetInference(userInputBD, tickBD, content.tick);
+    logTick([content.tick, userInputBD.midi, userInputBD.artic, currentBachDuetNote.midi, currentBachDuetNote.artic,
+        +currentBachDuetNote.entropy.toFixed(3), +currentBachDuetNote.pChosen.toFixed(3)]);
 
     // Convert the bachDuet's note output to Euterpe's note format
     const agentOutputNoteList = bachDuetNoteToEuterpeNote(currentBachDuetNote);

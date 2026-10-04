@@ -2,6 +2,7 @@
 import {getThreadsCount} from '@tensorflow/tfjs-backend-wasm';
 import {resetBachDuetState} from './bachDuetUtils.js';
 import {parseTokens} from './bachDuetDecoding.js';
+import {createSessionLog, logEvent} from './sessionLog.js';
 import {KeyEstimator} from './keyEstimator.js';
 
 /**
@@ -21,6 +22,8 @@ export function initAgentVariables() {
     self.restBias ??= widgetValue('sliders', 3) ?? 0;
     self.startKey ??= dropdownOption(1, widgetValue('dropdowns', 1) ?? 0) ?? 'C major';
     self.tokens = parseTokens(self.tokenIndexDict.midiArtic.index2token);
+    self.modelName ??= MODELS[0].name;
+    self.session ??= createSessionLog();
     // Key estimate from both voices, shown in the Key text box (display only)
     self.keyEstimator ??= new KeyEstimator(self.startKey);
 
@@ -82,11 +85,15 @@ async function useModel(index) {
     self.modelLstm = m.lstm;
     self.primedStates = m.primed;
     self.modelIndex = index;
+    self.modelName = MODELS[index].name;
     console.log(`BachDuet model: ${MODELS[index].name}`);
     resetBachDuetState();
 }
 
 export function updateParameter(newUpdate) {
+    if (newUpdate.index !== self.uiParameterType.BUTTON_2) {
+        logEvent('parameter', {index: newUpdate.index, value: newUpdate.value});
+    }
     switch (newUpdate.index) {
     case self.uiParameterType.SLIDER_1:
         self.temperature = newUpdate.value;
@@ -100,6 +107,13 @@ export function updateParameter(newUpdate) {
     case self.uiParameterType.BUTTON_1:
         // button 1 is the reset button
         resetBachDuetState();
+        break;
+    case self.uiParameterType.BUTTON_2:
+        // button 2 saves the session: hand it to the UI, which downloads it
+        postMessage({
+            hookType: self.agentHookType.INIT_AGENT,
+            message: {[self.messageType.SESSION]: {...self.session, model: self.modelName}},
+        });
         break;
     case self.uiParameterType.DROPDOWN_1:
         // starting key: re-prime BachDuet for it (like Reset)

@@ -1,6 +1,7 @@
 import {clampMidi} from '@/utils/math.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
 import {chooseToken, updateSide} from './bachDuetDecoding.js';
+import {logEvent} from './sessionLog.js';
 
 const BAR = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1];
 const BEAT = [0, -2, -1, -2, 0, -2, -1, -2, 0, -2, -1, -2, 0, -2, -1, -2];
@@ -162,11 +163,29 @@ export function bachDuetInference(userNote, tickBD, tick) {
     });
     const [midi, artic] = self.tokens[midiArticInd];
     const cpc = (midi === 0) ? 12 : midi % 12;
+    // How sure the network itself was (before decoding): for the session log
+    const {entropy, probability} = confidence(agent.logits, midiArticInd);
     return {midi: midi,
         artic: artic,
         cpc: cpc,
         midiArticInd: midiArticInd,
+        entropy: entropy,
+        pChosen: probability,
     };
+}
+
+// Entropy (nats) of softmax(logits) and the probability it gave to token `index`
+function confidence(logits, index) {
+    let max = -Infinity;
+    for (const l of logits) if (l > max) max = l;
+    let z = 0;
+    for (const l of logits) z += Math.exp(l - max);
+    let entropy = 0;
+    for (const l of logits) {
+        const p = Math.exp(l - max) / z;
+        if (p > 0) entropy -= p * Math.log(p);
+    }
+    return {entropy, probability: Math.exp(logits[index] - max) / z};
 }
 
 const PITCH_CLASSES = {C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11};
@@ -215,10 +234,12 @@ export function resetBachDuetState() {
     const primed = primedStatesFor(self.startKey, 'upper');
     if (primed) {
         console.log(`reseting state: primed for ${self.startKey}`);
+        logEvent('reset', {startKey: self.startKey, model: self.modelName, primed: true});
         self.agentStates = primed.agent.map((v) => tf.tensor2d(v, [1, v.length]));
         self.swapStates = primed.swap.map((v) => tf.tensor2d(v, [1, v.length]));
     } else {
         console.log('reseting state: random');
+        logEvent('reset', {startKey: self.startKey, model: self.modelName, primed: false});
         self.agentStates = [0, 1, 2, 3].map(() => tf.randomNormal([1, 600]));
         self.swapStates = [0, 1, 2, 3].map(() => tf.randomNormal([1, 600]));
     }

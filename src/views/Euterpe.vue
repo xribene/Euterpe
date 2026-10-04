@@ -8,6 +8,7 @@ import Score from '@/components/Score.vue';
 // import VerticalSlider from '@/components/VerticalSlider.vue';
 // import HorizontalSlider from '@/components/HorizontalSlider.vue'
 import Slider from '@/components/Slider.vue';
+import {downloadSession} from '@/utils/sessionExport.js';
 import AudioMeter from '@/components/AudioMeter.vue';
 // import VectorBar from "../components/VectorBar.vue";
 import ChromaChart from '@/components/ChromaChart.vue';
@@ -988,6 +989,13 @@ export default {
                         }
                         break;
                         // TODO :
+                    case vm.messageType.SESSION:
+                        // the agent recorded the session (Settings → Save session): download it
+                        downloadSession(messageValue, {
+                            bpm: vm.localBPM,
+                            ticksPerBeat: vm.$store.getters.getTicksPerBeat,
+                        });
+                        break;
                     case vm.messageType.CLOCK_TIME:
                         break;
                     case vm.messageType.INFERENCE_TIME:
