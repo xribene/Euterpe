@@ -2,7 +2,7 @@ import {clampMidi} from '@/utils/math.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
 import {chooseToken, updateSide} from './bachDuetDecoding.js';
 import {logEvent} from './sessionLog.js';
-import {ImitationMode} from './imitation.js';
+import {GAP_QUANTILES, ImitationMode} from './imitation.js';
 
 const BAR = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1];
 const BEAT = [0, -2, -1, -2, 0, -2, -1, -2, 0, -2, -1, -2, 0, -2, -1, -2];
@@ -154,7 +154,13 @@ export function bachDuetInference(userNote, tickBD, tick, imitation = {target: -
     const agentPitch = last.midi !== 0 ? last.midi : null;
     const userPitch = userNote.midi !== 0 ? userNote.midi : null;
     self.side = updateSide(self.side, userPitch);
-    const midiArticInd = chooseToken({
+    // Imitation mode (v2): while answering, the imitation picks the token itself (motif rhythm, pitch among the
+    // onset tokens, counterpoint veto); -1 hands the choice back to the decoder
+    const strongStep = (tick + 1) % 16 === 0 || (tick + 1) % 16 === 8;
+    const imitationToken = self.imitation?.v2 ? self.imitation.select(agent.logits, self.tokens,
+        self.tokenIndexDict.midiArtic.token2index, strongStep, self.imitationLevel ?? 0,
+        GAP_QUANTILES[self.modelName]) : -1;
+    const midiArticInd = imitationToken >= 0 ? imitationToken : chooseToken({
         tokens: self.tokens,
         logits: agent.logits,
         swapLogits: swap.logits,
@@ -169,8 +175,8 @@ export function bachDuetInference(userNote, tickBD, tick, imitation = {target: -
         strongMult: STRONG_BEAT_MULT,
         // BachDuet's note is played on the next tick
         weakStep: (tick + 1) % 2 === 1,
-        strongStep: (tick + 1) % 16 === 0 || (tick + 1) % 16 === 8,
-        // imitation mode: the motif's token for the next tick gets a logit bonus (imitation.js)
+        strongStep,
+        // imitation mode (original version): the motif's token for the next tick gets a logit bonus (imitation.js)
         bonusToken: imitation.target,
         bonus: imitation.bonus,
     });
@@ -243,7 +249,7 @@ function primedStatesFor(keyLabel, voice) {
  */
 export function resetBachDuetState() {
     tf.dispose([...(self.agentStates ?? []), ...(self.swapStates ?? [])]);
-    self.imitation = new ImitationMode();
+    self.imitation = new ImitationMode({style: self.imitationStyle ?? 'hybrid', v2: true});
     // The user plays the upper voice, BachDuet the lower one
     const primed = primedStatesFor(self.startKey, 'upper');
     if (primed) {

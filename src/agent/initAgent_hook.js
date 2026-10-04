@@ -21,6 +21,7 @@ export function initAgentVariables() {
     self.anticipation ??= widgetValue('sliders', 2) ?? 0;
     self.restBias ??= widgetValue('sliders', 3) ?? 0;
     self.imitationLevel ??= widgetValue('sliders', 4) ?? 0;
+    self.imitationStyle ??= imitationStyle(widgetValue('dropdowns', 3) ?? 2);
     self.startKey ??= dropdownOption(1, widgetValue('dropdowns', 1) ?? 0) ?? 'C major';
     self.tokens = parseTokens(self.tokenIndexDict.midiArtic.index2token);
     self.modelName ??= MODELS[0].name;
@@ -96,6 +97,11 @@ async function useModel(index) {
     resetBachDuetState();
 }
 
+// 'Exact' / 'Contour' / 'Hybrid' (dropdown 3) -> the ImitationMode style
+function imitationStyle(index) {
+    return (dropdownOption(3, index) ?? 'Hybrid').toLowerCase();
+}
+
 export function updateParameter(newUpdate) {
     if (newUpdate.index !== self.uiParameterType.BUTTON_2) {
         logEvent('parameter', {index: newUpdate.index, value: newUpdate.value});
@@ -112,6 +118,10 @@ export function updateParameter(newUpdate) {
         break;
     case self.uiParameterType.SLIDER_4:
         self.imitationLevel = newUpdate.value;
+        break;
+    case self.uiParameterType.DROPDOWN_3:
+        self.imitationStyle = imitationStyle(newUpdate.value);
+        if (self.imitation) self.imitation.style = self.imitationStyle;
         break;
     case self.uiParameterType.BUTTON_1:
         // button 1 is the reset button

@@ -38,7 +38,7 @@ export function processClockEvent(content) {
     self.keyEstimator.update(userInputBD.midi, self.lastBachDuetNote.midi, content.tick);
 
     // Imitation mode: does BachDuet answer the user's motif now? (imitation.js; off when the slider is 0)
-    self.imitation ??= new ImitationMode();
+    self.imitation ??= new ImitationMode({style: self.imitationStyle ?? 'hybrid', v2: true});
     const logLength = self.imitation.log.length;
     const imitation = self.imitation.step({
         token2index: self.tokenIndexDict.midiArtic.token2index,
@@ -52,7 +52,7 @@ export function processClockEvent(content) {
         u: Math.random(),
     });
     for (const [, event, info] of self.imitation.log.slice(logLength)) {
-        if (event !== 'deviation') logEvent('imitation', {event, info});
+        if (event !== 'deviation' && event !== 'veto') logEvent('imitation', {event, info});
     }
 
     // Neural network inference (uses self.lastBachDuetNote as BachDuet's current note)
