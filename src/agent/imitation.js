@@ -5,14 +5,17 @@
  * Trigger (only when the next tick is a beat, the cooldown is over and the level is > 0): the user's last 8
  * (else 4) ticks start with a new note on a beat and contain at least 4 new notes. Then, with probability
  * level / 10, BachDuet answers that motif delayed by the window length (so the answer starts on the next tick),
- * transposed an octave, 5th or 4th below in the current key (whichever starts closest to BachDuet's current
- * note and fits the range). While answering, the motif's token for the next tick gets a logit bonus (3 x level);
+ * transposed an octave, 5th or 4th below in the current key, displaced by octaves so that it stays in BachDuet's
+ * register: the candidate whose mean pitch (and first note) is closest to BachDuet's recent register, below the
+ * user's motif and current note, within MIDI 28-94. While answering, the motif's token for the next tick gets a logit bonus (3 x level);
  * the network can still choose something else (two such deviations end the answer).
  */
 
 const SCALES = {major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10]};
 const COOLDOWN_STEPS = 32; // two bars between imitations
-const SHIFTS = [-7, -4, -3]; // octave, 5th, 4th below (scale steps)
+// candidate transpositions (scale steps): octave / 2 octaves, 5th / 12th / 19th, 4th / 11th / 18th below
+const SHIFTS = [-7, -14, -4, -11, -18, -3, -10, -17];
+const REGISTER_STEPS = 32; // BachDuet's register = mean of its sounding pitches over the last 2 bars
 const MIDI_MIN = 28;
 const MIDI_MAX = 94;
 
@@ -51,6 +54,7 @@ export class ImitationMode {
     reset() {
         this.t = -1;
         this.user = []; // [midi, artic] per tick
+        this.agent = []; // BachDuet's sounding pitch per tick (0 = silent)
         this.active = null; // {motif, start, shift, key}
         this.cooldownUntil = 0;
         this.pending = -1;
@@ -83,6 +87,8 @@ export class ImitationMode {
         const t = this.t;
         this.user.push([userMidi, userArtic]);
         if (this.user.length > 64) this.user = this.user.slice(-64);
+        this.agent.push(agentMidi);
+        if (this.agent.length > REGISTER_STEPS) this.agent = this.agent.slice(-REGISTER_STEPS);
         // did the network follow the previous target?
         if (this.active !== null && this.pending >= 0 && agentToken !== this.pending) {
             this.deviations += 1;
@@ -132,19 +138,31 @@ export class ImitationMode {
     }
 
     start(win, start, agentMidi, userMidi, key) {
-        const first = win[0][0];
-        const ref = agentMidi > 0 ? agentMidi : (userMidi > 0 ? userMidi - 12 : first - 12);
+        const motif = win.filter(([m]) => m > 0).map(([m]) => m);
+        const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+        const heard = this.agent.filter((p) => p > 0);
+        const register = heard.length ? mean(heard) : (agentMidi > 0 ? agentMidi : mean(motif) - 12);
+        const ref = agentMidi > 0 ? agentMidi : register;
+        const ceiling = Math.min(...motif, ...(userMidi > 0 ? [userMidi] : []));
         let best = null;
-        let bestD = null;
+        let bestCost = null;
+        let fallback = null;
+        let fallbackCost = null;
         for (const s of SHIFTS) {
-            const pitches = win.filter(([m]) => m > 0).map(([m]) => diatonicShift(m, s, key));
+            const pitches = motif.map((m) => diatonicShift(m, s, key));
             if (Math.min(...pitches) < MIDI_MIN || Math.max(...pitches) > MIDI_MAX) continue;
-            const d = Math.abs(diatonicShift(first, s, key) - ref);
-            if (best === null || d < bestD) {
+            const cost = Math.abs(mean(pitches) - register) + 0.5 * Math.abs(pitches[0] - ref);
+            if (fallback === null || cost < fallbackCost) {
+                fallback = s;
+                fallbackCost = cost;
+            }
+            if (Math.max(...pitches) >= ceiling) continue; // stay below the user's motif / current note
+            if (best === null || cost < bestCost) {
                 best = s;
-                bestD = d;
+                bestCost = cost;
             }
         }
+        if (best === null) best = fallback;
         if (best === null) return;
         this.active = {motif: win.map(([m, a]) => [m, a]), start, shift: best, key};
         this.deviations = 0;
