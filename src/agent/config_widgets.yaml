@@ -51,9 +51,4 @@ gui:
                   "E♭ major", "E♭ minor", "E major", "E minor", "F major", "F minor",
                   "F♯ major", "F♯ minor", "G major", "G minor", "A♭ major", "G♯ minor",
                   "A major", "A minor", "B♭ major", "B♭ minor", "B major", "B minor"]
-      - id: 2
-        label: "Starting voice"
-        intro: true
-        value: 0
-        options: ["I play the upper voice", "I play the lower voice"]
-    dropdownsNote: "This only sets how BachDuet starts (and what Reset returns to). It follows you when you modulate or switch register."
+    dropdownsNote: "This only sets how BachDuet starts (and what Reset returns to). It follows you when you modulate."

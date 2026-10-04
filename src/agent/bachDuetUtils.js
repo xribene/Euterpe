@@ -211,9 +211,10 @@ function primedStatesFor(keyLabel, voice) {
  */
 export function resetBachDuetState() {
     tf.dispose([...(self.agentStates ?? []), ...(self.swapStates ?? [])]);
-    const primed = primedStatesFor(self.startKey, self.startVoice);
+    // The user plays the upper voice, BachDuet the lower one
+    const primed = primedStatesFor(self.startKey, 'upper');
     if (primed) {
-        console.log(`reseting state: primed for ${self.startKey}, user starts on the ${self.startVoice} voice`);
+        console.log(`reseting state: primed for ${self.startKey}`);
         self.agentStates = primed.agent.map((v) => tf.tensor2d(v, [1, v.length]));
         self.swapStates = primed.swap.map((v) => tf.tensor2d(v, [1, v.length]));
     } else {
@@ -221,6 +222,6 @@ export function resetBachDuetState() {
         self.agentStates = [0, 1, 2, 3].map(() => tf.randomNormal([1, 600]));
         self.swapStates = [0, 1, 2, 3].map(() => tf.randomNormal([1, 600]));
     }
-    // BachDuet starts on the other side of the user (-1 below, +1 above)
-    self.side = self.startVoice === 'lower' ? 1 : -1;
+    // BachDuet starts below the user (-1 below, +1 above)
+    self.side = -1;
 }

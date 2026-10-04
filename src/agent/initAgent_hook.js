@@ -19,7 +19,6 @@ export function initAgentVariables() {
     self.anticipation ??= widgetValue('sliders', 2) ?? 0;
     self.restBias ??= widgetValue('sliders', 3) ?? 0;
     self.startKey ??= dropdownOption(1, widgetValue('dropdowns', 1) ?? 0) ?? 'C major';
-    self.startVoice ??= voiceFromOption(dropdownOption(2, widgetValue('dropdowns', 2) ?? 0));
     self.tokens = parseTokens(self.tokenIndexDict.midiArtic.index2token);
 
     // Other variables necessary for BachDuet
@@ -46,11 +45,6 @@ function dropdownOption(id, index) {
     return self.config.gui.settingsModal?.dropdowns?.find((w) => w.id === id)?.options?.[index];
 }
 
-// 'I play the lower voice' -> 'lower', anything else -> 'upper'
-function voiceFromOption(option) {
-    return /lower/i.test(option ?? '') ? 'lower' : 'upper';
-}
-
 export function updateParameter(newUpdate) {
     switch (newUpdate.index) {
     case self.uiParameterType.SLIDER_1:
@@ -69,11 +63,6 @@ export function updateParameter(newUpdate) {
     case self.uiParameterType.DROPDOWN_1:
         // starting key: re-prime BachDuet for it (like Reset)
         self.startKey = dropdownOption(1, newUpdate.value) ?? self.startKey;
-        resetBachDuetState();
-        break;
-    case self.uiParameterType.DROPDOWN_2:
-        // starting voice of the user: re-prime BachDuet for it (like Reset)
-        self.startVoice = voiceFromOption(dropdownOption(2, newUpdate.value));
         resetBachDuetState();
         break;
     default:
