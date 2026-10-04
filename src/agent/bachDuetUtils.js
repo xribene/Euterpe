@@ -2,6 +2,7 @@ import {clampMidi} from '@/utils/math.js';
 import {NoteEvent} from '@/utils/NoteEvent.js';
 import {chooseToken, updateSide} from './bachDuetDecoding.js';
 import {logEvent} from './sessionLog.js';
+import {ImitationMode} from './imitation.js';
 
 const BAR = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1];
 const BEAT = [0, -2, -1, -2, 0, -2, -1, -2, 0, -2, -1, -2, 0, -2, -1, -2];
@@ -137,9 +138,10 @@ function networkStep(states, midiPair, cpcPair, tickBD) {
  * @param {Object} userNote - the user's note at this tick, in BachDuet format
  * @param {number} tickBD - BachDuet rhythm token index
  * @param {number} tick - Euterpe's tick in the measure (0-15 on the 16th grid)
+ * @param {Object} [imitation] - {target, bonus} from ImitationMode.step()
  * @return {Object} BachDuet's next note
  */
-export function bachDuetInference(userNote, tickBD, tick) {
+export function bachDuetInference(userNote, tickBD, tick, imitation = {target: -1, bonus: 0}) {
     const last = self.lastBachDuetNote;
     const agent = networkStep(self.agentStates,
         [last.midiArticInd, userNote.midiArticInd], [last.cpc, userNote.cpc], tickBD);
@@ -168,6 +170,9 @@ export function bachDuetInference(userNote, tickBD, tick) {
         // BachDuet's note is played on the next tick
         weakStep: (tick + 1) % 2 === 1,
         strongStep: (tick + 1) % 16 === 0 || (tick + 1) % 16 === 8,
+        // imitation mode: the motif's token for the next tick gets a logit bonus (imitation.js)
+        bonusToken: imitation.target,
+        bonus: imitation.bonus,
     });
     const [midi, artic] = self.tokens[midiArticInd];
     const cpc = (midi === 0) ? 12 : midi % 12;
@@ -238,6 +243,7 @@ function primedStatesFor(keyLabel, voice) {
  */
 export function resetBachDuetState() {
     tf.dispose([...(self.agentStates ?? []), ...(self.swapStates ?? [])]);
+    self.imitation = new ImitationMode();
     // The user plays the upper voice, BachDuet the lower one
     const primed = primedStatesFor(self.startKey, 'upper');
     if (primed) {

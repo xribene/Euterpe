@@ -20,6 +20,7 @@ export function initAgentVariables() {
     self.temperature ??= widgetValue('sliders', 1) ?? 25;
     self.anticipation ??= widgetValue('sliders', 2) ?? 0;
     self.restBias ??= widgetValue('sliders', 3) ?? 0;
+    self.imitationLevel ??= widgetValue('sliders', 4) ?? 0;
     self.startKey ??= dropdownOption(1, widgetValue('dropdowns', 1) ?? 0) ?? 'C major';
     self.tokens = parseTokens(self.tokenIndexDict.midiArtic.index2token);
     self.modelName ??= MODELS[0].name;
@@ -108,6 +109,9 @@ export function updateParameter(newUpdate) {
         break;
     case self.uiParameterType.SLIDER_3:
         self.restBias = newUpdate.value;
+        break;
+    case self.uiParameterType.SLIDER_4:
+        self.imitationLevel = newUpdate.value;
         break;
     case self.uiParameterType.BUTTON_1:
         // button 1 is the reset button

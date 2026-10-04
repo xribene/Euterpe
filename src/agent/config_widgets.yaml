@@ -40,6 +40,13 @@ gui:
         value: 0
         min: 0
         max: 5
+      # Imitation: now and then BachDuet answers your motif in imitation (an octave, 5th or 4th below,
+      # after a beat or two), like the voices of an invention. 0 = off; higher = more often.
+      - id: 4
+        label: "Imitation"
+        value: 0
+        min: 0
+        max: 10
     buttons:
       - id: 1
         label: "Reset"

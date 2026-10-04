@@ -90,10 +90,17 @@ function sample(weights, random) {
  * @param {number} [p.hiddenLam=0] - penalty for hidden 5ths/8ves (similar motion into a perfect interval)
  * @param {number} [p.strongMult=1] - anticipation weight multiplier on beats 1 and 3
  * @param {boolean} [p.strongStep=false] - the next step is beat 1 or 3
+ * @param {number} [p.bonusToken=-1] - imitation mode (imitation.js): token whose logit gets `bonus`
+ * @param {number} [p.bonus=0]
  * @param {function} [p.random=Math.random]
  * @return {number} token index
  */
 export function chooseToken(p) {
+    if (p.bonusToken != null && p.bonusToken >= 0 && p.bonus) {
+        const boosted = Array.from(p.logits);
+        boosted[p.bonusToken] += p.bonus;
+        p = {...p, logits: boosted};
+    }
     const {tokens, logits, agentPitch, temperature, antLam = 0, restBias = 0, weakStep = false,
         random = Math.random} = p;
     if (!(weakStep && antLam > 0)) return chooseAdjusted(p);

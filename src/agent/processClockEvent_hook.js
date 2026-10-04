@@ -4,7 +4,8 @@ import {
     euterpeTickToBachDuetTick,
     bachDuetInference,
 } from './bachDuetUtils.js';
-import {logTick} from './sessionLog.js';
+import {logEvent, logTick} from './sessionLog.js';
+import {ImitationMode} from './imitation.js';
 
 /**
  * Processes a clock event and returns a message with the agent's output notes.
@@ -36,8 +37,26 @@ export function processClockEvent(content) {
     // Update the key estimate with what both voices sound at this tick (display only)
     self.keyEstimator.update(userInputBD.midi, self.lastBachDuetNote.midi, content.tick);
 
+    // Imitation mode: does BachDuet answer the user's motif now? (imitation.js; off when the slider is 0)
+    self.imitation ??= new ImitationMode();
+    const logLength = self.imitation.log.length;
+    const imitation = self.imitation.step({
+        token2index: self.tokenIndexDict.midiArtic.token2index,
+        userMidi: userInputBD.midi,
+        userArtic: userInputBD.artic,
+        agentToken: self.lastBachDuetNote.midiArticInd,
+        agentMidi: self.lastBachDuetNote.midi,
+        key: self.keyEstimator.current ?? 0,
+        localTick: content.tick,
+        level: self.imitationLevel ?? 0,
+        u: Math.random(),
+    });
+    for (const [, event, info] of self.imitation.log.slice(logLength)) {
+        if (event !== 'deviation') logEvent('imitation', {event, info});
+    }
+
     // Neural network inference (uses self.lastBachDuetNote as BachDuet's current note)
-    const currentBachDuetNote = bachDuetInference(userInputBD, tickBD, content.tick);
+    const currentBachDuetNote = bachDuetInference(userInputBD, tickBD, content.tick, imitation);
     logTick([content.tick, userInputBD.midi, userInputBD.artic, currentBachDuetNote.midi, currentBachDuetNote.artic,
         +currentBachDuetNote.entropy.toFixed(3), +currentBachDuetNote.pChosen.toFixed(3)]);
 
