@@ -6,8 +6,8 @@
  * (else 4) ticks start with a new note on a beat and contain at least 4 new notes. Then, with probability
  * level / 10, BachDuet answers that motif delayed by the window length (so the answer starts on the next tick),
  * transposed an octave, 5th or 4th below in the current key (whichever starts closest to BachDuet's current
- * note and fits the range). While answering, the motif's token for the next tick gets a logit bonus; the network
- * can still choose something else (two such deviations end the answer).
+ * note and fits the range). While answering, the motif's token for the next tick gets a logit bonus (3 x level);
+ * the network can still choose something else (two such deviations end the answer).
  */
 
 const SCALES = {major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10]};
@@ -58,8 +58,10 @@ export class ImitationMode {
         this.log = []; // [tick, event, info]
     }
 
+    // 3 x level: at low levels the network can still refuse a target (it refuses onsets on off-beat 16ths by a
+    // median of ~21 logits); at level 10 (bonus 30) the answer is played almost note for note.
     static bonusFor(level) {
-        return 2.0 * level;
+        return 3.0 * level;
     }
 
     /**
