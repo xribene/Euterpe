@@ -51,4 +51,9 @@ gui:
                   "E♭ major", "E♭ minor", "E major", "E minor", "F major", "F minor",
                   "F♯ major", "F♯ minor", "G major", "G minor", "A♭ major", "G♯ minor",
                   "A major", "A minor", "B♭ major", "B♭ minor", "B major", "B minor"]
-    dropdownsNote: "This only sets how BachDuet starts (and what Reset returns to). It follows you when you modulate."
+      # Which network BachDuet uses (settings only); switching resets BachDuet like the Reset button.
+      - id: 2
+        label: "Model"
+        value: 0
+        options: ["BachDuet 2018 (deployed)", "BachDuet v2 (new)"]
+    dropdownsNote: "Starting key only sets how BachDuet starts (and what Reset returns to). It follows you when you modulate."

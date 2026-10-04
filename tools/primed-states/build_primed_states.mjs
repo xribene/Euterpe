@@ -8,12 +8,16 @@
 // Usage (from the repo root):
 //   python3 -m venv .venv && .venv/bin/pip install music21
 //   .venv/bin/python tools/primed-states/extract_chorales.py /tmp/chorales.json
-//   node tools/primed-states/build_primed_states.mjs /tmp/chorales.json
+//   node tools/primed-states/build_primed_states.mjs /tmp/chorales.json [modelDir] [outPrefix]
+// modelDir defaults to public/checkpoints, outPrefix to public/primedStates (e.g. public/checkpoints_v2 and
+// public/primedStates_v2 for the v2 model: primed states are specific to each model's weights).
 import fs from 'node:fs';
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-wasm';
 
 const CHORALES = process.argv[2];
+const MODEL_DIR = process.argv[3] ?? 'public/checkpoints';
+const OUT = process.argv[4] ?? 'public/primedStates';
 const PRIME_BARS = 4;
 // Primer per key: [chorale id in the music21 corpus, transposition in semitones]
 const PRIMERS = {
@@ -39,8 +43,8 @@ async function loadModel(path) {
     return tf.loadLayersModel(tf.io.fromMemory({modelTopology: mj.modelTopology, weightSpecs,
         weightData: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)}));
 }
-const modelEmb = await loadModel('public/checkpoints/modelsFinal_Emb/model_cleaned.json');
-const modelLstm = await loadModel('public/checkpoints/modelsFinal_Lstm/model.json');
+const modelEmb = await loadModel(`${MODEL_DIR}/modelsFinal_Emb/model_cleaned.json`);
+const modelLstm = await loadModel(`${MODEL_DIR}/modelsFinal_Lstm/model.json`);
 
 // Same token conversion and tick encoding as the agent (bachDuetUtils.js)
 const BAR = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1];
@@ -97,9 +101,9 @@ for (const [key, [id, transpose]] of Object.entries(PRIMERS)) {
 }
 const flat = new Float32Array(blocks.length * 600);
 blocks.forEach((b, i) => flat.set(b, i * 600));
-fs.writeFileSync('public/primedStates.bin', Buffer.from(flat.buffer));
-fs.writeFileSync('public/primedStates.json', JSON.stringify({
+fs.writeFileSync(`${OUT}.bin`, Buffer.from(flat.buffer));
+fs.writeFileSync(`${OUT}.json`, JSON.stringify({
     description: 'BachDuet LSTM states primed with the first bars of a Bach chorale per key and starting voice. ' +
         'Per entry, 4 vectors of 600 float32 in primedStates.bin: [h1, c1, h2, c2]. voice = the voice the USER starts on.',
     primeBars: PRIME_BARS, stateSize: 600, entries}, null, 1));
-console.log(`wrote public/primedStates.bin (${(flat.byteLength / 1024).toFixed(0)} KB) and public/primedStates.json`);
+console.log(`wrote ${OUT}.bin (${(flat.byteLength / 1024).toFixed(0)} KB) and ${OUT}.json (model: ${MODEL_DIR})`);

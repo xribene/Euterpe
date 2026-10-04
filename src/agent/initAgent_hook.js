@@ -48,6 +48,44 @@ function dropdownOption(id, index) {
     return self.config.gui.settingsModal?.dropdowns?.find((w) => w.id === id)?.options?.[index];
 }
 
+// The networks BachDuet can use, in the order of the "Model" dropdown (config_widgets.yaml, id 2).
+// Each has its own weights and its own primed states (see tools/primed-states).
+const MODELS = [
+    {name: 'BachDuet 2018 (deployed)', dir: '/checkpoints', primed: '/primedStates'},
+    {name: 'BachDuet v2 (new)', dir: '/checkpoints_v2', primed: '/primedStates_v2'},
+];
+const modelCache = {};
+
+function loadModelFiles(index) {
+    const m = MODELS[index];
+    modelCache[index] ??= Promise.all([
+        tf.loadLayersModel(`${m.dir}/modelsFinal_Emb/model_cleaned.json`),
+        tf.loadLayersModel(`${m.dir}/modelsFinal_Lstm/model.json`),
+        fetch(`${m.primed}.json`).then((response) => response.json()),
+        fetch(`${m.primed}.bin`).then((response) => response.arrayBuffer()),
+    ]).then(([emb, lstm, primedIndex, primedData]) =>
+        ({emb, lstm, primed: {...primedIndex, data: new Float32Array(primedData)}}));
+    return modelCache[index];
+}
+
+/**
+ * Switch BachDuet to another network (weights + primed states) and reset it, like the Reset button.
+ * Models are loaded on first use and kept; only the most recent request is applied.
+ * @param {number} index - position in MODELS
+ */
+async function useModel(index) {
+    if (!MODELS[index]) return;
+    self.requestedModel = index;
+    const m = await loadModelFiles(index);
+    if (self.requestedModel !== index) return;
+    self.modelEmb = m.emb;
+    self.modelLstm = m.lstm;
+    self.primedStates = m.primed;
+    self.modelIndex = index;
+    console.log(`BachDuet model: ${MODELS[index].name}`);
+    resetBachDuetState();
+}
+
 export function updateParameter(newUpdate) {
     switch (newUpdate.index) {
     case self.uiParameterType.SLIDER_1:
@@ -68,6 +106,12 @@ export function updateParameter(newUpdate) {
         self.startKey = dropdownOption(1, newUpdate.value) ?? self.startKey;
         resetBachDuetState();
         break;
+    case self.uiParameterType.DROPDOWN_2:
+        // which network BachDuet uses; switching resets it
+        if (newUpdate.value !== (self.requestedModel ?? 0)) {
+            useModel(newUpdate.value).catch((error) => console.error('Could not load the model', error));
+        }
+        break;
     default:
         console.warn('Invalid parameter type');
         break;
@@ -83,7 +127,8 @@ export async function loadExternalFiles(content) {
     self.tokenIndexDict = tokenIndexDict;
     console.log('just loaded tokenIndexDict');
     // LSTM states primed for each starting key and voice (see tools/primed-states)
-    self.primedStates = {...primedIndex, data: new Float32Array(primedData)};
+    // (??=: keep the states of another model if one was already chosen)
+    self.primedStates ??= {...primedIndex, data: new Float32Array(primedData)};
     initAgentVariables();
 }
 
@@ -112,8 +157,11 @@ async function selectBackend() {
 export async function loadAlgorithm(externalFilesLoaded) {
     await selectBackend();
     try {
-        self.modelLstm = await tf.loadLayersModel('/checkpoints/modelsFinal_Lstm/model.json');
-        self.modelEmb = await tf.loadLayersModel('/checkpoints/modelsFinal_Emb/model_cleaned.json');
+        // the 2018 model loads at startup; another one only when chosen in Settings
+        const m = await loadModelFiles(0);
+        self.modelEmb ??= m.emb;
+        self.modelLstm ??= m.lstm;
+        self.modelIndex ??= 0;
     } catch (error) {
         console.error(error);
     }
