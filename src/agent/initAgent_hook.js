@@ -75,6 +75,7 @@ const MODELS = [
     {name: 'RL β 0.3', dir: '/checkpoints_rlb03', primed: '/primedStates_rlb03'},
     {name: 'RL Frankenstein (best)', dir: '/checkpoints_rlfrank', primed: '/primedStates_rlfrank'},
     {name: 'Transformer small (chorales)', dir: '/checkpoints_tsmall', kind: 'transformer'},
+    {name: 'RL mixed-meter (rl_v3)', dir: '/checkpoints_rlv3', primed: '/primedStates_rlv3'},
 ];
 const modelCache = {};
 

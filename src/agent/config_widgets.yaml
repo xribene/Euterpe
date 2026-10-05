@@ -87,7 +87,8 @@ gui:
         value: 0
         options: ["BachDuet 2018 (deployed)", "BachDuet v2 (new)", "BachDuet v2 chorales (m2)",
                   "Frankenstein chorales", "RL cadence (long)", "RL β 0.3",
-                  "RL Frankenstein (best)", "Transformer small (chorales)"]
+                  "RL Frankenstein (best)", "Transformer small (chorales)",
+                  "RL mixed-meter (rl_v3)"]
       # How BachDuet answers in Imitation mode (the Imitation slider): Exact = the motif transposed note for note
       # (re-fitted to the current scale), Contour = same rhythm and melodic shape on notes the network likes,
       # Hybrid = Exact when the network accepts the note, else Contour. Notes that clash on strong beats or make
