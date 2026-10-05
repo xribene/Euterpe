@@ -92,6 +92,8 @@ export default {
             scrollEnabled: false,
             // spelling of the notes currently drawn, by `${clef}:${startTick}:${midi}`
             spellings: new Map(),
+            // per staff, the notes of the current beat, redrawn together every tick so 8ths/16ths can be beamed
+            segments: {treble: null, bass: null},
         };
     },
 
@@ -341,154 +343,135 @@ export default {
             return {notes: notes, durations: durations};
         },
 
-        // TODO drawTop and drawBottom are almost the same. Find a way so we don't have to
-        // repeat code
-
-        drawTop(quantNoteDict) {
-            let notesToDraw;
-            let durations;
-            const processed = this.formatQuantizedNote(
-                quantNoteDict,
-                'treble',
-                this.afairetisHuman,
-            );
-            notesToDraw = processed.notes;
-            durations = processed.durations;
-            this.tickContexts[0].setX(this.xTreble);
-
-            if (durations.length === 1 && durations[0] === 1) {
-                // this.xTreble += this.tickStepPixels;
-                this.lastSvgGroupTrebleBar = this.$store.getters.getBarTick;
+        /**
+         * Draw one staff for the current tick. The notes that start in the same beat form a segment that is
+         * redrawn as one SVG group every tick, so consecutive 8ths/16ths inside the beat can be beamed. The
+         * segment is frozen (left as drawn) when a note starts in a later beat or a new bar begins. Notes that
+         * cross a beat stay unbeamed and rests break beams. A note continuing over a barline restarts in the
+         * new bar (afairetis) and is tied to its part in the previous bar.
+         * @param {string} clef - 'treble' (user) or 'bass' (agent)
+         * @param {Object} quantNoteDict - {midi, startTick, dur} of the note sounding at this tick
+         * @param {number} afairetis - ticks of this note already drawn in the previous bar
+         */
+        drawStaff(clef, quantNoteDict, afairetis) {
+            const t = this.$store.getters.getLocalTickDelayed % 16;
+            const dur = quantNoteDict.dur - afairetis;
+            let seg = this.segments[clef];
+            if (dur === 1) {
+                // a note (or rest) starts at this tick
+                const beat = Math.floor(t / 4);
+                if (!seg || t === 0 || beat !== seg.beat) {
+                    const prev = seg;
+                    seg = {
+                        startX: prev ? prev.endX : (clef === 'treble' ? this.xTreble : this.xBass),
+                        startTick: t,
+                        beat: beat,
+                        notes: [],
+                        group: null,
+                        endX: 0,
+                        lastToken: null,
+                        tieFrom: t === 0 && afairetis > 0 && prev ? prev.lastToken : null,
+                    };
+                    this.segments[clef] = seg;
+                }
+                seg.notes.push({midi: quantNoteDict.midi, startTick: quantNoteDict.startTick, dur: 1});
+            } else if (seg && seg.notes.length > 0) {
+                // the current note keeps sounding
+                seg.notes[seg.notes.length - 1].dur = dur;
             } else {
-                if (this.lastSvgGroupTreble) {
-                    this.lastSvgGroupTreble.remove();
-                    this.xTreble = this.lastSvgGroupTrebleXOffset;
-                    this.tickContexts[0].setX(this.xTreble);
-                }
+                return;
             }
-
-            // TODO we can't use a Formatter here (or maybe we can for each measure)
-            // So I have to replicate some of its functionallity manually.
-            // One problem is that the current X position of the note is not
-            // stored as a class field, and that's why I have to maintain the external
-            // variables first_x, last_x
-            const group = this.context.openGroup();
-
-            this.lastSvgGroupTreble = group;
-            this.lastSvgGroupTrebleXOffset = this.xTreble;
-            let first_x = this.xTreble;
-            for (let i = 0; i < notesToDraw.length; i++) {
-                const currentNote = notesToDraw[i];
-                // console.log(i, " ", currentNote);
-                currentNote.setStave(this.staves[0]);
-                currentNote.setContext(this.context);
-                this.tickContexts[0].addTickable(currentNote);
-                currentNote.preFormat();
-
-                currentNote.draw();
-                this.lastSvgGroupTrebleXOffset_lastNote = this.xTreble;
-                this.xTreble += this.tickStepPixels * durations[i];
-                this.tickContexts[0].setX(this.xTreble);
-                if (i == 0 && this.barTieHuman == true) {
-                    // let last_x = this.xTreble;
-                    // console.log("IN BAR CURVE");
-                    var curve = new this.VF.Curve(
-                        this.lastDrawnNote_Human_prevBar,
-                        notesToDraw[0],
-
-                        {
-                            cps: [
-                                {x: 0, y: 20},
-                                {x: 0, y: 20},
-                            ],
-                            // invert: true,
-                            // position_end: 'nearTop',
-                            x_shift: 2 * notesToDraw[0].getWidth(),
-                            y_shift: 20,
-                        },
-                    );
-                    curve.setContext(this.context);
-                    // curve.draw()
-                    curve.renderCurve({
-                        first_x: this.lastSvgGroupTrebleXOffset_lastNote_prevBar + 40,
-                        last_x: this.xTreble + 40,
-                        first_y: this.lastDrawnNote_Human_prevBar.getYs()[0],
-                        last_y: notesToDraw[0].getYs()[0],
-                        direction: -1,
-                    });
-                    this.barTieHuman = false;
-                    // first_x = last_x;
-                }
-
-                if (i > 0) {
-                    const last_x = this.xTreble;
-                    // TODO : this indexing here is not generic, it works only if we have 2 notesToDraw
-                    var curve = new this.VF.Curve(notesToDraw[0], notesToDraw[1], {
-                        cps: [
-                            {x: 0, y: 20},
-                            {x: 0, y: 20},
-                        ],
-                        // invert: true,
-                        // position_end: 'nearTop',
-                        x_shift: 2 * notesToDraw[0].getWidth(),
-                        y_shift: 20,
-                    });
-                    curve.setContext(this.context);
-                    // curve.draw()
-                    curve.renderCurve({
-                        first_x: first_x + 40,
-                        last_x: last_x + 40,
-                        first_y: notesToDraw[0].getYs()[0],
-                        last_y: notesToDraw[1].getYs()[0],
-                        direction: -1,
-                    });
-                    first_x = last_x;
-                }
-            }
-            // TODO fix the names and maybe group all the Human and AI variables in one.
-            // this.lastSvgGroupTrebleXOffset_lastNote = this.xTreble;
-            this.lastDrawnNote_Human = notesToDraw[notesToDraw.length - 1];
-            this.context.closeGroup();
+            this.renderSegment(clef, seg);
         },
 
-        drawBottom(quantNoteDict) {
-            let notesToDraw;
-            let durations;
-            const processed = this.formatQuantizedNote(
-                quantNoteDict,
-                'bass',
-                this.afairetisAI,
-            );
-            notesToDraw = processed.notes;
-            durations = processed.durations;
-            this.tickContexts[1].setX(this.xBass);
+        /**
+         * (Re)draw a segment: its notes at their manual x positions, ties inside notes and over the barline,
+         * and beams over runs of 8ths/16ths that lie within one beat.
+         * @param {string} clef
+         * @param {Object} seg - see drawStaff()
+         */
+        renderSegment(clef, seg) {
+            const VF = this.VF;
+            const stave = this.staves[clef === 'treble' ? 0 : 1];
+            const style = {fillStyle: this.noteColor, strokeStyle: this.noteColor};
+            if (seg.group) {
+                seg.group.remove();
+            }
+            seg.group = this.context.openGroup();
 
-            if (durations.length === 1 && durations[0] === 1) {
-                // this.xTreble += this.tickStepPixels;
-            } else {
-                if (this.lastSvgGroupBass) {
-                    this.lastSvgGroupBass.remove();
-                    this.xBass = this.lastSvgGroupBassXOffset;
-                    this.tickContexts[1].setX(this.xBass);
+            // StaveNotes, each with its own TickContext so its x stays put for ties and beams
+            const tokens = [];
+            let x = seg.startX;
+            let tick = seg.startTick; // position in the bar
+            seg.notes.forEach((record, r) => {
+                const {notes, durations} = this.formatQuantizedNote(record, clef, 0);
+                notes.forEach((note, i) => {
+                    note.setStave(stave);
+                    note.setContext(this.context);
+                    note.setStemStyle(style);
+                    if (clef === 'bass') {
+                        note.setStemDirection(VF.StaveNote.STEM_DOWN);
+                    }
+                    const tickContext = new VF.TickContext();
+                    tickContext.addTickable(note);
+                    tickContext.preFormat();
+                    tickContext.setX(x);
+                    tokens.push({note: note, start: tick, len: durations[i], record: r, rest: record.midi === 0});
+                    x += this.tickStepPixels * durations[i];
+                    tick += durations[i];
+                });
+            });
+
+            // beams: runs of 16ths, 8ths and dotted 8ths inside the same beat (created before drawing, so the
+            // notes draw without flags and the beam draws their stems)
+            const beams = [];
+            let run = [];
+            const flush = () => {
+                if (run.length >= 2) {
+                    beams.push(new VF.Beam(run.map((k) => k.note), false).setStyle(style));
+                }
+                run = [];
+            };
+            for (const k of tokens) {
+                const beat = Math.floor(k.start / 4);
+                const beamable = !k.rest && k.len <= 3 && beat === Math.floor((k.start + k.len - 1) / 4);
+                if (!beamable || (run.length > 0 && Math.floor(run[0].start / 4) !== beat)) {
+                    flush();
+                }
+                if (beamable) {
+                    run.push(k);
                 }
             }
-            const group = this.context.openGroup();
-            this.lastSvgGroupBass = group;
-            this.lastSvgGroupBassXOffset = this.xBass;
+            flush();
 
-            for (let i = 0; i < notesToDraw.length; i++) {
-                const currentNote = notesToDraw[i];
-                currentNote.setStave(this.staves[1]);
-                currentNote.setContext(this.context);
-                currentNote.setStemDirection(this.VF.StaveNote.STEM_DOWN);
-                this.tickContexts[1].addTickable(currentNote);
-                currentNote.preFormat();
+            tokens.forEach((k) => k.note.draw());
 
-                currentNote.draw();
-                this.xBass += this.tickStepPixels * durations[i];
-                this.tickContexts[1].setX(this.xBass);
+            // ties: between the parts of one note, and from the previous bar
+            const tie = (from, to) => {
+                new VF.StaveTie({first_note: from, last_note: to, first_indices: [0], last_indices: [0]})
+                    .setStyle(style)
+                    .setContext(this.context)
+                    .draw();
+            };
+            if (seg.tieFrom && tokens.length > 0 && !tokens[0].rest) {
+                tie(seg.tieFrom.note, tokens[0].note);
             }
+            for (let i = 1; i < tokens.length; i++) {
+                if (tokens[i].record === tokens[i - 1].record && !tokens[i].rest) {
+                    tie(tokens[i - 1].note, tokens[i].note);
+                }
+            }
+
+            beams.forEach((beam) => beam.setContext(this.context).draw());
             this.context.closeGroup();
+
+            seg.endX = x;
+            seg.lastToken = tokens.length > 0 ? tokens[tokens.length - 1] : null;
+            if (clef === 'treble') {
+                this.xTreble = x;
+            } else {
+                this.xBass = x;
+            }
         },
 
         draw() {
@@ -529,8 +512,8 @@ export default {
                 }
             }
 
-            this.drawTop(humanQuantNoteDict);
-            this.drawBottom(aiQuantNoteDict);
+            this.drawStaff('treble', humanQuantNoteDict, this.afairetisHuman);
+            this.drawStaff('bass', aiQuantNoteDict, this.afairetisAI);
 
             this.xCurrent += this.tickStepPixels * 1;
             // here we draw the barline and bar-number
