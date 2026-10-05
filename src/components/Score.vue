@@ -23,6 +23,7 @@
 import '../css/variables.css';
 import * as Vex from 'vexflow';
 import {spellVexFlow} from '@/utils/spelling.js';
+import {beamGroups} from '@/utils/beaming.js';
 const CLEF_SEPARATE_AT = 'B3'; // Here, we define the separate point between treble clef and bass clef for both staff.
 
 export default {
@@ -422,27 +423,10 @@ export default {
                 });
             });
 
-            // beams: runs of 16ths, 8ths and dotted 8ths inside the same beat (created before drawing, so the
-            // notes draw without flags and the beam draws their stems)
-            const beams = [];
-            let run = [];
-            const flush = () => {
-                if (run.length >= 2) {
-                    beams.push(new VF.Beam(run.map((k) => k.note), false).setStyle(style));
-                }
-                run = [];
-            };
-            for (const k of tokens) {
-                const beat = Math.floor(k.start / 4);
-                const beamable = !k.rest && k.len <= 3 && beat === Math.floor((k.start + k.len - 1) / 4);
-                if (!beamable || (run.length > 0 && Math.floor(run[0].start / 4) !== beat)) {
-                    flush();
-                }
-                if (beamable) {
-                    run.push(k);
-                }
-            }
-            flush();
+            // beams over 8ths/16ths that start and end inside one beat (created before drawing, so the notes draw
+            // without flags and the beam draws their stems); see src/utils/beaming.js
+            const beams = beamGroups(tokens).map((group) =>
+                new VF.Beam(group.map((i) => tokens[i].note), false).setStyle(style));
 
             tokens.forEach((k) => k.note.draw());
 
