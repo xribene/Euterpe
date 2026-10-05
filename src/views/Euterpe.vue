@@ -684,6 +684,8 @@ export default {
             const messageContent = {
                 tick: this.$store.getters.getLocalTick,
                 globalTick: this.$store.getters.getGlobalTick,
+                // the bar restarts at this tick (a `resetsClock` button was pressed): reset the agent now
+                barReset: this.$store.getters.isBarResetTick,
             };
             if (vm.config.noteModeSettings.gridBased.eventBuffer) {
                 messageContent['userNotes'] = this.$store.getters
@@ -1525,6 +1527,12 @@ export default {
         },
 
         buttonAction(buttonId) {
+            // A button with `resetsClock: true` in config_widgets.yaml restarts the bar: the next tick is beat 1
+            // (metronome accent, new bar in the score) and the agent gets `barReset: true` with that tick
+            const button = this.buttons.find((b) => b.id === buttonId);
+            if (button?.resetsClock) {
+                this.$store.commit('requestBarReset');
+            }
             // use paramWriter to write a parameter to the agent
             const buttonPropertyName = `BUTTON_${buttonId}`;
             if (this.paramWriter != null &&

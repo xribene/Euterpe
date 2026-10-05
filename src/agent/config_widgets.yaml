@@ -62,8 +62,11 @@ gui:
         min: 0
         max: 2
     buttons:
+      # resetsClock: the press also restarts the bar - the next tick is beat 1 of a new bar (metronome accent, a new
+      # bar in the score) and the agent gets `barReset: true` with that tick (BachDuet resets there)
       - id: 1
         label: "Reset"
+        resetsClock: true
       # Downloads the session (what you and BachDuet played, tick by tick) as JSON + MIDI
       - id: 2
         label: "Save session"

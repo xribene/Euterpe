@@ -35,6 +35,15 @@ export class TransformerState {
     }
 }
 
+// Copies a state's caches and history into another state (the ort tensors are replaced, not shared)
+function copyState(from, to) {
+    to.pastK = new ort.Tensor('float32', from.pastK.data.slice(), from.pastK.dims);
+    to.pastV = new ort.Tensor('float32', from.pastV.data.slice(), from.pastV.dims);
+    to.length = from.length;
+    to.history = from.history.map((step) => step.slice());
+    to.primed = from.primed;
+}
+
 export class TransformerModel {
     /**
      * Loads model.onnx and primers.json from `dir` and warms the session up.
@@ -94,10 +103,24 @@ export class TransformerModel {
         const swap = find(voice === 'upper' ? 'lower' : 'upper');
         if (agent && swap && agent.steps.length === swap.steps.length) {
             state.primed = true;
+            // a primed state is computed once per key and voice, then copied: a Reset during play (it takes effect
+            // on the next downbeat) must not hold that tick up for the ~130 ms of priming
+            this.primedCache ??= {};
+            const id = `${key}|${voice}`;
+            const cached = this.primedCache[id];
+            if (cached) {
+                copyState(cached, state);
+                return state;
+            }
             const start = performance.now();
             agent.steps.forEach((step, t) => this.step(state, step, swap.steps[t]));
-            this.busy.then(() => console.log(`Transformer primed for ${key} ` +
-                `(${agent.steps.length} steps, ${(performance.now() - start).toFixed(0)} ms)`));
+            this.busy.then(() => {
+                const copy = new TransformerState(this);
+                copyState(state, copy);
+                this.primedCache[id] = copy;
+                console.log(`Transformer primed for ${key} ` +
+                    `(${agent.steps.length} steps, ${(performance.now() - start).toFixed(0)} ms)`);
+            });
         }
         return state;
     }

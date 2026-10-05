@@ -188,8 +188,14 @@ export function updateParameter(newUpdate) {
         if (self.imitation) self.imitation.style = self.imitationStyle;
         break;
     case self.uiParameterType.BUTTON_1:
-        // button 1 is the reset button
-        resetBachDuetState();
+        // button 1 is the reset button. It restarts the bar (resetsClock in config_widgets.yaml): while the clock
+        // runs, BachDuet resets at the next tick, beat 1 of the new bar (processClockEvent, content.barReset)
+        if (self.config.gui.settingsModal?.buttons?.find((b) => b.id === 1)?.resetsClock &&
+            performance.now() - (self.lastClockEventTime ?? -Infinity) < 1000) {
+            logEvent('reset requested');
+        } else {
+            resetBachDuetState();
+        }
         break;
     case self.uiParameterType.BUTTON_2:
         // button 2 saves the session: hand it to the UI, which downloads it

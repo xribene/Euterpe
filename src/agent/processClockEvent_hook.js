@@ -5,6 +5,7 @@ import {
     bachDuetInference,
     bachDuetToken,
     primeNetwork,
+    resetBachDuetState,
 } from './bachDuetUtils.js';
 import {logEvent, logTick} from './sessionLog.js';
 import {ImitationMode} from './imitation.js';
@@ -15,6 +16,9 @@ import {ImitationMode} from './imitation.js';
  * @return {Promise<Object>} - The message with the agent's output notes.
  */
 export async function processClockEvent(content) {
+    // Reset restarts the bar (a `resetsClock` button): this tick is beat 1 of the new bar, BachDuet resets here
+    if (content.barReset) resetBachDuetState({barReset: true});
+    self.lastClockEventTime = performance.now();
     // userQuantizedNotes is an array of NoteEvent objects
     // it contains note_on and note_hold events for the current tick
     const numUserNotes = content.userQuantizedNotes.length;

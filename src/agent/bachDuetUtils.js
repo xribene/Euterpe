@@ -325,11 +325,14 @@ export function primeNetwork(keyLabel, why = 'reset') {
  * Resets the BachDuet state: primed for the chosen starting key and voice when available,
  * random otherwise. This only sets where BachDuet starts from; it follows the user afterwards.
  * With turn-taking (turnTaking.js) BachDuet then listens first.
+ * @param {Object} [o]
+ * @param {boolean} [o.barReset] - the Reset button's bar restart: this tick is beat 1 of a new bar (logged, so
+ *     saved sessions and replays know where the bar restarted)
  */
-export function resetBachDuetState() {
+export function resetBachDuetState({barReset = false} = {}) {
     self.imitation = new ImitationMode({style: self.imitationStyle ?? 'hybrid', v2: true});
     const primed = primeNetwork(self.startKey, 'reseting state');
-    logEvent('reset', {startKey: self.startKey, model: self.modelName, primed});
+    logEvent('reset', {startKey: self.startKey, model: self.modelName, primed, ...(barReset ? {barReset} : {})});
     // BachDuet's own voice starts with a rest (what it sounds, self.lastSoundedNote, is ended by the next tick)
     if (self.tokenIndexDict) self.lastBachDuetNote = bachDuetToken(0, 1);
     if (self.turnTaking) {
