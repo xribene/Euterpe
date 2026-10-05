@@ -31,6 +31,15 @@ export default defineConfig({
             },
         },
     ],
+    // onnxruntime-web (the BachDuet transformer, src/agent/transformerModel.js) uses BigInt literals; every
+    // browser that runs its WASM build supports them, even though the legacy plugin's modern target list doesn't
+    esbuild: {
+        supported: {bigint: true},
+    },
+    // the agent is a module worker ({type: 'module'}); ES output lets it lazy-load onnxruntime-web
+    worker: {
+        format: 'es',
+    },
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./src', import.meta.url)),

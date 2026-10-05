@@ -10,9 +10,9 @@ import {ImitationMode} from './imitation.js';
 /**
  * Processes a clock event and returns a message with the agent's output notes.
  * @param {Object} content - The clock event content.
- * @return {Object} - The message with the agent's output notes.
+ * @return {Promise<Object>} - The message with the agent's output notes.
  */
-export function processClockEvent(content) {
+export async function processClockEvent(content) {
     // userQuantizedNotes is an array of NoteEvent objects
     // it contains note_on and note_hold events for the current tick
     const numUserNotes = content.userQuantizedNotes.length;
@@ -56,7 +56,7 @@ export function processClockEvent(content) {
     }
 
     // Neural network inference (uses self.lastBachDuetNote as BachDuet's current note)
-    const currentBachDuetNote = bachDuetInference(userInputBD, tickBD, content.tick, imitation);
+    const currentBachDuetNote = await bachDuetInference(userInputBD, tickBD, content.tick, imitation);
     logTick([content.tick, userInputBD.midi, userInputBD.artic, currentBachDuetNote.midi, currentBachDuetNote.artic,
         +currentBachDuetNote.entropy.toFixed(3), +currentBachDuetNote.pChosen.toFixed(3)]);
 

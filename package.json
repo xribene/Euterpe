@@ -20,6 +20,7 @@
     "js-yaml": "^4.1.0",
     "markdown-it-vue": "^1.1.7",
     "meyda": "^5.6.2",
+    "onnxruntime-web": "1.30.0",
     "remixicon": "^3.5.0",
     "ringbuf.js": "^0.3.6",
     "three": "^0.159",

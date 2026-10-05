@@ -133,23 +133,50 @@ function networkStep(states, midiPair, cpcPair, tickBD) {
 }
 
 /**
+ * One step of both streams, BachDuet's and the role-swapped one, with whichever network is loaded: a TF.js
+ * LSTM (self.agentStates / self.swapStates = [h1, c1, h2, c2], synchronous) or the ONNX transformer
+ * (self.transformerState: both streams' attention caches over their token histories, one batched run).
+ * @param {Array<number>} midiPair - midiArtic indices [BachDuet's current note, the user's note]
+ * @param {Array<number>} cpcPair - their pitch classes
+ * @param {number} tickBD - BachDuet rhythm token index
+ * @return {Promise<{agent: {logits: Float32Array}, swap: {logits: Float32Array}}>}
+ */
+async function streamsStep(midiPair, cpcPair, tickBD) {
+    if (self.modelKind === 'transformer') {
+        const [agentLogits, swapLogits] = await self.transformer.step(self.transformerState,
+            [midiPair[0], midiPair[1], cpcPair[0], cpcPair[1], tickBD],
+            [midiPair[1], midiPair[0], cpcPair[1], cpcPair[0], tickBD]);
+        return {agent: {logits: agentLogits}, swap: {logits: swapLogits}};
+    }
+    const agent = networkStep(self.agentStates, midiPair, cpcPair, tickBD);
+    self.agentStates = agent.states;
+    const swap = networkStep(self.swapStates, [midiPair[1], midiPair[0]], [cpcPair[1], cpcPair[0]], tickBD);
+    self.swapStates = swap.states;
+    return {agent, swap};
+}
+
+// Frees the LSTM states and drops the transformer's
+function disposeStates() {
+    tf.dispose([...(self.agentStates ?? []), ...(self.swapStates ?? [])]);
+    self.agentStates = null;
+    self.swapStates = null;
+    self.transformerState = null;
+}
+
+/**
  * The BachDuet inference: runs BachDuet and the role-swapped stream for this tick and
  * chooses BachDuet's next note (see bachDuetDecoding.js).
  * @param {Object} userNote - the user's note at this tick, in BachDuet format
  * @param {number} tickBD - BachDuet rhythm token index
  * @param {number} tick - Euterpe's tick in the measure (0-15 on the 16th grid)
  * @param {Object} [imitation] - {target, bonus} from ImitationMode.step()
- * @return {Object} BachDuet's next note
+ * @return {Promise<Object>} BachDuet's next note
  */
-export function bachDuetInference(userNote, tickBD, tick, imitation = {target: -1, bonus: 0}) {
+export async function bachDuetInference(userNote, tickBD, tick, imitation = {target: -1, bonus: 0}) {
     const last = self.lastBachDuetNote;
-    const agent = networkStep(self.agentStates,
-        [last.midiArticInd, userNote.midiArticInd], [last.cpc, userNote.cpc], tickBD);
-    self.agentStates = agent.states;
     // The swapped stream always runs, so it is up to date whenever anticipation is turned on
-    const swap = networkStep(self.swapStates,
-        [userNote.midiArticInd, last.midiArticInd], [userNote.cpc, last.cpc], tickBD);
-    self.swapStates = swap.states;
+    const {agent, swap} = await streamsStep(
+        [last.midiArticInd, userNote.midiArticInd], [last.cpc, userNote.cpc], tickBD);
 
     const agentPitch = last.midi !== 0 ? last.midi : null;
     const userPitch = userNote.midi !== 0 ? userNote.midi : null;
@@ -248,11 +275,18 @@ function primedStatesFor(keyLabel, voice) {
  * random otherwise. This only sets where BachDuet starts from; it follows the user afterwards.
  */
 export function resetBachDuetState() {
-    tf.dispose([...(self.agentStates ?? []), ...(self.swapStates ?? [])]);
+    disposeStates();
     self.imitation = new ImitationMode({style: self.imitationStyle ?? 'hybrid', v2: true});
     // The user plays the upper voice, BachDuet the lower one
-    const primed = primedStatesFor(self.startKey, 'upper');
-    if (primed) {
+    const primed = self.modelKind === 'transformer' ? null : primedStatesFor(self.startKey, 'upper');
+    if (self.modelKind === 'transformer') {
+        // the transformer's state is its token history: it starts with the 4-bar primer for the starting key
+        // (fed through the model in the background; the next tick waits for it)
+        self.transformerState = self.transformer.newState(canonicalKeyName(self.startKey), 'upper');
+        const isPrimed = self.transformerState.primed;
+        console.log(`reseting state: transformer, ${isPrimed ? `primed for ${self.startKey}` : 'empty history'}`);
+        logEvent('reset', {startKey: self.startKey, model: self.modelName, primed: isPrimed});
+    } else if (primed) {
         console.log(`reseting state: primed for ${self.startKey}`);
         logEvent('reset', {startKey: self.startKey, model: self.modelName, primed: true});
         self.agentStates = primed.agent.map((v) => tf.tensor2d(v, [1, v.length]));

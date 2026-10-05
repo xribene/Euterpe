@@ -54,7 +54,9 @@ function dropdownOption(id, index) {
 }
 
 // The networks BachDuet can use, in the order of the "Model" dropdown (config_widgets.yaml, id 2).
-// Each has its own weights and its own primed states (see tools/primed-states).
+// Each has its own weights and its own primed states (see tools/primed-states). The LSTMs run in TF.js;
+// kind 'transformer' is an ONNX model run with onnxruntime-web (transformerModel.js), its primers are token
+// histories in <dir>/primers.json (exported by bdv2/export_onnx.py in xribene/bachduet-v2).
 const MODELS = [
     {name: 'BachDuet 2018 (deployed)', dir: '/checkpoints', primed: '/primedStates'},
     {name: 'BachDuet v2 (new)', dir: '/checkpoints_v2', primed: '/primedStates_v2'},
@@ -63,11 +65,19 @@ const MODELS = [
     {name: 'RL cadence (long)', dir: '/checkpoints_rlcad', primed: '/primedStates_rlcad'},
     {name: 'RL β 0.3', dir: '/checkpoints_rlb03', primed: '/primedStates_rlb03'},
     {name: 'RL Frankenstein (best)', dir: '/checkpoints_rlfrank', primed: '/primedStates_rlfrank'},
+    {name: 'Transformer small (chorales)', dir: '/checkpoints_tsmall', kind: 'transformer'},
 ];
 const modelCache = {};
 
 function loadModelFiles(index) {
     const m = MODELS[index];
+    if (m.kind === 'transformer') {
+        // onnxruntime-web is only loaded when the transformer is first chosen
+        modelCache[index] ??= import('./transformerModel.js')
+            .then(({TransformerModel}) => TransformerModel.load(m.dir))
+            .then((transformer) => ({transformer}));
+        return modelCache[index];
+    }
     modelCache[index] ??= Promise.all([
         tf.loadLayersModel(`${m.dir}/modelsFinal_Emb/model_cleaned.json`),
         tf.loadLayersModel(`${m.dir}/modelsFinal_Lstm/model.json`),
@@ -88,9 +98,15 @@ async function useModel(index) {
     self.requestedModel = index;
     const m = await loadModelFiles(index);
     if (self.requestedModel !== index) return;
-    self.modelEmb = m.emb;
-    self.modelLstm = m.lstm;
-    self.primedStates = m.primed;
+    if (m.transformer) {
+        self.modelKind = 'transformer';
+        self.transformer = m.transformer;
+    } else {
+        self.modelKind = 'lstm';
+        self.modelEmb = m.emb;
+        self.modelLstm = m.lstm;
+        self.primedStates = m.primed;
+    }
     self.modelIndex = index;
     self.modelName = MODELS[index].name;
     console.log(`BachDuet model: ${MODELS[index].name}`);
@@ -194,6 +210,7 @@ export async function loadAlgorithm(externalFilesLoaded) {
         const m = await loadModelFiles(0);
         self.modelEmb ??= m.emb;
         self.modelLstm ??= m.lstm;
+        self.modelKind ??= 'lstm';
         self.modelIndex ??= 0;
     } catch (error) {
         console.error(error);
@@ -210,6 +227,8 @@ export async function loadAlgorithm(externalFilesLoaded) {
 
     // Warm up the model
     resetBachDuetState();
+    // (its own LSTM states: another model, e.g. the transformer, may have been chosen while loading)
+    const warmStates = [0, 1, 2, 3].map(() => tf.zeros([1, 600]));
     const midiInp = tf.tensor2d([[96, 96]]);
     const cpcInp = tf.tensor2d([[12, 12]]);
     const rhyInp = tf.tensor2d([[4]]);
@@ -226,7 +245,7 @@ export async function loadAlgorithm(externalFilesLoaded) {
             const embCpcC = tf.concat([embCpc.slice([0, 0, 0], [1, 1, 150]),
                 embCpc.slice([0, 1, 0], [1, 1, 150])], 2);
             const totalInp = tf.concat([embMidiC, embCpcC, embRhy], 2);
-            const out = self.modelLstm.predict([totalInp, ...self.agentStates]);
+            const out = self.modelLstm.predict([totalInp, ...warmStates]);
             // wait for the result, so the warmup times are real
             out[0].dataSync();
         });
@@ -247,7 +266,7 @@ export async function loadAlgorithm(externalFilesLoaded) {
             },
         });
     }
-    tf.dispose([midiInp, cpcInp, rhyInp]);
+    tf.dispose([midiInp, cpcInp, rhyInp, ...warmStates]);
     // the primed states and the starting key/voice come with the external files
     await externalFilesLoaded;
     resetBachDuetState();

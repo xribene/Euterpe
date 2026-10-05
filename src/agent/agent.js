@@ -59,6 +59,8 @@ let sampleCounter = null;
 let currentFrame = null;
 let stagingIntervalID = null;
 let uiParameterIntervalID = null;
+// Clock events are processed in order, one at a time (see onMessageFunction)
+let clockQueue = Promise.resolve();
 
 self.param_reader = null;
 self.param_writer = null;
@@ -262,18 +264,22 @@ async function onMessageFunction(obj) {
                             content.userQuantizedNotes.map(
                                 (serializedNoteEvent) => NoteEvent.fromPlain(serializedNoteEvent));
             }
-            const startTime = performance.now();
-            let message = processClockEvent(content);
-            const endTime = performance.now();
-            if (typeof message === 'undefined') {
-                message = {};
-            }
-            message[self.messageType.INFERENCE_TIME] = endTime - startTime;
-            message[self.messageType.CLOCK_TIME] = content.tick;
-            postMessage({
-                hookType: self.agentHookType.CLOCK_EVENT, // Do not modify
-                message: message,
-            });
+            // processClockEvent is async (the ONNX transformer's inference is); ticks are handled one at a
+            // time and in order, so a tick never sees BachDuet's state half-way through the previous one
+            clockQueue = clockQueue.then(async () => {
+                const startTime = performance.now();
+                let message = await processClockEvent(content);
+                const endTime = performance.now();
+                if (typeof message === 'undefined') {
+                    message = {};
+                }
+                message[self.messageType.INFERENCE_TIME] = endTime - startTime;
+                message[self.messageType.CLOCK_TIME] = content.tick;
+                postMessage({
+                    hookType: self.agentHookType.CLOCK_EVENT, // Do not modify
+                    message: message,
+                });
+            }).catch((error) => console.error('Clock event failed', error));
         } else if (obj.data.hookType == self.agentHookType.NOTE_EVENT) {
             // The NoteEvents we receive from the UI are serialized
             // We need to deserialize them
