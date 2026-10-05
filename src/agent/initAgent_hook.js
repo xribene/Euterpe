@@ -1,6 +1,7 @@
 /* eslint-disable require-jsdoc */
 import {getThreadsCount} from '@tensorflow/tfjs-backend-wasm';
-import {resetBachDuetState} from './bachDuetUtils.js';
+import {resetBachDuetState, turnTakingSettings} from './bachDuetUtils.js';
+import {TurnTaking} from './turnTaking.js';
 import {parseTokens} from './bachDuetDecoding.js';
 import {createSessionLog, logEvent} from './sessionLog.js';
 import {KeyEstimator} from './keyEstimator.js';
@@ -22,12 +23,17 @@ export function initAgentVariables() {
     self.restBias ??= widgetValue('sliders', 3) ?? 0;
     self.imitationLevel ??= widgetValue('sliders', 4) ?? 0;
     self.imitationStyle ??= imitationStyle(widgetValue('dropdowns', 3) ?? 2);
+    // Turn-taking sliders (bars): null until the user moves them; until then each model's default applies
+    self.turnTakingChoice ??= {listen: null, stop: null};
     self.startKey ??= dropdownOption(1, widgetValue('dropdowns', 1) ?? 0) ?? 'C major';
     self.tokens = parseTokens(self.tokenIndexDict.midiArtic.index2token);
     self.modelName ??= MODELS[0].name;
     self.session ??= createSessionLog();
     // Key estimate from both voices, shown in the Key text box (display only)
     self.keyEstimator ??= new KeyEstimator(self.startKey);
+    // Turn-taking: BachDuet listens, joins, drops out when the user stops (turnTaking.js)
+    self.turnTaking ??= new TurnTaking({seeding: TURN_SEEDING, reentry: TURN_REENTRY});
+    applyTurnTaking();
 
     // Other variables necessary for BachDuet
     const restMidi = 0;
@@ -57,6 +63,9 @@ function dropdownOption(id, index) {
 // Each has its own weights and its own primed states (see tools/primed-states). The LSTMs run in TF.js;
 // kind 'transformer' is an ONNX model run with onnxruntime-web (transformerModel.js), its primers are token
 // histories in <dir>/primers.json (exported by bdv2/export_onnx.py in xribene/bachduet-v2).
+// Every model listens for `listen` bars before joining and stops after `stop` bars of user silence (0 = never),
+// unless a model sets its own `turnTaking: {listen, stop}` or the user moves the sliders (5 and 6), which then
+// apply to every model. Default = the sliders' values in config_widgets.yaml.
 const MODELS = [
     {name: 'BachDuet 2018 (deployed)', dir: '/checkpoints', primed: '/primedStates'},
     {name: 'BachDuet v2 (new)', dir: '/checkpoints_v2', primed: '/primedStates_v2'},
@@ -68,6 +77,25 @@ const MODELS = [
     {name: 'Transformer small (chorales)', dir: '/checkpoints_tsmall', kind: 'transformer'},
 ];
 const modelCache = {};
+
+// What BachDuet's own-voice input gets while it listens, and what happens to the network state when it drops out
+// (turnTaking.js); chosen with bachduet-v2 tools/turntaking_eval.py (TURNTAKING.md there)
+const TURN_SEEDING = 'octave';
+const TURN_REENTRY = 'keep';
+
+// Turn-taking settings for the current model: the user's slider values, else the model's defaults
+function applyTurnTaking() {
+    self.turnTakingChoice ??= {listen: null, stop: null};
+    if (!self.turnTaking) return;
+    const model = MODELS[self.modelIndex ?? 0]?.turnTaking ?? {};
+    const listen = self.turnTakingChoice.listen ?? model.listen ?? widgetValue('sliders', 5) ?? 1;
+    const stop = self.turnTakingChoice.stop ?? model.stop ?? widgetValue('sliders', 6) ?? 2;
+    const tt = self.turnTaking;
+    tt.listenTicks = Math.round(16 * listen);
+    tt.stopTicks = Math.round(16 * stop);
+    // "Listen 0" while listening: play right away, as before
+    if (tt.listenTicks <= 0 && !tt.playing) tt.playing = true;
+}
 
 function loadModelFiles(index) {
     const m = MODELS[index];
@@ -110,7 +138,21 @@ async function useModel(index) {
     self.modelIndex = index;
     self.modelName = MODELS[index].name;
     console.log(`BachDuet model: ${MODELS[index].name}`);
+    applyTurnTaking();
     resetBachDuetState();
+}
+
+// A turn-taking slider moved. The UI sends every slider's value once at startup: a first message equal to the
+// slider's default is that sync, not a choice (the model's own default keeps applying); any other message is the
+// user's choice and then applies to every model.
+function setTurnTaking(which, sliderId, value) {
+    self.turnTakingHeard ??= {};
+    const sync = !self.turnTakingHeard[which] && value === widgetValue('sliders', sliderId);
+    self.turnTakingHeard[which] = true;
+    if (sync) return;
+    (self.turnTakingChoice ??= {listen: null, stop: null})[which] = value;
+    applyTurnTaking();
+    logEvent('turn', {event: 'settings', ...turnTakingSettings()});
 }
 
 // 'Exact' / 'Contour' / 'Hybrid' (dropdown 3) -> the ImitationMode style
@@ -134,6 +176,12 @@ export function updateParameter(newUpdate) {
         break;
     case self.uiParameterType.SLIDER_4:
         self.imitationLevel = newUpdate.value;
+        break;
+    case self.uiParameterType.SLIDER_5:
+        setTurnTaking('listen', 5, newUpdate.value);
+        break;
+    case self.uiParameterType.SLIDER_6:
+        setTurnTaking('stop', 6, newUpdate.value);
         break;
     case self.uiParameterType.DROPDOWN_3:
         self.imitationStyle = imitationStyle(newUpdate.value);

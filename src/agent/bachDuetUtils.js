@@ -74,12 +74,14 @@ export function euterpeNoteToBachDuetNote(noteEvent) {
  */
 export function bachDuetNoteToEuterpeNote(bachDuetNote) {
     const noteList = [];
+    // what BachDuet sounds now (with turn-taking this can differ from its own-voice input, self.lastBachDuetNote)
+    const last = self.lastSoundedNote ?? self.lastBachDuetNote;
     if (bachDuetNote.artic == 1) {
         // BachDuet generated a new note_on event
         // so we first need to send a note_off event for the previous note
         // unless the previous note was a rest.
-        if (self.lastBachDuetNote.midi != 0) {
-            noteList.push(createNote(self.lastBachDuetNote.midi, self.noteType.NOTE_OFF));
+        if (last.midi != 0) {
+            noteList.push(createNote(last.midi, self.noteType.NOTE_OFF));
         }
         if (bachDuetNote.midi != 0) {
         // Now we create the new note_on event
@@ -91,14 +93,26 @@ export function bachDuetNoteToEuterpeNote(bachDuetNote) {
         // if no, then BachDuet made a mistake and generated a 'hold' version
         // of the note without previously generating a 'note on' version.
         // In this case we send a 'note on' event to Euterpe
-        if (self.lastBachDuetNote.midi != bachDuetNote.midi) {
-            if (self.lastBachDuetNote.midi != 0) {
-                noteList.push(createNote(self.lastBachDuetNote.midi, self.noteType.NOTE_OFF));
+        if (last.midi != bachDuetNote.midi) {
+            if (last.midi != 0) {
+                noteList.push(createNote(last.midi, self.noteType.NOTE_OFF));
             }
             noteList.push(createNote(bachDuetNote.midi, self.noteType.NOTE_ON));
         }
     }
     return noteList;
+}
+
+/**
+ * A BachDuet note object {midi, artic, cpc, midiArticInd} for a pitch (0 = rest) and articulation.
+ * @param {number} midi
+ * @param {number} artic - 1 new note, 0 held (a rest is always '0_1')
+ * @return {Object}
+ */
+export function bachDuetToken(midi, artic) {
+    const token2index = self.tokenIndexDict.midiArtic.token2index;
+    if (!midi) return {midi: 0, artic: 1, cpc: 12, midiArticInd: token2index['0_1']};
+    return {midi, artic, cpc: midi % 12, midiArticInd: token2index[`${midi}_${artic}`]};
 }
 
 /**
@@ -170,9 +184,11 @@ function disposeStates() {
  * @param {number} tickBD - BachDuet rhythm token index
  * @param {number} tick - Euterpe's tick in the measure (0-15 on the 16th grid)
  * @param {Object} [imitation] - {target, bonus} from ImitationMode.step()
+ * @param {number} [imitationLevel] - the Imitation slider (0 while BachDuet listens, see turnTaking.js)
  * @return {Promise<Object>} BachDuet's next note
  */
-export async function bachDuetInference(userNote, tickBD, tick, imitation = {target: -1, bonus: 0}) {
+export async function bachDuetInference(userNote, tickBD, tick, imitation = {target: -1, bonus: 0},
+    imitationLevel = self.imitationLevel ?? 0) {
     const last = self.lastBachDuetNote;
     // The swapped stream always runs, so it is up to date whenever anticipation is turned on
     const {agent, swap} = await streamsStep(
@@ -185,7 +201,7 @@ export async function bachDuetInference(userNote, tickBD, tick, imitation = {tar
     // onset tokens, counterpoint veto); -1 hands the choice back to the decoder
     const strongStep = (tick + 1) % 16 === 0 || (tick + 1) % 16 === 8;
     const imitationToken = self.imitation?.v2 ? self.imitation.select(agent.logits, self.tokens,
-        self.tokenIndexDict.midiArtic.token2index, strongStep, self.imitationLevel ?? 0,
+        self.tokenIndexDict.midiArtic.token2index, strongStep, imitationLevel,
         GAP_QUANTILES[self.modelName]) : -1;
     const midiArticInd = imitationToken >= 0 ? imitationToken : chooseToken({
         tokens: self.tokens,
@@ -274,28 +290,51 @@ function primedStatesFor(keyLabel, voice) {
  * Resets the BachDuet state: primed for the chosen starting key and voice when available,
  * random otherwise. This only sets where BachDuet starts from; it follows the user afterwards.
  */
-export function resetBachDuetState() {
+/**
+ * Puts the network (both streams) in its starting state for a key: the primed LSTM states / the transformer's
+ * primer for that key, random LSTM states if there are none. Also used by turn-taking's 'reset' re-entry.
+ * @param {string} keyLabel - e.g. 'E♭ major'
+ * @param {string} why - for the console and the session log ('reset' or 'turn-taking')
+ */
+export function primeNetwork(keyLabel, why = 'reset') {
     disposeStates();
-    self.imitation = new ImitationMode({style: self.imitationStyle ?? 'hybrid', v2: true});
     // The user plays the upper voice, BachDuet the lower one
-    const primed = self.modelKind === 'transformer' ? null : primedStatesFor(self.startKey, 'upper');
+    const primed = self.modelKind === 'transformer' ? null : primedStatesFor(keyLabel, 'upper');
+    let isPrimed;
     if (self.modelKind === 'transformer') {
-        // the transformer's state is its token history: it starts with the 4-bar primer for the starting key
+        // the transformer's state is its token history: it starts with the 4-bar primer for the key
         // (fed through the model in the background; the next tick waits for it)
-        self.transformerState = self.transformer.newState(canonicalKeyName(self.startKey), 'upper');
-        const isPrimed = self.transformerState.primed;
-        console.log(`reseting state: transformer, ${isPrimed ? `primed for ${self.startKey}` : 'empty history'}`);
-        logEvent('reset', {startKey: self.startKey, model: self.modelName, primed: isPrimed});
+        self.transformerState = self.transformer.newState(canonicalKeyName(keyLabel), 'upper');
+        isPrimed = self.transformerState.primed;
+        console.log(`${why}: transformer, ${isPrimed ? `primed for ${keyLabel}` : 'empty history'}`);
     } else if (primed) {
-        console.log(`reseting state: primed for ${self.startKey}`);
-        logEvent('reset', {startKey: self.startKey, model: self.modelName, primed: true});
+        isPrimed = true;
+        console.log(`${why}: state primed for ${keyLabel}`);
         self.agentStates = primed.agent.map((v) => tf.tensor2d(v, [1, v.length]));
         self.swapStates = primed.swap.map((v) => tf.tensor2d(v, [1, v.length]));
     } else {
-        console.log('reseting state: random');
-        logEvent('reset', {startKey: self.startKey, model: self.modelName, primed: false});
+        isPrimed = false;
+        console.log(`${why}: random state`);
         self.agentStates = [0, 1, 2, 3].map(() => tf.randomNormal([1, 600]));
         self.swapStates = [0, 1, 2, 3].map(() => tf.randomNormal([1, 600]));
+    }
+    return isPrimed;
+}
+
+/**
+ * Resets the BachDuet state: primed for the chosen starting key and voice when available,
+ * random otherwise. This only sets where BachDuet starts from; it follows the user afterwards.
+ * With turn-taking (turnTaking.js) BachDuet then listens first.
+ */
+export function resetBachDuetState() {
+    self.imitation = new ImitationMode({style: self.imitationStyle ?? 'hybrid', v2: true});
+    const primed = primeNetwork(self.startKey, 'reseting state');
+    logEvent('reset', {startKey: self.startKey, model: self.modelName, primed});
+    // BachDuet's own voice starts with a rest (what it sounds, self.lastSoundedNote, is ended by the next tick)
+    if (self.tokenIndexDict) self.lastBachDuetNote = bachDuetToken(0, 1);
+    if (self.turnTaking) {
+        self.turnTaking.reset();
+        logEvent('turn', {event: self.turnTaking.playing ? 'play' : 'listen', ...turnTakingSettings()});
     }
     // BachDuet starts below the user (-1 below, +1 above)
     self.side = -1;
@@ -308,4 +347,10 @@ export function resetBachDuetState() {
             message: {[self.messageType.LABEL]: self.shownKey, [self.messageType.KEY]: self.shownKey},
         });
     }
+}
+
+/** The turn-taking settings, for the session log. */
+export function turnTakingSettings() {
+    const tt = self.turnTaking;
+    return tt ? {listenTicks: tt.listenTicks, stopTicks: tt.stopTicks, seeding: tt.seeding, reentry: tt.reentry} : {};
 }

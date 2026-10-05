@@ -3,6 +3,8 @@ import {
     bachDuetNoteToEuterpeNote,
     euterpeTickToBachDuetTick,
     bachDuetInference,
+    bachDuetToken,
+    primeNetwork,
 } from './bachDuetUtils.js';
 import {logEvent, logTick} from './sessionLog.js';
 import {ImitationMode} from './imitation.js';
@@ -34,8 +36,16 @@ export async function processClockEvent(content) {
     // Convert the tick from Euterpe's format to BachDuet's format
     const tickBD = euterpeTickToBachDuetTick(content.tick);
 
+    // Turn-taking (turnTaking.js): while BachDuet listens its choices are muted, and its own-voice input is
+    // what the seeding says (null: its previous choice, as without turn-taking)
+    const turn = self.turnTaking.hear(userInputBD.midi, userInputBD.artic, content.tick);
+    if (turn.input) self.lastBachDuetNote = bachDuetToken(turn.input.midi, turn.input.artic);
+    self.lastSoundedNote ??= self.lastBachDuetNote;
+    // no imitation answers while listening (the motif heard is kept: BachDuet can answer it right at its entry)
+    const imitationLevel = turn.listening ? 0 : (self.imitationLevel ?? 0);
+
     // Update the key estimate with what both voices sound at this tick (display only)
-    self.keyEstimator.update(userInputBD.midi, self.lastBachDuetNote.midi, content.tick);
+    self.keyEstimator.update(userInputBD.midi, self.lastSoundedNote.midi, content.tick);
 
     // Imitation mode: does BachDuet answer the user's motif now? (imitation.js; off when the slider is 0)
     self.imitation ??= new ImitationMode({style: self.imitationStyle ?? 'hybrid', v2: true});
@@ -48,7 +58,7 @@ export async function processClockEvent(content) {
         agentMidi: self.lastBachDuetNote.midi,
         key: self.keyEstimator.current ?? 0,
         localTick: content.tick,
-        level: self.imitationLevel ?? 0,
+        level: imitationLevel,
         u: Math.random(),
     });
     for (const [, event, info] of self.imitation.log.slice(logLength)) {
@@ -56,15 +66,30 @@ export async function processClockEvent(content) {
     }
 
     // Neural network inference (uses self.lastBachDuetNote as BachDuet's current note)
-    const currentBachDuetNote = await bachDuetInference(userInputBD, tickBD, content.tick, imitation);
+    const choice = await bachDuetInference(userInputBD, tickBD, content.tick, imitation, imitationLevel);
+
+    // What sounds (a rest while listening) and what BachDuet's own voice gets at the next tick
+    const {sounded, fed, event, resetState} = self.turnTaking.decide(choice);
+    if (event) {
+        logEvent('turn', {event, key: self.keyEstimator.getKey()});
+        console.log(`BachDuet ${event === 'join' ? 'joins' : 'stops and listens'} (tick ${content.tick})`);
+    }
+    if (resetState) {
+        // re-entry 'reset': start the next phrase from the primed state for the key BachDuet hears now
+        primeNetwork(self.keyEstimator.getKey() ?? self.startKey, 'turn-taking');
+    }
+    const currentBachDuetNote = {...bachDuetToken(sounded.midi, sounded.artic),
+        entropy: choice.entropy, pChosen: choice.pChosen};
     logTick([content.tick, userInputBD.midi, userInputBD.artic, currentBachDuetNote.midi, currentBachDuetNote.artic,
         +currentBachDuetNote.entropy.toFixed(3), +currentBachDuetNote.pChosen.toFixed(3)]);
 
     // Convert the bachDuet's note output to Euterpe's note format
     const agentOutputNoteList = bachDuetNoteToEuterpeNote(currentBachDuetNote);
 
-    // Update the last note (it'll be used in the next tick)
-    self.lastBachDuetNote = currentBachDuetNote;
+    // Update the last notes (they'll be used in the next tick)
+    self.lastSoundedNote = currentBachDuetNote;
+    self.lastBachDuetNote = fed.midi === choice.midi && fed.artic === choice.artic ? choice :
+        bachDuetToken(fed.midi, fed.artic);
 
     // Add your messages to Euterpe here
     const message = {

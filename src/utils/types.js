@@ -69,6 +69,8 @@ export const uiParameterType = {
     DROPDOWN_2: 13,
     DROPDOWN_3: 14,
     DROPDOWN_4: 15,
+    SLIDER_5: 16,
+    SLIDER_6: 17,
 };
 
 export const agentHookType = {
