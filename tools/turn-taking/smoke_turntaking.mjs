@@ -174,7 +174,9 @@ const clock = () => page.locator('.controlBtn').nth(0).click();
 function analyse(session, from = 0, {listen = 16, stop = 32} = {}) {
     const c = Object.fromEntries(session.tickColumns.map((n, i) => [n, i]));
     const rows = session.ticks;
-    const ev = session.events.filter((e) => e.type === 'turn' && e.t >= from);
+    // turnTaking.js logs 'turn' join/stop; FolkDuet (folkduet branch) logs 'folkduet' start / stop
+    const ev = session.events.filter((e) => (e.type === 'turn' || e.type === 'folkduet') && e.t >= from)
+        .map((e) => e.type === 'folkduet' ? {...e, event: e.event.startsWith('start') ? 'join' : 'stop'} : e);
     const res = {joins: [], stops: [], problems: []};
     let listening = true;
     let phraseStart = null;
@@ -205,6 +207,8 @@ function analyse(session, from = 0, {listen = 16, stop = 32} = {}) {
 }
 
 const res = {};
+const modelsOnly = process.argv.includes('--models-only'); // skip the slider scenarios (models keep their defaults)
+if (!modelsOnly) {
 // ---- default model, default sliders: listen 1 bar, stop after 2 bars
 await clock();
 await page.waitForTimeout(600);
@@ -254,6 +258,7 @@ res.stop1 = analyse(session, n0, {stop: 16});
 await clock();
 await page.waitForTimeout(400);
 await setSlider('Stop after silence', 2);
+}
 
 // ---- every model still plays (with turn-taking)
 const models = modelArg ? modelArg.split('=')[1].split(',').map(Number) : MODEL_LABELS.map((_, i) => i);
@@ -271,8 +276,12 @@ for (const index of models) {
     await clock();
     await page.waitForTimeout(400);
     const infs = m.map((x) => x.inf).sort((a, b) => a - b);
-    const a = analyse(sess, s0);
-    res[MODEL_LABELS[index]] = {joins: a.joins.length, stops: a.stops.length, problems: a.problems,
+    // the thresholds this model uses (its own defaults unless a slider was moved)
+    const w = page.workers().find((x) => x.url().includes('agent'));
+    const thr = await w.evaluate(() => (self.folkDuet ? {listen: self.folkDuet.listenTicks, stop: self.folkDuet.silenceTicks} :
+        {listen: self.turnTaking.listenTicks, stop: self.turnTaking.stopTicks}));
+    const a = analyse(sess, s0, thr);
+    res[MODEL_LABELS[index]] = {thresholds: thr, joins: a.joins.length, stops: a.stops.length, problems: a.problems,
         agentNoteOns: m.flatMap((x) => x.notes).filter(([type, midi]) => type === 1 && midi > 0).length,
         inferMedian: q(infs, 0.5), inferMax: q(infs, 1), worker: await heap()};
 }
