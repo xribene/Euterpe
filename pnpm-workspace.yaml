@@ -1,0 +1,10 @@
+packages:
+  - packages/*
+  - templates/*
+  - apps/*
+# install scripts: only esbuild's (it checks its binary)
+allowBuilds:
+  esbuild: true
+  core-js: false
+  protobufjs: false
+  vue-material: false
