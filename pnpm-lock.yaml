@@ -218,7 +218,7 @@ importers:
         specifier: ^0.159
         version: 0.159.0
       tone:
-        specifier: ^14.7.77
+        specifier: 14.7.77
         version: 14.7.77
       tweakpane:
         specifier: ^3.1.10
@@ -254,7 +254,7 @@ importers:
         specifier: ^3.6.2
         version: 3.6.2(vue@2.7.15)
       webmidi:
-        specifier: ^3.0.10
+        specifier: 3.1.7
         version: 3.1.7
     devDependencies:
       vite:
