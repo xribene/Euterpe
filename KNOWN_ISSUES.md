@@ -6,6 +6,7 @@ Found while packaging Euterpe (branch `npm-package`). Newest first within each s
 
 | # | Issue | Evidence | Suggested fix | Status |
 |---|---|---|---|---|
+| F19 | Every build copies all 17 MB of instrument samples (piano, drums, upright bass, click), whatever the agent's `players.yaml` uses; a built site is 27 MB, most of it samples. | `vite build` of each template: 27 MB `dist/` | Copy only the instruments `players.yaml` lists (the plugin reads it already); later a CDN (P1) | open |
 | F13 | `NoteEvent.createdAt.seconds` holds the main thread's `performance.now()` in **milliseconds**, a clock whose origin differs from the worker's `performance.now()`. Agents can only use differences. | `Keyboard.vue:234`, `Euterpe.vue:467,1315`; CallAndResponse divides by 1000 | Rename or convert to seconds on a shared clock (with the audio-clock work), behind a deprecation | open |
 | F14 | Sliders and switches reach the agent by position (`SLIDER_{index+1}`), dropdowns and buttons by their YAML `id`; a slider's `id` in YAML is ignored. | `Euterpe.vue` watchers `computedSliders`, `computedSwitches`, `computedDropdowns`, `buttonAction` | Send every widget by id; `ctx.params` hides it today | workaround (`ctx.params`) |
 | F15 | Agents duplicated the YAML widget defaults in code, and they drifted: GridyCopycat starts with pitch shift 0 but maps the slider as `value - 24`, so the first touch of the slider jumps two octaves. | `examples/GridyCopycat/initAgent_hook.js` | `ctx.params` starts from the YAML values (templates fixed; examples/ unchanged) | workaround |
