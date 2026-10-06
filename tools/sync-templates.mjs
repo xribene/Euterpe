@@ -7,7 +7,8 @@ import path from 'node:path';
 const TEMPLATES = path.resolve(import.meta.dirname, '../templates');
 const SHARED = path.join(TEMPLATES, '_shared');
 // gitignore is written by create-euterpe as .gitignore (npm drops .gitignore files from packages)
-const FILES = ['index.html', 'vite.config.js', 'netlify.toml', 'vercel.json', 'public/favicon.svg'];
+const FILES = ['index.html', 'vite.config.js', 'netlify.toml', 'vercel.json', 'public/favicon.svg', 'AGENTS.md',
+    'CLAUDE.md', 'README.md'];
 const check = process.argv.includes('--check');
 
 let differ = 0;
