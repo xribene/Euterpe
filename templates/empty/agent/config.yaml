@@ -16,11 +16,11 @@ noteModeSettings:
   gridBased:
     # If gridBased.status: true, then the worker's processClockEvent() hook is active
     # for processing raw and quantized MIDI events buffers at every "clock-tick"
-    status: false
+    status: true
     # Choose what information you want Euterpe to provide to your algorithm (Worker)
     # when calling the processClockEvent() hook, at every clock-tick (or grid slot)
     eventBuffer: false # A buffer with all the MIDI events played by the user since the last tick (grid slot).
-    quantizedEvents: false # The time-quantized (or grid-aligned) MIDI events that correspond to the current tick (grid slot).
+    quantizedEvents: true # The time-quantized (or grid-aligned) MIDI events that correspond to the current tick (grid slot).
     # Set the polyphony that your music algorithm supports. Euterpe limits the user's input polyphony
     # so that you don't have to do it. Currently, it only applies to the quantizedEvents (gridBased mode)
     polyphony:
@@ -66,8 +66,7 @@ agentSettings:
   # For Agents that require warmup (such as neural networks)
   warmupRounds: 2
 
-# Choose the text to be displayed in the splash screen animation
+# Show agent/intro.md when the page opens
 introModal: true
-introModalMarkdown: "introModal.md" # The text to be displayed in the splash screen
 custom:
   useTriggerRelease: true

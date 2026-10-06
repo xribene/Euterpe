@@ -4,9 +4,17 @@
  * from virtual:euterpe-agent (the project's agent/hooks.js, see euterpe/vite).
  */
 import * as agentModule from 'virtual:euterpe-agent';
+import {AGENT_MARK} from '../agent.js';
+import {createContext, applyParameter, toMessage} from './context.js';
 
-// agent/hooks.js exports the hooks either as `export default defineAgent({...})` or as named functions
-const agent = agentModule.default ?? agentModule;
+// agent/hooks.js exports the hooks either as `export default defineAgent({...})` (the hooks get `ctx` and the
+// runtime reports when the agent is ready) or, as the original agents do, as named functions using self.*
+// (virtual:euterpe-agent's default export is the namespace of agent/hooks.js)
+const hooksModule = agentModule.default;
+const agent = hooksModule.default ?? hooksModule;
+const defined = agent[AGENT_MARK] === true;
+// the ctx passed to defineAgent hooks (created with the config)
+let ctx = null;
 const missing = (name) => () => console.warn(`agent/hooks.js does not define ${name}()`);
 const hook = (name, fallback) => (typeof agent[name] === 'function' ? agent[name] : fallback ?? missing(name));
 const loadExternalFiles = hook('loadExternalFiles', () => undefined);
@@ -59,6 +67,8 @@ let stagingIntervalID = null;
 let uiParameterIntervalID = null;
 // Clock events are processed in order, one at a time (see onMessageFunction)
 let clockQueue = Promise.resolve();
+// and note events too
+let noteQueue = Promise.resolve();
 
 self.param_reader = null;
 self.param_writer = null;
@@ -107,7 +117,14 @@ function _readFromQueue() {
             currentFrame = tempFrame;
             sampleCounter = self.windowSize - self.hopSize;
 
-            processAudioBuffer(channels);
+            if (defined) {
+                Promise.resolve(processAudioBuffer(channels, ctx)).then((output) => {
+                    const message = toMessage(output, 'processAudioBuffer');
+                    if (message) postMessage({hookType: self.agentHookType.NOTE_EVENT, message});
+                }).catch((error) => console.error('processAudioBuffer failed', error));
+            } else {
+                processAudioBuffer(channels);
+            }
         }
         currentFrame[sampleCounter] = staging[i];
         sampleCounter += 1;
@@ -123,7 +140,12 @@ function _uiParameterObserver() {
     const newParameterUI = {index: null, value: null};
     if (self.param_reader.dequeue_change(newParameterUI)) {
         console.log('param index: ' + newParameterUI.index + ' value: ' + newParameterUI.value);
-        updateParameter(newParameterUI);
+        const change = applyParameter(ctx, newParameterUI);
+        if (defined) {
+            Promise.resolve(updateParameter(change, ctx)).catch((error) => console.error('updateParameter failed', error));
+        } else {
+            updateParameter(newParameterUI);
+        }
     }
 }
 
@@ -182,6 +204,7 @@ function initAudio(content) {
     self.channelCount = content.channelCount;
     // The sample-rate of the audio stream read from the queue.
     self.sampleRate = content.sampleRate;
+    ctx.audio = {sampleRate: self.sampleRate, channelCount: self.channelCount};
 
     // The frame/window size
     self.windowSize = self.config.audioModeSettings.windowSize * self.channelCount;
@@ -268,7 +291,9 @@ async function onMessageFunction(obj) {
             // time and in order, so a tick never sees BachDuet's state half-way through the previous one
             clockQueue = clockQueue.then(async () => {
                 const startTime = performance.now();
-                let message = await processClockEvent(content);
+                let message = defined ?
+                    toMessage(await processClockEvent(content, ctx), 'processClockEvent') :
+                    await processClockEvent(content);
                 const endTime = performance.now();
                 if (typeof message === 'undefined') {
                     message = {};
@@ -284,13 +309,17 @@ async function onMessageFunction(obj) {
             // The NoteEvents we receive from the UI are serialized
             // We need to deserialize them
             const noteEvent = NoteEvent.fromPlain(obj.data.content);
-            const message = processNoteEvent(noteEvent);
-            if (typeof message !== 'undefined') {
-                postMessage({
-                    hookType: self.agentHookType.NOTE_EVENT,
-                    message: message,
-                });
-            }
+            noteQueue = noteQueue.then(async () => {
+                const message = defined ?
+                    toMessage(await processNoteEvent(noteEvent, ctx), 'processNoteEvent') :
+                    await processNoteEvent(noteEvent);
+                if (typeof message !== 'undefined') {
+                    postMessage({
+                        hookType: self.agentHookType.NOTE_EVENT,
+                        message: message,
+                    });
+                }
+            }).catch((error) => console.error('processNoteEvent failed', error));
         }
     }
     return;
@@ -304,13 +333,46 @@ async function initAgent(content) {
     console.log('inside initAgent');
     try {
         loadConfig(content);
-        const externalFilesLoaded = loadExternalFiles();
-        loadAlgorithm(externalFilesLoaded);
-        initAudio(content);
-        initParameterSharing(content);
+        ctx = createContext(content);
+        if (defined) {
+            initAudio(content);
+            initParameterSharing(content);
+            await loadDefinedAgent();
+        } else {
+            const externalFilesLoaded = loadExternalFiles();
+            loadAlgorithm(externalFilesLoaded);
+            initAudio(content);
+            initParameterSharing(content);
+        }
         console.log('Initialization complete');
     } catch (error) {
         console.error('Error initializing worker:', error);
+    }
+}
+
+/**
+ * Runs a defineAgent agent's loadAlgorithm and tells the UI when it is ready, or why it failed.
+ */
+async function loadDefinedAgent() {
+    try {
+        if (typeof agent.loadAlgorithm === 'function') await agent.loadAlgorithm(ctx);
+        ctx._loading = false;
+        postMessage({
+            hookType: self.agentHookType.INIT_AGENT,
+            message: {
+                [self.messageType.STATUS]: self.statusType.SUCCESS,
+                [self.messageType.TEXT]: 'The Agent is ready to interact with you!',
+            },
+        });
+    } catch (error) {
+        console.error('loadAlgorithm failed', error);
+        postMessage({
+            hookType: self.agentHookType.INIT_AGENT,
+            message: {
+                [self.messageType.STATUS]: self.statusType.ERROR,
+                [self.messageType.TEXT]: `The agent failed to load: ${error?.message ?? error}`,
+            },
+        });
     }
 }
 

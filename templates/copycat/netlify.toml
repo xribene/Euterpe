@@ -1,0 +1,10 @@
+# Netlify: build the site and serve it cross-origin isolated (Euterpe needs SharedArrayBuffer)
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"

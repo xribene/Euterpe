@@ -265,6 +265,26 @@ importers:
         specifier: ^5.0.10
         version: 5.0.10(@types/node@20.10.4)(terser@5.26.0)
 
+  templates/call-response:
+    dependencies:
+      euterpe:
+        specifier: workspace:*
+        version: link:../../packages/euterpe
+    devDependencies:
+      vite:
+        specifier: ^5.0.10
+        version: 5.0.10(@types/node@20.10.4)(terser@5.26.0)
+
+  templates/copycat:
+    dependencies:
+      euterpe:
+        specifier: workspace:*
+        version: link:../../packages/euterpe
+    devDependencies:
+      vite:
+        specifier: ^5.0.10
+        version: 5.0.10(@types/node@20.10.4)(terser@5.26.0)
+
   templates/empty:
     dependencies:
       euterpe:

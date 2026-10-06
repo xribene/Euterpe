@@ -1,6 +1,5 @@
-# Empty Agent.
+# Empty Agent
 
-Hi! Right now, I'm an agent that does ... nothing
+Hi! Right now I'm an agent that does... nothing.
 
-Modify the `*.yaml` config files and add your code in the `*hook.js` files to create your own music agent
-
+Write your agent in `agent/hooks.js` and configure it in the `agent/*.yaml` files.
