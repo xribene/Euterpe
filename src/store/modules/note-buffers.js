@@ -5,17 +5,16 @@ class NoteEventSortedArray {
     }
 
     insert(noteEvent) {
+        // after the notes with the same tick, so the notes of a tick keep the order the agent sent them in
+        // (note-offs before note-ons, a chord's bass first)
         let left = 0;
         let right = this.array.length - 1;
         while (left <= right) {
             const mid = Math.floor((left + right) / 2);
             if (this.array[mid]._playAt.tick > noteEvent._playAt.tick) {
                 right = mid - 1;
-            } else if (this.array[mid]._playAt.tick < noteEvent._playAt.tick) {
-                left = mid + 1;
             } else {
-                left = mid;
-                break;
+                left = mid + 1;
             }
         }
         this.array.splice(left, 0, noteEvent);
@@ -199,7 +198,8 @@ const actions = {
         } else if (noteOnEvents.length == 0 && noteOffEvents.length == 0) {
             state.lastAgentNote.dur += 1;
         } else if (noteOnEvents.length == 0 && noteOffEvents.length > 0) {
-            if (noteOffEvents[0].midi == state.lastAgentNote.midi) {
+            // (a polyphonic agent, e.g. the chord models, releases several notes at once)
+            if (noteOffEvents.some((event) => event.midi == state.lastAgentNote.midi)) {
                 state.lastAgentNote.midi = 0;
                 state.lastAgentNote.dur = 1;
                 state.lastAgentNote.startTick = getters.getGlobalTick;

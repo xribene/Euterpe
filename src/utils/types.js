@@ -33,6 +33,7 @@ export const messageType = {
     TEXT: 13,
     KEY: 15, // the agent's current key estimate, e.g. 'E♭ major' (used to spell notes)
     SESSION: 16, // a recorded session (see src/agent/sessionLog.js), downloaded by the UI
+    TIMING_RESET: 18, // the agent switched to another model: the UI restarts its max-BPM estimate
     CLOCK_TIME: 1,
     INFERENCE_TIME: 2,
 };

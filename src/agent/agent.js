@@ -152,6 +152,8 @@ function initParameterSharing(content) {
  */
 function loadConfig(content) {
     self.config = content.config;
+    // the page's URL query (e.g. ?ortThreads=4, see ortEnv.js)
+    self.urlParams = content.urlParams ?? {};
     self.playerType = content.playerType;
     self.instrumentType = content.instrumentType;
     self.noteType = content.noteType;

@@ -41,6 +41,8 @@ import configWidgets from '@/agent/config_widgets.yaml';
 import configBase from '@/agent/config.yaml';
 import { markdown } from '@/agent/introModal.md';
 
+// the max BPM shown in Settings is estimated from the agent's inference times of the last 400 ticks
+const MAX_BPM_WINDOW = 400;
 
 export default {
 
@@ -313,6 +315,8 @@ export default {
             hookType: vm.agentHookType.INIT_AGENT,
             content: {
                 config: vm.config,
+                // the page's URL query, for agent options such as ?ortThreads=4
+                urlParams: Object.fromEntries(new URLSearchParams(window.location.search)),
                 playerType: vm.playerType,
                 instrumentType: vm.instrumentType,
                 messageType: vm.messageType,
@@ -912,6 +916,9 @@ export default {
                 }
                 const agentInferenceTime = e.data.message[vm.messageType.INFERENCE_TIME];
                 vm.modelInferenceTimes.push(agentInferenceTime);
+                if (vm.modelInferenceTimes.length > 2 * MAX_BPM_WINDOW) {
+                    vm.modelInferenceTimes.splice(0, vm.modelInferenceTimes.length - MAX_BPM_WINDOW);
+                }
                 // console.log("just pushed ", agentInferenceTime, " to modelInferenceTimes")
             }
 
@@ -978,6 +985,10 @@ export default {
                         break;
                     case vm.messageType.LABEL:
                         this.textBoxText = messageValue;
+                        break;
+                    case vm.messageType.TIMING_RESET:
+                        // the agent switched models: estimate the max BPM from the new model's times only
+                        vm.modelInferenceTimes = [];
                         break;
                     case vm.messageType.KEY:
                         this.$store.commit('setEstimatedKey', messageValue);
@@ -1506,9 +1517,11 @@ export default {
 
         calculateMaxBPM() {
             const vm = this;
-            const dt = vm.modelInferenceTimes.sort(function(a, b) {
-                return a - b;
-            })[Math.floor(vm.modelInferenceTimes.length * 0.95)];
+            // p95 of the inference times of the last MAX_BPM_WINDOW ticks of the current model
+            // (cleared when the agent switches models, see TIMING_RESET), sorted on a copy
+            const times = vm.modelInferenceTimes.slice(-MAX_BPM_WINDOW).sort((a, b) => a - b);
+            if (times.length === 0) return;
+            const dt = times[Math.floor(times.length * 0.95)];
             vm.maxBPM = Math.round(1000 * 60 / dt / vm.$store.getters.getTicksPerBeat);
         },
 

@@ -10,14 +10,9 @@
  * would cost ~120 ms. Both are identical for the first 16 bars; after that the cache drifts slightly (see
  * export_onnx.py).
  */
-import * as ort from 'onnxruntime-web/wasm';
-import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url';
-
-// Let Vite serve the WASM binary (same version as the JS) instead of fetching it from a CDN.
-// One thread: a step is tiny, and TF.js has its own thread pool.
-ort.env.wasm.wasmPaths = {wasm: ortWasmUrl};
-ort.env.wasm.numThreads = 1;
-ort.env.wasm.proxy = false;
+// ORT settings (WASM paths, thread count: 1 unless ?ortThreads=N) are shared with the chord models (ortEnv.js).
+// One thread is plenty here: a step is tiny, and TF.js has its own thread pool.
+import {ort} from './ortEnv.js';
 
 /**
  * The state of the two streams (row 0: BachDuet, row 1: the role-swapped stream that predicts the user): their
