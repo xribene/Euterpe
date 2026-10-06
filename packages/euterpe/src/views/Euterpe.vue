@@ -33,6 +33,7 @@ import {
 
 import {isMobile, isNotChrome} from '../utils/helpers.js';
 import {NoteEvent} from '../utils/NoteEvent.js';
+import {installHandle} from '../utils/handle.js';
 // import { selectedAgent } from '../agent-examples/selectedAgent.js'
 
 // the agent's YAML configs and intro text, from the project's agent/ folder (see euterpe/vite)
@@ -307,6 +308,8 @@ export default {
         vm.agent = new Worker(new URL('../worker/agentWorker.js', import.meta.url), {type: 'module'});
 
         vm.agent.onmessage = vm.agentCallback;
+        // window.__euterpe, for tests and scripts
+        installHandle(vm);
 
         // Send a message to agent with some necessary
         // configurations and constants to store inside the agent
@@ -1749,7 +1752,7 @@ export default {
                     <p v-if="dropdownsNote" class="introDropdownsNote">{{ dropdownsNote }}</p>
                 </div>
                 <div id="entryBtnContainer" style="width:100%;height:60px;">
-                    <button @click="entryProgram" ref="entryBtn"
+                    <button @click="entryProgram" ref="entryBtn" data-testid="euterpe-start"
                         class="entryBtn" style="visibility: hidden;">
                         <span style="width:100%;text-align:center;">Play</span>
                     </button>
@@ -1846,16 +1849,16 @@ export default {
 
             <!-- On-screen buttons -->
             <div style="position: absolute; bottom: 230px; right: 11px">
-                <md-button class="controlBtn" @click="toggleClock" style="width: 40px">
+                <md-button class="controlBtn" data-testid="euterpe-clock" @click="toggleClock" style="width: 40px">
                     <md-icon>{{ localSyncClockStatus ? "pause" : "play_arrow" }}</md-icon>
                 </md-button>
-                <md-button class="controlBtn" @click="showSettingsModal">
+                <md-button class="controlBtn" data-testid="euterpe-settings" @click="showSettingsModal">
                     <md-icon>settings</md-icon>
                 </md-button>
-                <md-button class="controlBtn" @click="toggleMixer">
+                <md-button class="controlBtn" data-testid="euterpe-mixer" @click="toggleMixer">
                     <md-icon>tune</md-icon>
                 </md-button>
-                <md-button v-if="showMonitor" class="controlBtn" @click="toggleMonitor">
+                <md-button v-if="showMonitor" class="controlBtn" data-testid="euterpe-monitor" @click="toggleMonitor">
                     <i class="material-symbols-outlined">monitoring</i>
                 </md-button>
             </div>

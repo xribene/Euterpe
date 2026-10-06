@@ -81,7 +81,8 @@
                         <!-- Sliders for agent Parameters -->
                         <div class="agentParametersContainer">
                             <div v-if="sliders.length > 0" class="controlCollection">
-                                <div v-for="sliderItem in sliders" :key="'slider' + sliderItem.id">
+                                <div v-for="(sliderItem, i) in sliders" :key="'slider' + sliderItem.id"
+                                    :data-testid="'euterpe-slider-' + (i + 1)">
                                     <Slider
                                         v-model="sliderItem.value"
                                         :min="sliderItem.min"
@@ -96,7 +97,8 @@
                                 <div v-for="dropdownItem in dropdowns" :key="'dropdown' + dropdownItem.id"
                                     class="dropdown-container">
                                     <label :for="'dropdown' + dropdownItem.id">{{ dropdownItem.label }}</label>
-                                    <select :id="'dropdown' + dropdownItem.id" v-model.number="dropdownItem.value">
+                                    <select :id="'dropdown' + dropdownItem.id" v-model.number="dropdownItem.value"
+                                        :data-testid="'euterpe-dropdown-' + dropdownItem.id">
                                         <option v-for="(option, i) in dropdownItem.options" :key="i" :value="i">
                                             {{ option }}
                                         </option>
@@ -109,6 +111,7 @@
                             <div v-if="buttons.length > 0" class="controlCollection">
                                 <div v-for="buttonItem in buttons" :key="'button' + buttonItem.id">
                                     <button class="agentParameterButton"
+                                        :data-testid="'euterpe-button-' + buttonItem.id"
                                         @click="buttonAction(buttonItem.id)">
                                         <!-- <span class="forceTextColor">{{ buttonItem.label }}
                                         </span> -->
@@ -118,7 +121,8 @@
                             </div>
                             <!-- Switches for agent Parameters -->
                             <div v-if="switches.length > 0" class="controlCollection">
-                                <div class="switchContainer" v-for="swi in switches" :key="'switch' + swi.id">
+                                <div class="switchContainer" v-for="(swi, i) in switches" :key="'switch' + swi.id"
+                                    :data-testid="'euterpe-switch-' + (i + 1)">
                                     <div class="switchLabel">{{ swi.label }}</div>
                                     <toggle-button class="switch"
                                         color="#e6a100"

@@ -62,6 +62,7 @@ npm run preview   # serve dist/ locally with the headers
 
 - Open the dev server URL, press the start button, play on the keyboard (rows `Z X C V ...` = C4 upward, `Q W E R ...` = C5 upward), and watch the browser console: hook errors and warnings about unknown return keys appear there.
 - The page must be cross-origin isolated (`self.crossOriginIsolated === true` in the console); the dev server and the provided deploy configs make sure of that.
+- Scripts and browser tests (e.g. Playwright) drive the page through `window.__euterpe` instead of clicking: `await __euterpe.whenReady()`, `__euterpe.enter()`, `__euterpe.startClock()`, `__euterpe.noteOn(60)` / `noteOff(60)`, `__euterpe.setParam('slider', 1, 40)`, `__euterpe.params`, `__euterpe.tick`, `__euterpe.agentMessages()` (what the agent sent). Controls carry `data-testid`s: `euterpe-start`, `euterpe-clock`, `euterpe-settings`, `euterpe-slider-1`, `euterpe-dropdown-1`, ...
 
 ## Changing Euterpe itself
 

@@ -1,7 +1,8 @@
 // Smoke check of a running Euterpe page (dev server or a build behind vite preview), with system Chrome:
 // cross-origin isolated, the agent reports ready, the UI starts, the clock ticks, a phrase played on the laptop
 // keyboard gets an answer from the agent, samples load, no console errors.
-//   node tools/smoke/check.mjs <url> [--expect-answer] [--wait=ms] [--logs] [--screenshot=file.png]
+//   node tools/smoke/check.mjs <url> [--expect-answer] [--set=slider:3:0 ...] [--wait=ms] [--logs] [--screenshot=f.png]
+// --set changes a widget (kind:id:value, as ctx.params) before the phrase.
 // Prints a JSON report; exits 1 if a check fails.
 import {chromium} from 'playwright';
 
@@ -29,51 +30,35 @@ context.on('response', (r) => {
     if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`);
     else if (r.url().includes('/samples/')) samples++;
 });
-// record what the agent and clock workers send
-await page.addInitScript(() => {
-    const W = window.Worker;
-    window.__smoke = {ticks: 0, agentNotes: [], agentMessages: 0};
-    window.Worker = class extends W {
-        constructor(...a) {
-            super(...a);
-            const src = String(a[0]);
-            this.addEventListener('message', (e) => {
-                if (src.includes('clock')) window.__smoke.ticks++;
-                if (!src.includes('agentWorker')) return;
-                window.__smoke.agentMessages++;
-                for (const n of e.data?.message?.[4] ?? []) { // messageType.NOTE_LIST
-                    window.__smoke.agentNotes.push({t: performance.now(), type: n._type, midi: n._midi});
-                }
-            });
-        }
-    };
-});
-
 const report = {url};
 const t0 = Date.now();
 await page.goto(url);
 report.crossOriginIsolated = await page.evaluate(() => self.crossOriginIsolated);
-await page.locator('.entryBtn').first().waitFor({state: 'visible', timeout: 180000});
+// window.__euterpe: the UI's handle for tests (packages/euterpe/src/utils/handle.js)
+await page.waitForFunction(() => window.__euterpe, null, {timeout: 60000});
+await page.evaluate(() => window.__euterpe.whenReady());
 report.readyAfterMs = Date.now() - t0;
-for (let i = 0; i < 5; i++) {
-    await page.evaluate(() => document.querySelector('.entryBtn').click());
-    await page.waitForTimeout(800);
-    if (await page.evaluate(() => document.getElementById('mainContent')?.style.display === 'block')) break;
-}
-report.started = await page.evaluate(() => document.getElementById('mainContent')?.style.display === 'block');
+await page.evaluate(() => window.__euterpe.enter());
+await page.waitForTimeout(500);
+report.started = await page.evaluate(() => window.__euterpe.entered);
 await page.keyboard.press('Escape'); // the intro dialog
-await page.mouse.click(5, 5);
-// the clock: started by autoStart, otherwise by the play button
-let ticks = await page.evaluate(() => window.__smoke.ticks);
-await page.waitForTimeout(700);
-if (await page.evaluate(() => window.__smoke.ticks) === ticks) await page.locator('.controlBtn').nth(0).click();
-await page.waitForTimeout(700);
-ticks = await page.evaluate(() => window.__smoke.ticks);
+await page.evaluate(() => window.__euterpe.startClock());
+const tickAt = () => page.evaluate(() => window.__euterpe.tick.global);
+await page.waitForTimeout(500);
+const ticks = await tickAt();
 await page.waitForTimeout(1000);
-report.ticksPerSecond = (await page.evaluate(() => window.__smoke.ticks)) - ticks;
+report.ticksPerSecond = (await tickAt()) - ticks;
+
+for (const [kind, id, value] of process.argv.filter((a) => a.startsWith('--set=')).map((a) => a.slice(6).split(':'))) {
+    await page.evaluate(([k, i, v]) => window.__euterpe.setParam(k, Number(i), Number(v)), [kind, id, value]);
+}
+if (process.argv.some((a) => a.startsWith('--set='))) {
+    await page.waitForTimeout(300); // the agent reads widget changes every 100 ms
+    report.params = await page.evaluate(() => window.__euterpe.params);
+}
 
 // a phrase on the laptop keyboard (q w e r t = C5 D5 E5 F5 G5), 8th notes at 100 BPM
-const before = await page.evaluate(() => window.__smoke.agentNotes.length);
+const before = await page.evaluate(() => window.__euterpe.agentMessageCount);
 for (const key of ['q', 'w', 'e', 'r', 't', 'r', 'e', 'w', 'q']) {
     await page.keyboard.down(key);
     await page.waitForTimeout(260);
@@ -81,7 +66,9 @@ for (const key of ['q', 'w', 'e', 'r', 't', 'r', 'e', 'w', 'q']) {
     await page.waitForTimeout(40);
 }
 await page.waitForTimeout(answerWait);
-const answer = await page.evaluate((k) => window.__smoke.agentNotes.slice(k), before);
+// the notes in the agent's messages (messageType.NOTE_LIST = 4)
+const answer = await page.evaluate((k) => window.__euterpe.agentMessages(k)
+    .flatMap((m) => m.message?.[4] ?? []).map((n) => ({type: n._type, midi: n._midi})), before);
 report.agentNoteOns = answer.filter((n) => n.type === 1).map((n) => n.midi);
 report.agentNoteOffs = answer.filter((n) => n.type === -1).length;
 report.samplesLoaded = samples;
