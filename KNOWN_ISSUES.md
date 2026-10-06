@@ -1,0 +1,46 @@
+# Known issues and inconveniences
+
+Found while packaging Euterpe (branch `npm-package`). Newest first within each section. Status: **open**, **fixed** (commit), **workaround**.
+
+## Framework (packages/euterpe)
+
+| # | Issue | Evidence | Suggested fix | Status |
+|---|---|---|---|---|
+| F1 | The score's "Agent's output is not monophonic (2)" error fires for any agent note-off that doesn't match the last note-on, not only for polyphony. | `store/modules/note-buffers.js:207`; BachDuet triggers it with a stray note-off (B1) | Say what happened ("note-off for 60, which the score never saw start"); log once, not per tick | open |
+| F2 | There is no setting for the agent's output polyphony. `noteModeSettings.gridBased.polyphony` has only `input`. The score assumes a monophonic agent ("ScoreUI only supports monophonic", `Euterpe.vue:882`) and shows only the first note of a chord. | ReaLchords/GAPT play chords | Add `polyphony.output` to the config schema and make the score draw chords or say it can't | open |
+| F3 | Agent notes with `playAfter.tick == 0` are played at once and skip the score's tracker (`updateLastAgentNote`), so the score never sees them and a later note-off for them trips F1. | `Euterpe.vue:964-970` | Route both paths through one function that updates the score | open |
+| F4 | Agent notes whose tick has already passed are dropped silently (`popAgentNotesToBePlayedAt`, `tick < currentGlobalTick`). Neither the agent nor the developer learns that inference was too slow. | `note-buffers.js:169` | Count them and warn (it feeds the planned overrun warning) | open |
+| F5 | Euterpe makes its own `AudioContext` for the microphone while Tone.js plays through a second one (`Tone.setContext(vm.audioContext)` is commented out: "this cause huge latency"). Two audio clocks. | `Euterpe.vue:279-283` | Investigate together with the audio-clock redesign (PACKAGING_PLAN, Clock) | open |
+| F6 | `Tone.context.lookAhead = 0` behaves differently across Tone versions. In 14.7.77 the Tone timer stays at 20 Hz; in 14.9 setting lookAhead to 0 also sets the timer to 10 ms. The samplers schedule straight on the Web Audio clock and are unaffected, but the FM `synth` instrument (`Tone.PolySynth`) queues future notes on that timer, so they can sound up to ~50 ms late on 14.7.77. | Fresh `npm install` got 14.9.17: Tone's timer worker posted 74/s against 18/s | Tone and webmidi pinned to the bachduet.com versions; test Tone 14.9 separately (it may make the synth tighter) | workaround (40a26f3) |
+| F7 | The "dirty hack to deal with tone.js weird behavior": a note-on in the same tick as a note-off of the same pitch is delayed by `delayForNoteOn`. | `Euterpe.vue:950-962` | Understand it and document or remove it | open |
+| F8 | `loadAlgorithm` is not awaited, and every agent must post the SUCCESS status message itself; if it forgets, the UI waits forever. | `worker/agentWorker.js` `initAgent` | `defineAgent`: await `loadAlgorithm`, post SUCCESS (or the error) for the agent (step 2) | open |
+| F9 | The main bundle is 3.9 MB (1.2 MB gzipped). vue-material, three.js, chart.js and tweakpane all load up front. | `vite build` of the empty template | Load widgets on demand; check whether three.js is still used | open |
+| F10 | `vue-material` is an unmaintained 2019 beta with a postinstall nag (opencollective). `npm install` prints an install-scripts warning for it. | npm 11 output in a fresh project | Replace the three components it provides (MdButton, MdIcon, MdField) | open |
+| F11 | `vue-js-toggle-button` declares no licence in its package.json. | licence scan | Check its repo or replace it (it's one small component) | open |
+| F12 | Vite's dev server reloads the page the first time an agent loads a dependency it hadn't pre-bundled (onnxruntime-web when the transformer was picked), which broke the first BachDuet smoke run. | step 0 smoke run | The plugin crawls `agent/**` at startup | fixed (9748ae4) |
+
+## BachDuet (apps/bachduet)
+
+| # | Issue | Evidence | Suggested fix | Status |
+|---|---|---|---|---|
+| B1 | On the first tick BachDuet sends a note-off for a note it never played (e.g. MIDI 60 when the user starts on 72). `self.lastSoundedNote ??= self.lastBachDuetNote` takes turn-taking's octave-below seed as the sounding note, and the first (muted) choice turns it off. Harmless to the audio (the sampler ignores it), but it trips F1 on every run. | `tools/score-mono/probe.mjs`: first agent message `off:60@+1`, then the error | `processClockEvent_hook.js`: `self.lastSoundedNote ??= self.restNote` (one line; not applied here because the other session is editing these files) | open |
+
+## Templates and developer experience
+
+| # | Issue | Evidence | Suggested fix | Status |
+|---|---|---|---|---|
+| D1 | The empty agent's `config.yaml` has both `gridBased` and `eventBased` off, so its hooks never receive notes or clock events and the template looks dead. | smoke run: the agent worker sent nothing while playing | Empty template: grid mode on, hooks that do nothing but are called | open |
+| D2 | The clock starts from the play button (`.controlBtn`, first); pressing Space after clicking the page did not start it in my runs. | smoke runs | Check the Space shortcut's focus handling; expose `start()` on `window.__euterpe` | open |
+| D3 | Browser tests reach into Vue internals (`__vue__`, `$children`, `showSettingsModal`, `#dropdown2`). | `apps/bachduet/tools/turn-taking/smoke_turntaking.mjs` | `window.__euterpe` handle and `data-testid`s (agreed, item 2) | open |
+| D4 | The turn-taking smoke test takes ~3.4 min per model (~30 min for all 9) and prints results only at the end, so a crash loses the whole run (it did once). | step 0 | Write each model's result as soon as it finishes | open |
+| D5 | Installing with npm prints install-script warnings (esbuild, vue-material); pnpm 12 refuses to install without `allowBuilds` in `pnpm-workspace.yaml`. | fresh installs | Templates ship the pnpm setting; F10 removes one of the two | workaround |
+| D6 | The root README describes the old single-app layout (paths under `public/`, install steps). | `README.md` | Rewrite for the package (step 5) | open |
+
+## Packaging and repo
+
+| # | Issue | Evidence | Suggested fix | Status |
+|---|---|---|---|---|
+| P1 | The licence and origin of the 17 MB of instrument samples are unknown. The file names match the tonejs-instruments set. They ship inside the `euterpe` tarball for now. | `packages/euterpe/assets/samples` | Confirm the source and licence before publishing; otherwise host them elsewhere (CDN) with attribution | open, blocks publish |
+| P2 | The copyright line names Yongyi Zang, whose agreement to MIT is still needed. | `LICENSE` | Ask Yongyi before publishing | open, blocks publish |
+| P3 | The same dev fixes (permissions / play button / MIDI init) exist on `dev` and on `primed-anticipation` under different hashes, so merging those branches later will conflict on `Euterpe.vue`. | `git cherry-pick` of 811a40e conflicted, though the content was already there | Retire `dev` once `npm-package` lands | open |
+| P4 | Netlify builds bachduet.com from the repo root of the `bachDuet` branch. On the new layout the site's base directory is `apps/bachduet` (its `netlify.toml` pins Node 21.1.0). | `apps/bachduet/netlify.toml` | Change the Netlify settings only when switching the site over (ask first) | open |
