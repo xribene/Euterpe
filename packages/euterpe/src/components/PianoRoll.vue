@@ -29,7 +29,7 @@ import * as THREE from 'three';
 import {Midi} from '@tonaljs/tonal';
 import {playerType} from '../utils/types.js';
 
-import('../css/variables.css');
+import '../css/variables.css';
 
 // get --pianoRoll-human-color and --pianoRoll-agent-color from CSS.
 const colorForAgent = getComputedStyle(document.documentElement).getPropertyValue(

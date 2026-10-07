@@ -90,6 +90,10 @@ export type HookOutput = void | null | undefined | Array<NoteEvent | PlainNote> 
     vector?: number[];
     /** The key the agent hears, e.g. 'E♭ major' (used to spell notes in the score). */
     key?: string;
+    /** The agent switched models: the UI restarts its max-BPM estimate. */
+    timingReset?: boolean;
+    /** A recorded session for the UI to download. */
+    session?: unknown;
     /** The original protocol: values keyed by messageType number. */
     [messageType: number]: unknown;
 };
@@ -203,3 +207,24 @@ export declare function clamp(num: number, min: number, max: number): number;
 /** Moves midi by octaves into [min, max]. */
 export declare function clampMidi(midi: number, min: number, max: number): number;
 export declare function deinterleaveCustom(input: Float32Array, output: Float32Array[], channelCount: number): void;
+
+declare global {
+    /**
+     * Globals the worker runtime sets for agents written the original way (self.config, self.messageType, ...).
+     * defineAgent hooks get the same through ctx.
+     */
+    interface WorkerGlobalScope {
+        config: Config;
+        urlParams: Record<string, string>;
+        playerType: typeof playerType;
+        instrumentType: typeof instrumentType;
+        noteType: typeof noteType;
+        statusType: typeof statusType;
+        messageType: typeof messageType;
+        uiParameterType: typeof uiParameterType;
+        agentHookType: typeof agentHookType;
+        ticksPerMeasure: number;
+        sampleRate: number;
+        channelCount: number;
+    }
+}
