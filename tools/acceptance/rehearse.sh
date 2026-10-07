@@ -3,12 +3,12 @@
 # public one: publishes packages/euterpe and packages/create-euterpe to it, then for each template, in a clean
 # folder: npm create, npm install, npm run smoke (dev server), npm run smoke -- --build (static build); and for
 # copycat, npx euterpe eject + install + smoke.
-#   tools/acceptance/rehearse.sh [template ...]      (default: empty copycat call-response)
+#   tools/acceptance/rehearse.sh [template ...]      (default: empty copycat call-response synth)
 # Templates other than empty must answer the smoke check's phrase. Exits 1 on the first failure.
 set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
-TEMPLATES=("${@:-empty copycat call-response}")
+TEMPLATES=("${@:-empty copycat call-response synth}")
 read -r -a TEMPLATES <<< "${TEMPLATES[*]}"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/euterpe-rehearsal.XXXX")
 PORT=4875

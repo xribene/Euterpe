@@ -93,6 +93,10 @@ export async function smoke(url, {expectAnswer = false, set = [], wait = 4000, s
         // a phrase on the laptop keyboard (q w e r t = C5 D5 E5 F5 G5), 8th notes at 100 BPM
         report.phrase = [72, 74, 76, 77, 79, 77, 76, 74, 72];
         const before = await page.evaluate(() => window.__euterpe.agentMessageCount);
+        // the agent's audio output, if it has one: its loudest moment while the phrase plays and after
+        let audioPeak = 0;
+        const sampler = setInterval(() => page.evaluate(() => window.__euterpe.audioOut?.peak ?? 0)
+            .then((peak) => (audioPeak = Math.max(audioPeak, peak))).catch(() => {}), 100);
         for (const key of ['q', 'w', 'e', 'r', 't', 'r', 'e', 'w', 'q']) {
             await page.keyboard.down(key);
             await page.waitForTimeout(260);
@@ -100,6 +104,9 @@ export async function smoke(url, {expectAnswer = false, set = [], wait = 4000, s
             await page.waitForTimeout(40);
         }
         await page.waitForTimeout(wait);
+        clearInterval(sampler);
+        const audioOut = await page.evaluate(() => window.__euterpe.audioOut);
+        if (audioOut) report.audioOut = {...audioOut, peakDuringPhrase: +audioPeak.toFixed(4)};
         // the notes in the agent's messages (messageType.NOTE_LIST = 4)
         const answer = await page.evaluate((k) => window.__euterpe.agentMessages(k)
             .flatMap((m) => m.message?.[4] ?? []).map((n) => ({type: n._type, midi: n._midi})), before);
@@ -110,7 +117,8 @@ export async function smoke(url, {expectAnswer = false, set = [], wait = 4000, s
         report.errors = errors;
         report.warnings = logs.filter((l) => l.includes('[euterpe]'));
         report.ok = Boolean(report.crossOriginIsolated && report.started && report.ticksPerSecond > 0 &&
-            failed.length === 0 && errors.length === 0 && (!expectAnswer || report.agentNoteOns.length > 0));
+            failed.length === 0 && errors.length === 0 &&
+            (!expectAnswer || report.agentNoteOns.length > 0 || (report.audioOut?.peakDuringPhrase ?? 0) > 0.01));
         report.logs = logs;
         if (screenshot) await page.screenshot({path: screenshot});
         return report;

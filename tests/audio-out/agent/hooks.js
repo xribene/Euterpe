@@ -19,6 +19,10 @@ export default defineAgent({
         if (ctx.urlParams.mode === 'slow') await new Promise((r) => setTimeout(r, 150));
         return sine(frames, ctx.audioOut.sampleRate);
     },
+    // Button 1: updateParameter's return value is played like any hook's
+    updateParameter({kind}, ctx) {
+        if (kind === 'button') return [ctx.noteOn(72), ctx.noteOff(72, {seconds: 0.3})];
+    },
     processClockEvent(clock, ctx) {
         if (ctx.urlParams.mode !== 'push') return;
         // one tick of audio per tick (two ahead at the start)

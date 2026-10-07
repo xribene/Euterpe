@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=../node_modules/euterpe/schema/widgets.schema.json
+gui:
+  score:
+    # the score shows grid timing; this synth plays in free time
+    status: false
+  textBox:
+    status: false
+    title: "Synth"
+  pianoRoll:
+    status: true
+    human: true
+    agent: false
+  keyboard:
+    status: true
+    octaveStart: 2
+    octaveEnd: 6
+  chromaChart:
+    status: false
+  audioMeter:
+    status: false
+  monitor:
+    status: false
+  settingsModal:
+    sliders:
+      - id: 1
+        label: "Cutoff (Hz)"
+        value: 2400
+        min: 100
+        max: 12000
+      - id: 2
+        label: "Resonance"
+        value: 20
+        min: 0
+        max: 95
+      - id: 3
+        label: "Attack (ms)"
+        value: 5
+        min: 1
+        max: 2000
+      - id: 4
+        label: "Decay (ms)"
+        value: 250
+        min: 1
+        max: 3000
+      - id: 5
+        label: "Sustain (%)"
+        value: 60
+        min: 0
+        max: 100
+      - id: 6
+        label: "Release (ms)"
+        value: 400
+        min: 1
+        max: 5000
+    dropdowns:
+      - id: 1
+        label: "Waveform"
+        value: 2
+        options: ["Sine", "Triangle", "Saw", "Square"]

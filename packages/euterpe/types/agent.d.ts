@@ -193,7 +193,7 @@ export interface AgentHooks {
     /** Every microphone frame (config.yaml interactionMode.audioMode: true): one Float32Array per channel. */
     processAudioBuffer?(channels: Float32Array[], ctx: Ctx): Awaitable<HookOutput>;
     /** A Settings widget changed; ctx.params already holds the new value. */
-    updateParameter?(change: ParamChange, ctx: Ctx): Awaitable<void>;
+    updateParameter?(change: ParamChange, ctx: Ctx): Awaitable<HookOutput>;
     /**
      * Audio output (interactionMode.audioOut): return `frames` frames, one Float32Array per channel (or one for
      * all). Called whenever less than audioOut.latency seconds are queued, one call at a time.

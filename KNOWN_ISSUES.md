@@ -6,6 +6,8 @@ Found while packaging Euterpe (branch `npm-package`). Newest first within each s
 
 | # | Issue | Evidence | Suggested fix | Status |
 |---|---|---|---|---|
+| F21 | In event mode the user's notes reached the agent only while the clock ran, so a free-time agent (the synth) was silent until the user pressed play, although it doesn't use the clock. | `processUserNoteEvent` | Agents without gridBased get every note; grid agents (and mixed ones like call-response) still only while the clock runs | fixed |
+| F22 | The start button's fade-in animated `display` and `visibility` (not only opacity): during the fade the button left the layout and clicks fell through to its container, so early clicks were lost (in headless Chrome the animation stalled and the button never responded; the old BachDuet smoke test clicked it 5 times in a loop). | `css/main.css` `@keyframes fade-in` | Opacity only | fixed |
 | F20 | The agent could not play audio: the thesis (05-euterpe.tex, Audio Scheduling, Audio Recorder and Player) describes an Audio Player fed by a second ring buffer, but it never existed on any branch; `messageType.AUDIO_BUFFER` was defined and unused. | `git log --all -S` | Implemented: `interactionMode.audioOut`, `audioOutSettings`, `renderAudio` hook, `ctx.audioOut`, `{audio}` return key, player worklet into the agent's mixer bus, underrun warning | fixed |
 | F19 | Every build copies all 17 MB of instrument samples (piano, drums, upright bass, click), whatever the agent's `players.yaml` uses; a built site is 27 MB, most of it samples. | `vite build` of each template: 27 MB `dist/` | The build copies only the instruments players.yaml lists (copycat: 27 → 25 MB). The piano alone is 15 MB (85 samples): Tone.Sampler pitch-shifts between samples, so every 3rd semitone (~5 MB) may sound the same; to try by ear | partly fixed |
 | F13 | `NoteEvent.createdAt.seconds` holds the main thread's `performance.now()` in **milliseconds**, a clock whose origin differs from the worker's `performance.now()`. Agents can only use differences. | `Keyboard.vue:234`, `Euterpe.vue:467,1315`; CallAndResponse divides by 1000 | createdAt.seconds is now seconds (page clock); ctx.now() gives the same clock in the worker; call-response template updated (examples/CallAndResponse still divides by 1000) | fixed |
@@ -76,3 +78,16 @@ Found while packaging Euterpe (branch `npm-package`). Newest first within each s
 | R9 | A malformed URL (`/%`) crashed the static server | 400; stream errors handled | `/%` → 400, server still up |
 | R10 | Types promised `userNotes` / `userQuantizedNotes` arrays that were absent when disabled | always arrays for defineAgent hooks (empty when disabled) | `quantizedEvents: false`: hook reads `.length`, 0 |
 | R11 | `create-euterpe`: typing a template name at the prompt silently picked `empty` | empty answer, number and name handled; anything else rejected | `copycat` → copycat, `9` / `violin` → error |
+
+## Review of the audio output (Codex Astra via pi, 2026-10-06)
+
+`REVIEW_ASTRA_AUDIO_OUT_2026-10-06.md`: 6 findings on 25c36b8, all confirmed and fixed:
+
+| # | Finding | Fix | Checked |
+|---|---|---|---|
+| A1 | The start button didn't resume the AudioContext: with the normal autoplay policy an audio-only agent could stay silent | `resume()` in the start button's handler. Testing it found F22 (the button ignored clicks during its fade) | real click, normal policy: suspended → running, audio plays |
+| A2 | A worklet that failed to load (e.g. CSP) left the agent "ready" and the worker filling an unread queue | the page tells the worker (render loop stopped, writes no-ops), shows a toast and a console error; blob URL revoked | `addModule` rejected: error + worker warning |
+| A3 | `ctx.audioOut.write([])` threw on every render | returns 0 | `tests/audio-out/unit.mjs` |
+| A4 | Planes beyond `channels` truncated the output | only the planes played set the length; different lengths warn separately from a full queue | unit test |
+| A5 | Rounding could deadlock producer and player at some sample rates / quanta | target in whole 128-frame blocks, at least two, and at least two of the player's reported quanta; requests rounded up | unit test (latency 0.01 s, quantum 512) |
+| A6 | `{audio}` "from any hook" wasn't true for `updateParameter` | its return value is processed like the others; docs list the hooks | button → notes from `updateParameter` |

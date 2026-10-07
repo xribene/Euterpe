@@ -20,6 +20,7 @@ const TEMPLATE_INFO = {
     'empty': 'hooks that do nothing yet: start here',
     'copycat': 'copies your notes on the 16th-note grid, delayed and transposed',
     'call-response': 'waits for your phrase, then answers it in your rhythm',
+    'synth': 'a polyphonic synthesizer: your notes in, audio out',
 };
 const SKIP = new Set(['node_modules', 'dist', '.DS_Store']);
 

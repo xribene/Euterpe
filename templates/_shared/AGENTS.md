@@ -33,7 +33,7 @@ export default defineAgent({
 - Every hook is optional and may be `async`. The hooks run in a Web Worker: no DOM, no `window`.
 - `clock`: `tick` (position in the bar), `globalTick`, `barReset` (the bar restarted), `userQuantizedNotes` (the user's notes on this tick, if `gridBased.quantizedEvents: true`), `userNotes` (raw notes since the last tick, if `gridBased.eventBuffer: true`).
 - A note (`NoteEvent`): `midi`, `type` (`ctx.types.noteType`: `NOTE_ON` 1, `NOTE_OFF` -1, `NOTE_HOLD` 0), `velocity`, `createdAt` (`{tick, seconds}`: when it was played; `seconds` is on the page's clock, the same as `ctx.now()`).
-- Return what the agent plays and shows: an array of notes, or `{notes, text, label, vector, key, audio}`, or nothing.
+- `processClockEvent`, `processNoteEvent`, `processAudioBuffer` and `updateParameter` return what the agent plays and shows: an array of notes, or `{notes, text, label, vector, key, audio}`, or nothing (`loadAlgorithm` uses `ctx.send` instead).
 - The time budget of `processClockEvent` is one tick (150 ms at 100 BPM in 16ths). A note scheduled for a tick that has already passed is dropped.
 
 ## ctx
@@ -65,7 +65,7 @@ audioOutSettings:
   latency: 0.1    # seconds queued ahead of playback: more = fewer dropouts, later sound
 ```
 
-Then either let Euterpe ask for audio (`renderAudio(frames, ctx)` is called whenever less than `latency` seconds are queued; return one `Float32Array` per channel, or one for all), or push it yourself (`ctx.audioOut.write(channels)`, or `{audio: channels}` from any hook; `ctx.audioOut.space()` and `.buffered()` say how much fits / is queued). The audio plays through the agent's mixer channel, from the start button on, at `ctx.audioOut.sampleRate`. If the agent doesn't keep up, the output plays silence until `latency / 2` is queued again and the console says `[euterpe] the agent's audio output ran dry`. The sound lags by about `latency`.
+Then either let Euterpe ask for audio (`renderAudio(frames, ctx)` is called whenever less than `latency` seconds are queued; return one `Float32Array` per channel, or one for all), or push it yourself (`ctx.audioOut.write(channels)` anywhere, or `{audio: channels}` returned from `processClockEvent`, `processNoteEvent`, `processAudioBuffer` or `updateParameter`; `ctx.audioOut.space()` and `.buffered()` say how much fits / is queued). The audio plays through the agent's mixer channel, from the start button on, at `ctx.audioOut.sampleRate`. Euterpe keeps at least two audio blocks (256 frames) queued whatever `latency` says. If the agent doesn't keep up, the output plays silence until `latency / 2` is queued again and the console says `[euterpe] the agent's audio output ran dry`. The sound lags by about `latency`.
 
 ## Commands
 

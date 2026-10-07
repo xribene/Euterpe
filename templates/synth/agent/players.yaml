@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=../node_modules/euterpe/schema/players.schema.json
+players:
+  human:
+    label: 'User'
+    # muted: you hear the synth (the agent's audio output), not the piano sampler
+    mute: true
+    volume: 7
+    instruments:
+      - id: "piano"
+        label: "Piano"
+        mute: false
+        volume: 7
+        default: true
+  agent:
+    # the synth's audio plays through this channel (its volume and mute apply)
+    label: 'Synth'
+    mute: false
+    volume: 8
+    instruments:
+      - id: "piano"
+        label: "Piano"
+        mute: false
+        volume: 7
+        default: true

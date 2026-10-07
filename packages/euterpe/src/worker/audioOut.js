@@ -30,20 +30,28 @@ export function createAudioOut(sab, {channels, latency, sampleRate}, warn) {
          * @return {number} Frames written (fewer than given if the buffer is full).
          */
         write(data) {
+            if (audioOut.unavailable) return 0;
             const planes = data instanceof Float32Array ? [data] : data;
             if (!Array.isArray(planes) || !planes.every((p) => p instanceof Float32Array)) {
                 warn('ctx.audioOut.write: give a Float32Array or an array of Float32Arrays (one per channel)');
                 return 0;
             }
-            const frames = Math.min(Math.min(...planes.map((p) => p.length)), audioOut.space());
-            if (frames < Math.max(...planes.map((p) => p.length))) {
+            if (planes.length === 0) return 0;
+            // the planes that are played: one per output channel (the last one repeats if there are fewer)
+            const used = planes.slice(0, channels);
+            const given = Math.min(...used.map((p) => p.length));
+            if (used.some((p) => p.length !== given)) {
+                warn('ctx.audioOut.write: the channels have different lengths; the shortest one sets the length');
+            }
+            const frames = Math.min(given, audioOut.space());
+            if (frames < given) {
                 warn('ctx.audioOut: the output buffer is full; audio was dropped (write less ahead, or raise ' +
                     'audioOutSettings.latency)');
             }
             if (frames <= 0) return 0;
             if (staging.length < frames * channels) staging = new Float32Array(frames * channels);
             for (let c = 0; c < channels; c++) {
-                const plane = planes[Math.min(c, planes.length - 1)];
+                const plane = used[Math.min(c, used.length - 1)];
                 for (let i = 0; i < frames; i++) staging[i * channels + c] = plane[i];
             }
             writer.enqueue(staging.subarray(0, frames * channels));
@@ -63,16 +71,22 @@ export function createAudioOut(sab, {channels, latency, sampleRate}, warn) {
  */
 export function startRenderLoop(renderAudio, ctx, onError) {
     const out = ctx.audioOut;
-    const target = Math.round(out.latency * out.sampleRate);
+    // whole 128-frame blocks (the audio thread's quantum), at least two, so playback can always start (the
+    // player starts with latency / 2 or one quantum queued, whichever is more)
+    const BLOCK = 128;
+    const latencyTarget = Math.max(2 * BLOCK, Math.ceil(out.latency * out.sampleRate / BLOCK) * BLOCK);
     let busy = false;
     const fill = async () => {
-        if (busy || ctx._loading) return;
+        if (busy || ctx._loading || out.unavailable) return;
         busy = true;
         try {
-            // render in blocks of 128 frames (the audio thread's quantum), at most 4096 at a time
-            let frames = Math.min(target - out.buffered(), out.space(), 4096);
-            frames -= frames % 128;
-            if (frames > 0) {
+            // up to the target (and two of the player's quanta: out.quantum, reported by the page), rounded up to
+            // whole blocks; at most 4096 frames at a time
+            const target = Math.max(latencyTarget, 2 * (out.quantum ?? BLOCK));
+            const missing = target - out.buffered();
+            const room = out.space() - out.space() % BLOCK;
+            const frames = Math.min(Math.ceil(missing / BLOCK) * BLOCK, room, 4096);
+            if (missing > 0 && frames > 0) {
                 const audio = await renderAudio(frames, ctx);
                 if (audio) out.write(audio);
             }
@@ -83,4 +97,16 @@ export function startRenderLoop(renderAudio, ctx, onError) {
         }
     };
     return setInterval(fill, 5);
+}
+
+/**
+ * The page could not start the player (e.g. a CSP that blocks the worklet): stop rendering, make writes no-ops.
+ * @param {Object|null} audioOut
+ * @param {number|null} interval - The render loop's interval, if any.
+ */
+export function disableAudioOut(audioOut, interval) {
+    if (!audioOut || audioOut.unavailable) return;
+    audioOut.unavailable = true;
+    if (interval !== null) clearInterval(interval);
+    console.warn('[euterpe] the page could not start the audio output: the agent\'s audio is not played');
 }

@@ -6,7 +6,7 @@ const exports = {}; // for ringbuf-classic.js, concatenated after this file
 //
 // It starts once `prebuffer` frames are queued; if the queue runs dry (an underrun: the agent wrote too slowly)
 // it plays silence and waits for `prebuffer` frames again, rather than crackling sample by sample. Every 0.5 s
-// it reports frames played and underruns to the page. It plays nothing before the page sends {play: true}
+// it reports frames played, underruns and the peak level to the page. It plays nothing before the page sends {play: true}
 // (the user pressed the start button).
 
 class EuterpePlayer extends AudioWorkletProcessor {
@@ -20,6 +20,7 @@ class EuterpePlayer extends AudioWorkletProcessor {
         this.playing = false;
         this.played = 0;
         this.underruns = 0;
+        this.peak = 0; // the loudest sample since the last report
         this.reportedAt = 0;
         // silent until the page says the user has started (the start button)
         this.enabled = false;
@@ -45,14 +46,22 @@ class EuterpePlayer extends AudioWorkletProcessor {
                 for (let c = 0; c < out.length; c++) {
                     const source = Math.min(c, this.channels - 1); // mono goes to every output channel
                     const channel = out[c];
-                    for (let i = 0; i < frames; i++) channel[i] = this.staging[i * this.channels + source];
+                    for (let i = 0; i < frames; i++) {
+                        const x = this.staging[i * this.channels + source];
+                        channel[i] = x;
+                        if (x > this.peak) this.peak = x;
+                        else if (-x > this.peak) this.peak = -x;
+                    }
                 }
                 this.played += frames;
             }
         }
         if (currentTime - this.reportedAt >= 0.5) {
             this.reportedAt = currentTime;
-            this.port.postMessage({played: this.played, underruns: this.underruns, playing: this.playing});
+            // quantum: the frames per process() call, so the producer keeps at least two queued
+            this.port.postMessage({played: this.played, underruns: this.underruns, playing: this.playing, quantum: frames,
+                peak: this.peak});
+            this.peak = 0;
         }
         return true;
     }

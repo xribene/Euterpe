@@ -113,7 +113,7 @@ export function installHandle(vm) {
         agentMessages(since = 0) {
             return messages.slice(Math.max(0, since - dropped));
         },
-        /** The agent's audio output: frames played and underruns so far (null if audioOut is off). */
+        /** The agent's audio output: frames played, underruns, the peak level of the last 0.5 s (null if off). */
         get audioOut() {
             return vm.audioOutNode ? {...vm.audioOutStats} : null;
         },

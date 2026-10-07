@@ -356,8 +356,12 @@ export default {
             },
         });
         if (audioOut) {
-            vm.startAudioOut(audioOut).catch((error) =>
-                console.error('[euterpe] could not start the agent\'s audio output', error));
+            vm.startAudioOut(audioOut).catch((error) => {
+                // e.g. a Content-Security-Policy that blocks the worklet: tell the agent, and the user
+                console.error('[euterpe] could not start the agent\'s audio output', error);
+                vm.agent.postMessage({control: 'audioOutUnavailable'});
+                vm.$toasted.show('The agent\'s audio output could not start (see the console)');
+            });
         }
 
         if (vm.showMonitor) {
@@ -687,9 +691,9 @@ export default {
             }
 
             // If the clock is running, send the note to the piano roll
-            if (vm.$store.getters.getClockStatus) {
-                // If eventBased mode, send an NOTE_EVENT MICP packet to the agent
-                // this packet will be sent to the processUserNoteEvent hook.
+            // In eventBased mode, send a NOTE_EVENT MICP packet to the agent (its processNoteEvent hook): while the
+            // clock runs, or always if the agent doesn't use the grid (free time, e.g. an instrument)
+            if (vm.$store.getters.getClockStatus || !vm.config.noteModeSettings.gridBased.status) {
                 if (vm.config.noteModeSettings.eventBased.status) {
                     vm.agent.postMessage({
                         hookType: vm.agentHookType.NOTE_EVENT,
@@ -1471,6 +1475,8 @@ export default {
         */
         entryProgram() {
             const vm = this;
+            // the start button is the user gesture that lets the page play audio (autoplay policy)
+            vm.audioContext.resume().catch((error) => console.error('[euterpe] could not resume audio', error));
             vm.audioOutNode?.port.postMessage({play: true});
             vm.$refs.mainLoadingScreen.classList.add('fade-out');
             vm.$refs.mainLoadingScreen.style.display = 'none';
@@ -1491,7 +1497,11 @@ export default {
             const vm = this;
             const url = URL.createObjectURL(new Blob([playerWorkletSource, ringbufClassicSource],
                 {type: 'application/javascript'}));
-            await vm.audioContext.audioWorklet.addModule(url);
+            try {
+                await vm.audioContext.audioWorklet.addModule(url);
+            } finally {
+                URL.revokeObjectURL(url);
+            }
             const node = new AudioWorkletNode(vm.audioContext, 'euterpe-player', {
                 numberOfInputs: 0,
                 numberOfOutputs: 1,
@@ -1505,6 +1515,9 @@ export default {
             if (vm.$refs.mainContent?.style.display === 'block') node.port.postMessage({play: true});
             vm.audioOutStats = {played: 0, underruns: 0, playing: false};
             node.port.onmessage = ({data}) => {
+                if (data.quantum && data.quantum !== vm.audioOutStats.quantum) {
+                    vm.agent.postMessage({control: 'audioOutQuantum', frames: data.quantum});
+                }
                 const before = vm.audioOutStats.underruns;
                 vm.audioOutStats = data;
                 // warn the first time, then every 50th

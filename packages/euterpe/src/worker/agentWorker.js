@@ -6,7 +6,7 @@
 import * as agentModule from 'virtual:euterpe-agent';
 import {AGENT_MARK, HOOK_NAMES} from '../agent.js';
 import {createContext, applyParameter, toMessage, warnOnce} from './context.js';
-import {createAudioOut, startRenderLoop} from './audioOut.js';
+import {createAudioOut, startRenderLoop, disableAudioOut} from './audioOut.js';
 
 // agent/hooks.js exports the hooks either as `export default defineAgent({...})` (the hooks get `ctx` and the
 // runtime reports when the agent is ready) or, as the original agents do, as named functions using self.*
@@ -19,6 +19,8 @@ if (![...HOOK_NAMES, 'loadExternalFiles'].some((name) => typeof agent[name] === 
 }
 // the ctx passed to defineAgent hooks (created with the config)
 let ctx = null;
+// the renderAudio loop's interval, if running
+let renderLoop = null;
 // widget changes made while loadAlgorithm runs, for updateParameter once it has finished
 const pendingChanges = [];
 const missing = (name) => () => console.warn(`agent/hooks.js does not define ${name}()`);
@@ -142,6 +144,18 @@ function _readFromQueue() {
 }
 
 /**
+ * Calls a defineAgent agent's updateParameter; what it returns (notes, text, audio) is sent like any hook's.
+ * @param {Object} change
+ * @return {Promise<void>}
+ */
+function runUpdateParameter(change) {
+    return Promise.resolve(updateParameter(change, ctx)).then((output) => {
+        const message = toMessage(output, 'updateParameter', ctx);
+        if (message && Object.keys(message).length) postMessage({hookType: self.agentHookType.NOTE_EVENT, message});
+    }).catch((error) => console.error('updateParameter failed', error));
+}
+
+/**
  * This function is called regularily to check if there are any
  * new parameters from the UI.
  */
@@ -154,7 +168,7 @@ function _uiParameterObserver() {
             // ctx.params has the new value already; the hook runs once loadAlgorithm has finished
             pendingChanges.push(change);
         } else if (defined) {
-            Promise.resolve(updateParameter(change, ctx)).catch((error) => console.error('updateParameter failed', error));
+            runUpdateParameter(change);
         } else {
             updateParameter(newParameterUI);
         }
@@ -276,6 +290,15 @@ function initAudio(content) {
  * @param {Object} obj
  */
 async function onMessageFunction(obj) {
+    // control messages from the page (not hooks)
+    if (obj.data?.control === 'audioOutUnavailable') {
+        disableAudioOut(ctx?.audioOut ?? null, renderLoop);
+        return;
+    }
+    if (obj.data?.control === 'audioOutQuantum') {
+        if (ctx?.audioOut) ctx.audioOut.quantum = obj.data.frames;
+        return;
+    }
     if (self.config == null) {
         await initAgent(obj.data.content);
         // make sure that the config is loaded
@@ -389,12 +412,10 @@ async function loadDefinedAgent() {
     try {
         if (typeof agent.loadAlgorithm === 'function') await agent.loadAlgorithm(ctx);
         ctx._loading = false;
-        for (const change of pendingChanges.splice(0)) {
-            await Promise.resolve(updateParameter(change, ctx)).catch((error) => console.error('updateParameter failed', error));
-        }
+        for (const change of pendingChanges.splice(0)) await runUpdateParameter(change);
         if (typeof agent.renderAudio === 'function') {
             if (ctx.audioOut) {
-                startRenderLoop(agent.renderAudio, ctx, (error) => console.error('renderAudio failed', error));
+                renderLoop = startRenderLoop(agent.renderAudio, ctx, (error) => console.error('renderAudio failed', error));
             } else {
                 warnOnce('agent/hooks.js defines renderAudio, but config.yaml has no interactionMode.audioOut: true');
             }

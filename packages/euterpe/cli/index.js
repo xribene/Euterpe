@@ -77,8 +77,13 @@ async function smokeCommand() {
         console.log(`  ${mark(report.started && report.ticksPerSecond > 0)} UI started, clock at ${report.ticksPerSecond} ticks/s`);
         if (report.params) console.log(`  ${dim(`widgets: ${JSON.stringify(report.params)}`)}`);
         const answered = report.agentNoteOns.length > 0;
-        console.log(answered ?
-            `  ${mark(true)} agent answered the phrase ${report.phrase.join(' ')} with ${report.agentNoteOns.join(' ')} (${report.agentNoteOffs} note-offs)` :
+        if (report.audioOut) {
+            const a = report.audioOut;
+            console.log(`  ${mark(a.underruns === 0)} audio output: ${a.played} frames played, peak ${a.peakDuringPhrase} during the phrase, ${a.underruns} underruns`);
+        }
+        console.log(answered || (report.audioOut?.peakDuringPhrase ?? 0) > 0.01 ?
+            `  ${mark(true)} agent answered the phrase ${report.phrase.join(' ')}` + (answered ?
+                ` with ${report.agentNoteOns.join(' ')} (${report.agentNoteOffs} note-offs)` : ' with audio') :
             `  ${options.expectAnswer ? mark(false) : yellow('-')} agent played nothing in answer to the phrase`);
         console.log(`  ${mark(report.failedRequests.length === 0)} ${report.samplesLoaded} samples loaded, ${report.failedRequests.length} failed requests`);
         for (const f of report.failedRequests) console.log(`      ${f}`);

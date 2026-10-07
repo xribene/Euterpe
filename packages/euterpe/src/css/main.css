@@ -13,25 +13,21 @@
 }
 
 @-webkit-keyframes fade-in {
+    /* opacity only: animating display / visibility made the start button unclickable during the fade */
     0% {
-        display: none;
         opacity: 0;
-        visibility: hidden;
     }
     100% {
-        display: flex;
         opacity: 1;
     }
 }
 
 @keyframes fade-in {
+    /* opacity only: animating display / visibility made the start button unclickable during the fade */
     0% {
-        display: none;
         opacity: 0;
-        visibility: hidden;
     }
     100% {
-        display: flex;
         opacity: 1;
     }
 }
