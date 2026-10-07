@@ -189,6 +189,22 @@ importers:
         specifier: ^5.0.10
         version: 5.0.10(@types/node@20.10.4)(terser@5.26.0)
 
+  apps/mrt2:
+    dependencies:
+      euterpe:
+        specifier: workspace:*
+        version: link:../../packages/euterpe
+      onnxruntime-web:
+        specifier: 1.30.0
+        version: 1.30.0
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vite:
+        specifier: ^5.0.10
+        version: 5.0.10(@types/node@20.10.4)(terser@5.26.0)
+
   apps/realchords:
     dependencies:
       euterpe:

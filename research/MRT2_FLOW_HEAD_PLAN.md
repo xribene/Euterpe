@@ -2,6 +2,11 @@
 
 Draft, 2026-10-07. For a single RTX 3090 Ti. Estimates are marked as such; nothing here has been run yet.
 
+**Update (2026-10-07, later): not needed for speed.** The community engine's hand-written WebGPU kernels run a whole
+frame (temporal + 12 depth steps) in 16 ms, 1.57x real time with decoding, so `apps/mrt2` now runs MRT2 live with a
+text prompt and held notes, with no new model. The curve control (step 7) is dropped for now. This plan stays as an
+option if the depth stage ever becomes the limit again (e.g. slower GPUs).
+
 ## Why
 
 In Euterpe's agent worker (WebGPU, `apps/mrt2/README.md`) MRT2-small generates at 0.74-0.84x real time. Per 40 ms frame:
