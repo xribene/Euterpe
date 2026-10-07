@@ -96,9 +96,11 @@ async function main() {
         if (!template && interactive) {
             console.log('\nTemplates:');
             available.forEach((name, i) => console.log(`  ${i + 1}. ${name.padEnd(15)}${TEMPLATE_INFO[name] ?? ''}`));
-            const answer = (await rl.question(`Template (1-${available.length}, default 1): `)).trim();
-            template = available[(Number(answer) || 1) - 1] ?? available.find((name) => name === answer);
-            if (!template) fail(`no template "${answer}"`);
+            const answer = (await rl.question(`Template (1-${available.length} or a name, default 1): `)).trim();
+            if (answer === '') template = available[0];
+            else if (/^\d+$/.test(answer)) template = available[Number(answer) - 1];
+            else template = available.find((name) => name === answer.toLowerCase());
+            if (!template) fail(`no template "${answer}" (templates: ${available.join(', ')})`);
         }
         template ??= 'empty';
 

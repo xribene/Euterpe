@@ -57,3 +57,21 @@ Found while packaging Euterpe (branch `npm-package`). Newest first within each s
 | P2 | The copyright line names Yongyi Zang, whose agreement to MIT is still needed. | `LICENSE` | Ask Yongyi before publishing | open, blocks publish |
 | P3 | The same dev fixes (permissions / play button / MIDI init) exist on `dev` and on `primed-anticipation` under different hashes, so merging those branches later will conflict on `Euterpe.vue`. | `git cherry-pick` of 811a40e conflicted, though the content was already there | Retire `dev` once `npm-package` lands | open |
 | P4 | Netlify builds bachduet.com from the repo root of the `bachDuet` branch. On the new layout the site's base directory is `apps/bachduet` (its `netlify.toml` pins Node 21.1.0). | `apps/bachduet/netlify.toml` | Change the Netlify settings only when switching the site over (ask first) | open |
+
+## Review (Codex Astra via pi, 2026-10-06)
+
+`REVIEW_ASTRA_2026-10-06.md`: 11 findings on `717e05e..1725bc9`, all confirmed against the code and fixed:
+
+| # | Finding | Fix | Checked |
+|---|---|---|---|
+| R1 | Static servers (`cli/serve.js`, the samples middleware) allowed sibling-directory traversal (`startsWith` without a boundary) | `path.relative` containment | `/%2e%2e%2fdist-private/secret.txt` → 403 |
+| R2 | `updateParameter` / `processAudioBuffer` could run while `loadAlgorithm` was still loading | widget changes go to `ctx.params` at once and to the hook after loading; audio frames dropped until ready | agent whose `updateParameter` throws before its model exists: no error, 2 changes replayed |
+| R3 | A config without `audioModeSettings` (schema-valid) crashed the worker's setup silently; the page waited forever | defaults (1024 / 1024); any setup error reaches the loading screen | config without the key: ready, no errors |
+| R4 | Copycat: changing Delay while a note sounded could release it before it started | the note-off uses its note-on's delay | note-on tick 8, Delay → 1, note-off still tick 8 |
+| R5 | ReaLchords: switching models released the chord before its queued notes started (stuck chord) | old model stopped at once, its chord released on the next tick, after its queued notes | rapid switches: only the current chord sounding at the end |
+| R6 | ReaLchords: an older model load could replace a newer selection | selection counter: only the latest installs | ReaLchords → GAPT in 150 ms: GAPT active |
+| R7 | Call-response treated a held note as silence | answers only with no note held | 3 s held: no answer; answer after release |
+| R8 | `euterpe smoke --build` ignored a non-root `base` | the static server mounts the build at `base` | served at `/music/` |
+| R9 | A malformed URL (`/%`) crashed the static server | 400; stream errors handled | `/%` → 400, server still up |
+| R10 | Types promised `userNotes` / `userQuantizedNotes` arrays that were absent when disabled | always arrays for defineAgent hooks (empty when disabled) | `quantizedEvents: false`: hook reads `.length`, 0 |
+| R11 | `create-euterpe`: typing a template name at the prompt silently picked `empty` | empty answer, number and name handled; anything else rejected | `copycat` → copycat, `9` / `violin` → error |

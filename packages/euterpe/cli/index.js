@@ -50,7 +50,7 @@ async function smokeCommand() {
             await vite.build({root: process.cwd(), logLevel: 'warn'});
             const config = await vite.resolveConfig({root: process.cwd()}, 'build');
             const {serveStatic} = await import('./serve.js');
-            const server = await serveStatic(path.resolve(config.root, config.build.outDir));
+            const server = await serveStatic(path.resolve(config.root, config.build.outDir), 0, config.base);
             url = server.url;
             stop = server.close;
         } else {

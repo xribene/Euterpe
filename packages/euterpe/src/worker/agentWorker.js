@@ -19,6 +19,8 @@ if (!['loadAlgorithm', 'loadExternalFiles', 'processClockEvent', 'processNoteEve
 }
 // the ctx passed to defineAgent hooks (created with the config)
 let ctx = null;
+// widget changes made while loadAlgorithm runs, for updateParameter once it has finished
+const pendingChanges = [];
 const missing = (name) => () => console.warn(`agent/hooks.js does not define ${name}()`);
 const hook = (name, fallback) => (typeof agent[name] === 'function' ? agent[name] : fallback ?? missing(name));
 const loadExternalFiles = hook('loadExternalFiles', () => undefined);
@@ -122,10 +124,13 @@ function _readFromQueue() {
             sampleCounter = self.windowSize - self.hopSize;
 
             if (defined) {
-                Promise.resolve(processAudioBuffer(channels, ctx)).then((output) => {
-                    const message = toMessage(output, 'processAudioBuffer', ctx);
-                    if (message) postMessage({hookType: self.agentHookType.NOTE_EVENT, message});
-                }).catch((error) => console.error('processAudioBuffer failed', error));
+                // frames that arrive while loadAlgorithm runs are dropped: the agent isn't ready for them
+                if (!ctx._loading) {
+                    Promise.resolve(processAudioBuffer(channels, ctx)).then((output) => {
+                        const message = toMessage(output, 'processAudioBuffer', ctx);
+                        if (message) postMessage({hookType: self.agentHookType.NOTE_EVENT, message});
+                    }).catch((error) => console.error('processAudioBuffer failed', error));
+                }
             } else {
                 processAudioBuffer(channels);
             }
@@ -145,7 +150,10 @@ function _uiParameterObserver() {
     if (self.param_reader.dequeue_change(newParameterUI)) {
         console.debug('param index: ' + newParameterUI.index + ' value: ' + newParameterUI.value);
         const change = applyParameter(ctx, newParameterUI);
-        if (defined) {
+        if (defined && ctx._loading) {
+            // ctx.params has the new value already; the hook runs once loadAlgorithm has finished
+            pendingChanges.push(change);
+        } else if (defined) {
             Promise.resolve(updateParameter(change, ctx)).catch((error) => console.error('updateParameter failed', error));
         } else {
             updateParameter(newParameterUI);
@@ -211,10 +219,12 @@ function initAudio(content) {
     ctx.audio = {sampleRate: self.sampleRate, channelCount: self.channelCount};
 
     // The frame/window size
-    self.windowSize = self.config.audioModeSettings.windowSize * self.channelCount;
+    // (audioModeSettings is optional: 1024 / 1024 by default)
+    const audioSettings = {windowSize: 1024, hopSize: 1024, ...self.config.audioModeSettings};
+    self.windowSize = audioSettings.windowSize * self.channelCount;
 
     // The hop size
-    self.hopSize = self.config.audioModeSettings.hopSize * self.channelCount;
+    self.hopSize = audioSettings.hopSize * self.channelCount;
 
     // Audio Frames per clock tick
     framesPerTick = self.sampleRate * self.channelCount * 60 /
@@ -281,6 +291,11 @@ async function onMessageFunction(obj) {
             // The NoteEvents we receive from the UI are serialized
             // We need to deserialize them
             const content = obj.data.content;
+            if (defined) {
+                // empty unless gridBased.eventBuffer / quantizedEvents are on (config.yaml)
+                content.userNotes ??= [];
+                content.userQuantizedNotes ??= [];
+            }
             if (content.userNotes) {
                 content.userNotes =
                             content.userNotes.map(
@@ -351,6 +366,13 @@ async function initAgent(content) {
         console.debug('Initialization complete');
     } catch (error) {
         console.error('Error initializing worker:', error);
+        postMessage({
+            hookType: self.agentHookType?.INIT_AGENT ?? 2,
+            message: {
+                [self.messageType?.STATUS ?? 0]: self.statusType?.ERROR ?? 3,
+                [self.messageType?.TEXT ?? 13]: `Euterpe could not start the agent: ${error?.message ?? error}`,
+            },
+        });
     }
 }
 
@@ -361,6 +383,9 @@ async function loadDefinedAgent() {
     try {
         if (typeof agent.loadAlgorithm === 'function') await agent.loadAlgorithm(ctx);
         ctx._loading = false;
+        for (const change of pendingChanges.splice(0)) {
+            await Promise.resolve(updateParameter(change, ctx)).catch((error) => console.error('updateParameter failed', error));
+        }
         postMessage({
             hookType: self.agentHookType.INIT_AGENT,
             message: {

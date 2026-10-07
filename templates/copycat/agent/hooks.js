@@ -3,7 +3,8 @@
 // away (plus up to `Randomness` random semitones). Grid mode: Euterpe calls processClockEvent on every 16th.
 import {defineAgent, clamp} from 'euterpe/agent';
 
-// the note the agent is sounding (MIDI), or null
+// the note the agent is sounding, and the delay it was started with (its note-off must use the same one,
+// or a Delay change could release it before it starts), or null
 let sounding = null;
 
 export default defineAgent({
@@ -16,12 +17,13 @@ export default defineAgent({
         const notes = [];
         // the user released their note or played a new one: release ours
         if (sounding !== null && (onset || !held)) {
-            notes.push(ctx.noteOff(sounding, {tick: delay}));
+            notes.push(ctx.noteOff(sounding.midi, {tick: sounding.delay}));
             sounding = null;
         }
         if (onset) {
-            sounding = clamp(onset.midi + pitchShift + Math.floor(Math.random() * randomness), 21, 108);
-            notes.push(ctx.noteOn(sounding, {tick: delay, velocity: onset.velocity}));
+            const midi = clamp(onset.midi + pitchShift + Math.floor(Math.random() * randomness), 21, 108);
+            sounding = {midi, delay};
+            notes.push(ctx.noteOn(midi, {tick: delay, velocity: onset.velocity}));
         }
         return notes;
     },

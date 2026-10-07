@@ -103,9 +103,9 @@ export interface ClockEvent {
     globalTick: number;
     /** The bar restarts at this tick (a button with resetsClock was pressed): reset the agent's state. */
     barReset: boolean;
-    /** The user's notes on this tick, aligned to the grid (config.yaml gridBased.quantizedEvents: true). */
+    /** The user's notes on this tick, aligned to the grid; empty unless config.yaml gridBased.quantizedEvents is true. */
     userQuantizedNotes: NoteEvent[];
-    /** Every user note since the last tick (config.yaml gridBased.eventBuffer: true). */
+    /** Every user note since the last tick; empty unless config.yaml gridBased.eventBuffer is true. */
     userNotes: NoteEvent[];
 }
 

@@ -162,14 +162,21 @@ export default function euterpe(options = {}) {
             if (options.samplesBaseUrl) return;
             const prefix = state.base + SAMPLES_PATH;
             server.middlewares.use((req, res, next) => {
-                const url = decodeURIComponent((req.url ?? '').split('?')[0]);
+                let url;
+                try {
+                    url = decodeURIComponent((req.url ?? '').split('?')[0]);
+                } catch {
+                    return next();
+                }
                 if (!url.startsWith(prefix)) return next();
                 const file = path.join(SAMPLES_DIR, url.slice(prefix.length));
-                if (!file.startsWith(SAMPLES_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+                // inside SAMPLES_DIR (not a sibling folder whose name starts the same)
+                const rel = path.relative(SAMPLES_DIR, file);
+                if (!rel || rel.startsWith('..') || path.isAbsolute(rel) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
                     return next();
                 }
                 res.setHeader('Content-Type', CONTENT_TYPES[path.extname(file)] ?? 'application/octet-stream');
-                fs.createReadStream(file).pipe(res);
+                fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
             });
         },
         configurePreviewServer(server) {
