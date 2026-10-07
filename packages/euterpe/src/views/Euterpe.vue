@@ -40,6 +40,7 @@ import {installHandle} from '../utils/handle.js';
 import {config as agentConfig, introMarkdown} from 'virtual:euterpe-config';
 import recorderWorkletSource from '../worker/recorder-worklet.js?raw';
 import playerWorkletSource from '../worker/player-worklet.js?raw';
+import {outputCapacity} from '../worker/audioOut.js';
 import ringbufClassicSource from '../worker/ringbuf-classic.js?raw';
 
 // the max BPM shown in Settings is estimated from the agent's inference times of the last 400 ticks
@@ -327,9 +328,8 @@ export default {
             outputLatency: (vm.audioContext.baseLatency ?? 0) + (vm.audioContext.outputLatency ?? 0),
         } : null;
         if (audioOut) {
-            const seconds = Math.max(1, 4 * audioOut.latency);
             vm.sabAudioOut = rb.RingBuffer.getStorageForCapacity(
-                Math.ceil(vm.audioContext.sampleRate * seconds) * audioOut.channels, Float32Array);
+                outputCapacity(audioOut, vm.audioContext.sampleRate) * audioOut.channels, Float32Array);
         }
 
         // Send a message to agent with some necessary
@@ -451,6 +451,9 @@ export default {
                     // the audio clock time of the first recorded sample -> the page clock, for frame.time
                     // (the audio thread's clock against performance.now() now: when the audio thread processed it;
                     // not getOutputTimestamp(), which is about what the speakers play, an output latency later)
+                    if (typeof event.data?.dropped === 'number') {
+                        vm.agent.postMessage({control: 'audioInGap', frames: event.data.dropped});
+                    }
                     if (typeof event.data?.start === 'number') {
                         const ms = performance.now() - (vm.audioContext.currentTime - event.data.start) * 1000;
                         vm.agent.postMessage({control: 'audioInStart', time: ms / 1000});
@@ -714,8 +717,10 @@ export default {
 
             // If the clock is running, send the note to the piano roll
             // In eventBased mode, send a NOTE_EVENT MICP packet to the agent (its processNoteEvent hook): while the
-            // clock runs, or always if the agent doesn't use the grid (free time, e.g. an instrument)
-            if (vm.$store.getters.getClockStatus || !vm.config.noteModeSettings.gridBased.status) {
+            // clock runs, or, if the agent doesn't use the grid (free time, e.g. an instrument), once the user has
+            // pressed the start button
+            const entered = vm.$refs.mainContent?.style.display === 'block';
+            if (vm.$store.getters.getClockStatus || (!vm.config.noteModeSettings.gridBased.status && entered)) {
                 if (vm.config.noteModeSettings.eventBased.status) {
                     vm.agent.postMessage({
                         hookType: vm.agentHookType.NOTE_EVENT,

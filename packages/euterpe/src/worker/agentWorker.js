@@ -103,10 +103,14 @@ self.userToAgentNoteMapping = {};
  * @return {number} The samples read.
  */
 function _readFromQueue() {
+    // at most what is queued now: a hook slower than real time must not keep the worker from its other work
+    // (notes, widgets, the audio output); the backlog is read on the next calls
+    let budget = _audioReader.available_read();
     let total = 0;
-    for (;;) {
-        const samplesRead = _audioReader.dequeue(staging);
+    while (budget > 0) {
+        const samplesRead = _audioReader.dequeue(staging.subarray(0, Math.min(staging.length, budget)));
         if (!samplesRead) break;
+        budget -= samplesRead;
         total += samplesRead;
         for (const {planes, start} of framer.push(staging.subarray(0, samplesRead))) {
             const frame = planes;
@@ -214,13 +218,15 @@ function initAudio(content) {
     // the page's audio: interleaved, channelCount channels at the page's (AudioContext's) sample rate
     self.channelCount = content.channelCount;
     self.sampleRate = content.sampleRate;
-    const settings = {windowSize: 1024, hopSize: 1024, ...self.config.audioModeSettings};
+    const settings = {windowSize: 1024, ...self.config.audioModeSettings};
+    // the hop defaults to the window (no overlap) and can't exceed it
+    settings.hopSize = Math.min(settings.hopSize ?? settings.windowSize, settings.windowSize);
     // the agent's frames: at audioModeSettings.sampleRate (resampled) or the page's rate
     const sampleRate = settings.sampleRate ?? self.sampleRate;
     ctx.audio = {sampleRate, channelCount: self.channelCount, windowSize: settings.windowSize,
         hopSize: settings.hopSize, pageSampleRate: self.sampleRate};
     framer = createFramer({channels: self.channelCount, inRate: self.sampleRate, outRate: sampleRate,
-        windowSize: settings.windowSize, hopSize: Math.min(settings.hopSize, settings.windowSize)});
+        windowSize: settings.windowSize, hopSize: settings.hopSize});
 
     // (for agents written the original way: sizes in interleaved samples, and the frame queues)
     self.windowSize = settings.windowSize * self.channelCount;
@@ -247,6 +253,12 @@ async function onMessageFunction(obj) {
     }
     if (obj.data?.control === 'audioInStart') {
         audioInStart = obj.data.time;
+        return;
+    }
+    if (obj.data?.control === 'audioInGap') {
+        framer?.gap(obj.data.frames);
+        warnOnce('the microphone input fell behind and some audio was dropped (processAudioBuffer slower than ' +
+            'real time?); frame.start / frame.time skip the gap');
         return;
     }
     if (obj.data?.control === 'audioOutQuantum') {
@@ -305,6 +317,8 @@ async function onMessageFunction(obj) {
             // The NoteEvents we receive from the UI are serialized
             // We need to deserialize them
             const noteEvent = NoteEvent.fromPlain(obj.data.content);
+            // a defineAgent agent still loading isn't ready for notes: they are dropped
+            if (defined && ctx._loading) return;
             noteQueue = noteQueue.then(async () => {
                 const message = defined ?
                     toMessage(await processNoteEvent(noteEvent, ctx), 'processNoteEvent', ctx) :

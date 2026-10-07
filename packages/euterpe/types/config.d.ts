@@ -57,11 +57,11 @@ export interface ConfigYaml {
   };
   audioModeSettings?: {
     /**
-     * Samples per frame passed to processAudioBuffer (at audioModeSettings.sampleRate).
+     * Samples per frame passed to processAudioBuffer (at audioModeSettings.sampleRate). Default 1024.
      */
     windowSize?: number;
     /**
-     * Samples between consecutive frames (at most windowSize).
+     * Samples between consecutive frames: at most windowSize; default windowSize (no overlap).
      */
     hopSize?: number;
     /**

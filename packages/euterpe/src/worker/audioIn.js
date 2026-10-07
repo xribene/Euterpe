@@ -10,8 +10,9 @@ import {Resampler} from './resampler.js';
  * @return {{push: (interleaved: Float32Array) => Array<{planes: Float32Array[], start: number}>, delay: number}}
  */
 export function createFramer({channels, inRate, outRate, windowSize, hopSize}) {
-    const resamplers = inRate === outRate ? null :
-        Array.from({length: channels}, () => new Resampler(inRate, outRate));
+    const makeResamplers = () => (inRate === outRate ? null :
+        Array.from({length: channels}, () => new Resampler(inRate, outRate)));
+    let resamplers = makeResamplers();
     // per channel: the samples not yet consumed by a frame (fifo[c].subarray(0, filled))
     const fifo = Array.from({length: channels}, () => new Float32Array(Math.max(windowSize * 2, 4096)));
     let filled = 0;
@@ -33,6 +34,16 @@ export function createFramer({channels, inRate, outRate, windowSize, hopSize}) {
     return {
         /** The resampler's delay in seconds (0 without resampling). */
         delay: resamplers ? resamplers[0].delay : 0,
+        /**
+         * The recorder dropped `frames` input samples (per channel; its queue was full): the timeline skips them,
+         * and the partial window and the resampler's history (from before the gap) are discarded.
+         * @param {number} frames
+         */
+        gap(frames) {
+            consumed += filled + Math.round(frames * outRate / inRate);
+            filled = 0;
+            resamplers = makeResamplers();
+        },
         push(interleaved) {
             const n = Math.floor(interleaved.length / channels);
             let planes = Array.from({length: channels}, () => new Float32Array(n));

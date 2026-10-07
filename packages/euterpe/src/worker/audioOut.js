@@ -8,6 +8,19 @@ import {AudioWriter, RingBuffer} from 'ringbuf.js';
 import {Resampler} from './resampler.js';
 
 /**
+ * The output ring buffer's size in page frames: max(1 s, 4 x latency, 3 fixed blocks) of audio, plus room for
+ * the resampler's history. (The page allocates it; here so the tests share it.)
+ * @param {{latency: number, blockSize?: number|null, sampleRate?: number|null}} settings - The agent's.
+ * @param {number} pageSampleRate
+ * @return {number}
+ */
+export function outputCapacity({latency, blockSize = null, sampleRate = null}, pageSampleRate) {
+    const agentRate = sampleRate ?? pageSampleRate;
+    const seconds = Math.max(1, 4 * latency, 3 * (blockSize ?? 0) / agentRate);
+    return Math.ceil(pageSampleRate * seconds) + 1024;
+}
+
+/**
  * @param {SharedArrayBuffer} sab - The ring buffer's storage (from the page).
  * @param {{channels: number, latency: number, sampleRate: number, pageSampleRate: number,
  *     blockSize?: number|null, outputLatency?: number}} options - sampleRate: the agent's; pageSampleRate: the
@@ -45,10 +58,11 @@ export function createAudioOut(sab, {channels, latency, sampleRate, pageSampleRa
         buffered: () => Math.floor(pageFramesQueued() / ratio),
         /**
          * When audio written now will be heard, in seconds on the page's clock (ctx.now()): after what is
-         * queued, plus the device's output latency.
+         * queued, the resampler's delay (if any) and the device's output latency.
          * @return {number}
          */
-        playTime: () => now() + pageFramesQueued() / pageSampleRate + outputLatency,
+        playTime: () => now() + pageFramesQueued() / pageSampleRate + (resamplers ? resamplers[0].delay : 0) +
+            outputLatency,
         /**
          * Queues audio for playback, after what is already queued.
          * @param {Float32Array|Float32Array[]} data - One Float32Array per channel (a single Float32Array is
@@ -114,13 +128,18 @@ export function startRenderLoop(renderAudio, ctx, onError) {
             // reported by the page), in whole blocks; at most 4096 frames (or one fixed block) at a time
             const quantum = Math.ceil((out.quantum ?? 128) * out.sampleRate / out.pageSampleRate);
             const target = Math.max(2 * BLOCK, 2 * quantum, Math.ceil(out.latency * out.sampleRate / BLOCK) * BLOCK);
-            const missing = target - out.buffered();
-            const room = out.space() - out.space() % BLOCK;
-            const frames = out.blockSize ? (room >= BLOCK ? BLOCK : 0) :
-                Math.min(Math.ceil(missing / BLOCK) * BLOCK, room, 4096);
-            if (missing > 0 && frames > 0) {
+            // render until the target is reached (several calls if needed, e.g. small fixed blocks), but give
+            // the worker back after ~4 ms so notes and widgets aren't held up
+            const started = performance.now();
+            for (;;) {
+                const missing = target - out.buffered();
+                const room = out.space() - out.space() % BLOCK;
+                const frames = out.blockSize ? (room >= BLOCK ? BLOCK : 0) :
+                    Math.min(Math.ceil(missing / BLOCK) * BLOCK, room, 4096);
+                if (missing <= 0 || frames <= 0) break;
                 const audio = await renderAudio(frames, ctx);
-                if (audio) out.write(audio);
+                if (!audio || out.write(audio) === 0) break;
+                if (performance.now() - started > 4) break;
             }
         } catch (error) {
             onError(error);

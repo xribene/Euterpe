@@ -96,3 +96,18 @@ Found while packaging Euterpe (branch `npm-package`). Newest first within each s
 | A4 | Planes beyond `channels` truncated the output | only the planes played set the length; different lengths warn separately from a full queue | unit test |
 | A5 | Rounding could deadlock producer and player at some sample rates / quanta | target in whole 128-frame blocks, at least two, and at least two of the player's reported quanta; requests rounded up | unit test (latency 0.01 s, quantum 512) |
 | A6 | `{audio}` "from any hook" wasn't true for `updateParameter` | its return value is processed like the others; docs list the hooks | button → notes from `updateParameter` |
+
+## Review of the audio input/output (Codex Astra via pi, 2026-10-06)
+
+`REVIEW_ASTRA_AUDIO_IO_2026-10-06.md`: 8 findings on cee95f5..26589c5, all confirmed and fixed:
+
+| # | Finding | Fix | Checked |
+|---|---|---|---|
+| I1 | Draining the microphone queue until empty could starve the worker if processAudioBuffer is slower than real time | each read takes at most what was queued when it started | code path |
+| I2 | Small fixed output blocks (128 at 48 kHz) could not keep up: one block per 5 ms | each fill renders blocks until the target, within a ~4 ms budget | unit: 0.1 s filled within 20 ms |
+| I3 | A large block (16384 at 16 kHz) could not fit the ring buffer, so renderAudio was never called | capacity `outputCapacity()`: max(1 s, 4 x latency, 3 blocks) + resampler room, shared by page and tests | unit: called with 16384 |
+| I4 | Free-time agents could get notes before loadAlgorithm finished (a side effect of F21) | notes sent only after the start button; the worker drops notes while a defineAgent agent loads | synth: key before start silent, after start sounds |
+| I5 | Audio dropped by a full input queue shifted every later timestamp | the recorder reports dropped samples; the framer skips the gap (timeline advanced, window and resampler restarted); a warning | unit: frame after a 1000-sample gap starts at 1600 |
+| I6 | `windowSize` alone left the default hop (1024) larger than the window, and ctx.audio reported a hop not used | hop defaults to the window; ctx.audio reports the hop used; validation uses the same defaults | code path |
+| I7 | `playTime()` left out the output resampler's delay | included | code path |
+| I8 | The resampler's reported delay was one input sample short | `(halfTaps + 1) / inRate` | unit: impulse lands where delay says (3 rate pairs) |

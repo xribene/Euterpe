@@ -44,7 +44,11 @@ class RecorderWorklet extends AudioWorkletProcessor {
             this.interleaved[2 * i] = left[i];
             this.interleaved[2 * i + 1] = right[i];
         }
-        this._audio_writer.enqueue(this.interleaved);
+        const written = this._audio_writer.enqueue(this.interleaved);
+        if (written < this.interleaved.length) {
+            // the queue was full (the worker fell behind): report the samples lost, for the timestamps
+            this.port.postMessage({dropped: (this.interleaved.length - written) / 2});
+        }
         return true;
     }
 }

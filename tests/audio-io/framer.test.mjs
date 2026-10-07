@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {RingBuffer} from 'ringbuf.js';
 import {createFramer} from '../../packages/euterpe/src/worker/audioIn.js';
-import {createAudioOut, startRenderLoop} from '../../packages/euterpe/src/worker/audioOut.js';
+import {createAudioOut, startRenderLoop, outputCapacity} from '../../packages/euterpe/src/worker/audioOut.js';
 
 const ok = (name) => console.log(`ok  ${name}`);
 // interleaved stereo: left = sample index, right = -index
@@ -79,5 +79,43 @@ const make = (opts) => createAudioOut(RingBuffer.getStorageForCapacity(48000 * 2
     assert.deepEqual([...sizes], [2048]);
     assert.ok(out.buffered() >= 2 * 2048, `buffered ${out.buffered()}`);
     ok(`blockSize 2048: renderAudio always asked for exactly 2048 frames; ${out.buffered()} queued (at least two blocks)`);
+}
+{
+    const framer = createFramer({channels: 2, inRate: 48000, outRate: 48000, windowSize: 256, hopSize: 256});
+    const before = framer.push(ramp(0, 600)); // frames at 0, 256; 88 samples left over
+    framer.gap(1000); // the recorder dropped 1000 samples
+    const after = framer.push(ramp(1600, 600));
+    assert.deepEqual(before.map((f) => f.start), [0, 256]);
+    assert.equal(after[0].start, 600 + 1000); // the leftover 88 and the 1000 dropped are skipped
+    assert.equal(after[0].planes[0][0], 1600);
+    ok(`a gap of 1000 samples: the next frame starts at ${after[0].start}, with the first sample after the gap`);
+}
+{
+    // small fixed blocks: one fill renders as many as the target needs (it used to be one per 5 ms)
+    const out = createAudioOut(RingBuffer.getStorageForCapacity(outputCapacity({latency: 0.1, blockSize: 128}, 48000) * 2, Float32Array),
+        {channels: 2, latency: 0.1, sampleRate: 48000, pageSampleRate: 48000, blockSize: 128}, () => {}, () => 0);
+    let calls = 0;
+    const interval = startRenderLoop((frames) => (calls++, new Float32Array(frames)), {audioOut: out, _loading: false}, (e) => {
+        throw e;
+    });
+    await new Promise((r) => setTimeout(r, 20));
+    clearInterval(interval);
+    assert.ok(out.buffered() >= 4800, `buffered ${out.buffered()}`);
+    ok(`blockSize 128 at 48 kHz: the 0.1 s target filled within 20 ms (${calls} calls, ${out.buffered()} frames)`);
+}
+{
+    // a large fixed block fits the ring buffer (it used to be sized from the latency only)
+    const opts = {latency: 0.1, blockSize: 16384, sampleRate: 16000};
+    const out = createAudioOut(RingBuffer.getStorageForCapacity(outputCapacity(opts, 48000) * 2, Float32Array),
+        {channels: 2, pageSampleRate: 48000, ...opts}, () => {}, () => 0);
+    assert.ok(out.space() >= 2 * 16384, `space ${out.space()}`);
+    const sizes = [];
+    const interval = startRenderLoop((frames) => (sizes.push(frames), new Float32Array(frames)), {audioOut: out, _loading: false}, (e) => {
+        throw e;
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    clearInterval(interval);
+    assert.ok(sizes.length >= 2 && sizes.every((n) => n === 16384), `sizes ${sizes}`);
+    ok(`blockSize 16384 at 16 kHz on a 48 kHz page: room for ${out.space() + out.buffered()} frames, renderAudio called with 16384`);
 }
 console.log('all passed');

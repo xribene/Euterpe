@@ -49,4 +49,16 @@ for (const [a, b] of [[48000, 16000], [44100, 22050], [16000, 48000], [48000, 44
     const ms = performance.now() - t0;
     ok(`speed: 10 s of 48 kHz audio resampled in ${ms.toFixed(0)} ms (${(10000 / ms).toFixed(0)}x real time)`);
 }
+for (const [a, b] of [[16000, 48000], [48000, 16000], [44100, 48000]]) {
+    // an impulse at input sample 100 comes out centred at output time 100 / a + delay
+    const x = new Float32Array(a / 10);
+    x[100] = 1;
+    const r = new Resampler(a, b);
+    const y = r.process(x);
+    let k = 0;
+    for (let i = 1; i < y.length; i++) if (Math.abs(y[i]) > Math.abs(y[k])) k = i;
+    const expected = (100 / a + r.delay) * b;
+    assert.ok(Math.abs(k - expected) <= 1, `${a} -> ${b}: impulse at output ${k}, expected ${expected.toFixed(1)}`);
+    ok(`${a} -> ${b}: an impulse comes out where delay says (output ${k}, expected ${expected.toFixed(1)})`);
+}
 console.log('all passed');

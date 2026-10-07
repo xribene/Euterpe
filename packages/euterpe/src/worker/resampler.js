@@ -72,8 +72,11 @@ export class Resampler {
         return out.subarray(0, n);
     }
 
-    /** The resampler's delay, in seconds. */
+    /**
+     * The resampler's delay, in seconds: input sample 0 sits after 2 * halfTaps zeros of history and the first
+     * output is centred at halfTaps - 1, so outputs lag inputs by halfTaps + 1 input samples.
+     */
     get delay() {
-        return this.halfTaps / this.inRate;
+        return (this.halfTaps + 1) / this.inRate;
     }
 }

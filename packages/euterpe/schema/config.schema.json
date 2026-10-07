@@ -92,12 +92,12 @@
         "windowSize": {
           "type": "integer",
           "minimum": 128,
-          "description": "Samples per frame passed to processAudioBuffer (at audioModeSettings.sampleRate)."
+          "description": "Samples per frame passed to processAudioBuffer (at audioModeSettings.sampleRate). Default 1024."
         },
         "hopSize": {
           "type": "integer",
           "minimum": 1,
-          "description": "Samples between consecutive frames (at most windowSize)."
+          "description": "Samples between consecutive frames: at most windowSize; default windowSize (no overlap)."
         },
         "sampleRate": {
           "type": "integer",
