@@ -41,6 +41,8 @@ export function createContext(init) {
         params: initialParams(config),
         // set when the microphone stream starts (audio mode)
         audio: null,
+        // the agent's audio output (interactionMode.audioOut), set by the worker runtime
+        audioOut: null,
         types: {noteType, playerType, instrumentType, messageType, statusType, uiParameterType},
         /** Seconds on the page's clock, the clock of user notes' createdAt.seconds. */
         now: () => (performance.now() + offset) / 1000,
@@ -183,13 +185,18 @@ function checkNotes(notes, hookName, ctx) {
 export function toMessage(output, hookName, ctx) {
     if (output === undefined || output === null) return undefined;
     if (Array.isArray(output)) output = {notes: output};
+    if (output instanceof Float32Array) output = {audio: output};
     if (typeof output !== 'object') {
         warnOnce(`${hookName} returned ${typeof output}; return an array of notes or {notes, text, label, ...}`);
         return undefined;
     }
     const message = {};
     for (const [key, value] of Object.entries(output)) {
-        if (/^\d+$/.test(key)) {
+        if (key === 'audio') {
+            // audio goes to the output ring buffer, not to the UI
+            if (ctx?.audioOut) ctx.audioOut.write(value);
+            else warnOnce(`${hookName} returned audio, but config.yaml has no interactionMode.audioOut: true`);
+        } else if (/^\d+$/.test(key)) {
             message[key] = value;
         } else if (key in MESSAGE_KEYS) {
             message[MESSAGE_KEYS[key]] = value;

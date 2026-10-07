@@ -26,13 +26,14 @@ export default defineAgent({
     processNoteEvent(noteEvent, ctx) {},      // every user note, if eventBased.status: true
     processAudioBuffer(channels, ctx) {},     // every microphone frame, if interactionMode.audioMode: true
     updateParameter({kind, id, value}, ctx) {}, // a Settings widget changed
+    renderAudio(frames, ctx) {},              // audio output, if interactionMode.audioOut: true (see below)
 });
 ```
 
 - Every hook is optional and may be `async`. The hooks run in a Web Worker: no DOM, no `window`.
 - `clock`: `tick` (position in the bar), `globalTick`, `barReset` (the bar restarted), `userQuantizedNotes` (the user's notes on this tick, if `gridBased.quantizedEvents: true`), `userNotes` (raw notes since the last tick, if `gridBased.eventBuffer: true`).
 - A note (`NoteEvent`): `midi`, `type` (`ctx.types.noteType`: `NOTE_ON` 1, `NOTE_OFF` -1, `NOTE_HOLD` 0), `velocity`, `createdAt` (`{tick, seconds}`: when it was played; `seconds` is on the page's clock, the same as `ctx.now()`).
-- Return what the agent plays and shows: an array of notes, or `{notes, text, label, vector, key}`, or nothing.
+- Return what the agent plays and shows: an array of notes, or `{notes, text, label, vector, key, audio}`, or nothing.
 - The time budget of `processClockEvent` is one tick (150 ms at 100 BPM in 16ths). A note scheduled for a tick that has already passed is dropped.
 
 ## ctx
@@ -46,10 +47,25 @@ export default defineAgent({
 | `ctx.send({text})` | Send output outside a hook's return (e.g. loading progress) |
 | `ctx.monitor(id, value)` | Plot a value in the Monitor widget (widgets.yaml `gui.monitor`) |
 | `ctx.audio` | `{sampleRate, channelCount}` once the microphone runs |
+| `ctx.audioOut` | The agent's audio output (see below), or `null` |
 | `ctx.types` | `noteType`, `playerType`, `instrumentType`, `messageType`, `statusType` |
 | `ctx.urlParams` | The page's query parameters |
 
 `euterpe/agent` also exports `NoteEvent`, `clamp`, `clampMidi`, `LIFOQueue`, `FIFOQueue`.
+
+## Audio output
+
+An agent can play audio it generates (synthesis, a neural audio model), besides or instead of notes. In `config.yaml`:
+
+```yaml
+interactionMode:
+  audioOut: true
+audioOutSettings:
+  channels: 2     # 1 (mono, on both speakers) or 2
+  latency: 0.1    # seconds queued ahead of playback: more = fewer dropouts, later sound
+```
+
+Then either let Euterpe ask for audio (`renderAudio(frames, ctx)` is called whenever less than `latency` seconds are queued; return one `Float32Array` per channel, or one for all), or push it yourself (`ctx.audioOut.write(channels)`, or `{audio: channels}` from any hook; `ctx.audioOut.space()` and `.buffered()` say how much fits / is queued). The audio plays through the agent's mixer channel, from the start button on, at `ctx.audioOut.sampleRate`. If the agent doesn't keep up, the output plays silence until `latency / 2` is queued again and the console says `[euterpe] the agent's audio output ran dry`. The sound lags by about `latency`.
 
 ## Commands
 

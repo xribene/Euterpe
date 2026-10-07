@@ -18,6 +18,10 @@ export interface ConfigYaml {
      * The agent gets the microphone: processAudioBuffer is called for every frame.
      */
     audioMode?: boolean;
+    /**
+     * The agent plays audio it generates: ctx.audioOut.write(), the renderAudio hook, or {audio} in a hook's return value.
+     */
+    audioOut?: boolean;
   };
   noteModeSettings: {
     eventBased?: {
@@ -60,6 +64,19 @@ export interface ConfigYaml {
      * Samples between consecutive frames.
      */
     hopSize?: number;
+  };
+  /**
+   * The agent's audio output (interactionMode.audioOut).
+   */
+  audioOutSettings?: {
+    /**
+     * 1: mono (played on both speakers), 2: stereo. Default 2.
+     */
+    channels?: 1 | 2;
+    /**
+     * Seconds of audio kept queued ahead of playback (renderAudio fills up to this). More: fewer dropouts, later sound. Default 0.1.
+     */
+    latency?: number;
   };
   clockSettings: {
     /**
@@ -143,7 +160,7 @@ export interface WidgetsYaml {
     };
     settingsModal?: {
       /**
-       * ctx.params.slider[n]: n is the slider's position (1-based).
+       * ctx.params.slider[id].
        *
        * @maxItems 6
        */
@@ -151,6 +168,9 @@ export interface WidgetsYaml {
         | []
         | [
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -160,6 +180,9 @@ export interface WidgetsYaml {
           ]
         | [
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -167,6 +190,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -176,6 +202,9 @@ export interface WidgetsYaml {
           ]
         | [
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -183,6 +212,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -190,6 +222,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -199,6 +234,9 @@ export interface WidgetsYaml {
           ]
         | [
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -206,6 +244,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -213,6 +254,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -220,6 +264,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -229,6 +276,9 @@ export interface WidgetsYaml {
           ]
         | [
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -236,6 +286,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -243,6 +296,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -250,6 +306,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -257,6 +316,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -266,6 +328,9 @@ export interface WidgetsYaml {
           ]
         | [
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -273,6 +338,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -280,6 +348,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -287,6 +358,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -294,6 +368,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -301,6 +378,9 @@ export interface WidgetsYaml {
               max: number;
             },
             {
+              /**
+               * ctx.params.slider[id] (default: the slider's position).
+               */
               id?: number;
               label: string;
               value: number;
@@ -310,7 +390,7 @@ export interface WidgetsYaml {
           ]
         | null;
       /**
-       * ctx.params.switch[n]: n is the switch's position (1-based).
+       * ctx.params.switch[id].
        *
        * @maxItems 4
        */
@@ -318,6 +398,9 @@ export interface WidgetsYaml {
         | []
         | [
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;
@@ -325,11 +408,17 @@ export interface WidgetsYaml {
           ]
         | [
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;
             },
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;
@@ -337,16 +426,25 @@ export interface WidgetsYaml {
           ]
         | [
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;
             },
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;
             },
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;
@@ -354,21 +452,33 @@ export interface WidgetsYaml {
           ]
         | [
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;
             },
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;
             },
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;
             },
             {
+              /**
+               * ctx.params.switch[id] (default: the switch's position).
+               */
               id?: number;
               label: string;
               status?: boolean;

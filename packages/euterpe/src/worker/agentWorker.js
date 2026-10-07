@@ -4,8 +4,9 @@
  * from virtual:euterpe-agent (the project's agent/hooks.js, see euterpe/vite).
  */
 import * as agentModule from 'virtual:euterpe-agent';
-import {AGENT_MARK} from '../agent.js';
-import {createContext, applyParameter, toMessage} from './context.js';
+import {AGENT_MARK, HOOK_NAMES} from '../agent.js';
+import {createContext, applyParameter, toMessage, warnOnce} from './context.js';
+import {createAudioOut, startRenderLoop} from './audioOut.js';
 
 // agent/hooks.js exports the hooks either as `export default defineAgent({...})` (the hooks get `ctx` and the
 // runtime reports when the agent is ready) or, as the original agents do, as named functions using self.*
@@ -13,8 +14,7 @@ import {createContext, applyParameter, toMessage} from './context.js';
 const hooksModule = agentModule.default;
 const agent = hooksModule.default ?? hooksModule;
 const defined = agent[AGENT_MARK] === true;
-if (!['loadAlgorithm', 'loadExternalFiles', 'processClockEvent', 'processNoteEvent', 'processAudioBuffer',
-    'updateParameter'].some((name) => typeof agent[name] === 'function')) {
+if (![...HOOK_NAMES, 'loadExternalFiles'].some((name) => typeof agent[name] === 'function')) {
     console.warn('[euterpe] agent/hooks.js defines no hooks: expected `export default defineAgent({...})`');
 }
 // the ctx passed to defineAgent hooks (created with the config)
@@ -353,6 +353,12 @@ async function initAgent(content) {
     try {
         loadConfig(content);
         ctx = createContext(content);
+        // the agent's audio output (config.yaml interactionMode.audioOut): ctx.audioOut, self.audioOut
+        if (content.sabAudioOut) {
+            ctx.audioOut = createAudioOut(content.sabAudioOut,
+                {...content.audioOut, sampleRate: content.sampleRate}, warnOnce);
+            self.audioOut = ctx.audioOut;
+        }
         if (defined) {
             initAudio(content);
             initParameterSharing(content);
@@ -385,6 +391,13 @@ async function loadDefinedAgent() {
         ctx._loading = false;
         for (const change of pendingChanges.splice(0)) {
             await Promise.resolve(updateParameter(change, ctx)).catch((error) => console.error('updateParameter failed', error));
+        }
+        if (typeof agent.renderAudio === 'function') {
+            if (ctx.audioOut) {
+                startRenderLoop(agent.renderAudio, ctx, (error) => console.error('renderAudio failed', error));
+            } else {
+                warnOnce('agent/hooks.js defines renderAudio, but config.yaml has no interactionMode.audioOut: true');
+            }
         }
         postMessage({
             hookType: self.agentHookType.INIT_AGENT,

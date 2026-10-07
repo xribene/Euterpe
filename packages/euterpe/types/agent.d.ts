@@ -87,6 +87,8 @@ export type HookOutput = void | null | undefined | Array<NoteEvent | PlainNote> 
     vector?: number[];
     /** The key the agent hears, e.g. 'E♭ major' (used to spell notes in the score). */
     key?: string;
+    /** Audio to play (interactionMode.audioOut): queued after what is already queued, like ctx.audioOut.write. */
+    audio?: Float32Array | Float32Array[];
     /** The agent switched models: the UI restarts its max-BPM estimate. */
     timingReset?: boolean;
     /** A recorded session for the UI to download. */
@@ -107,6 +109,21 @@ export interface ClockEvent {
     userQuantizedNotes: NoteEvent[];
     /** Every user note since the last tick; empty unless config.yaml gridBased.eventBuffer is true. */
     userNotes: NoteEvent[];
+}
+
+/** ctx.audioOut: the agent's audio output, a queue the page plays continuously. */
+export interface AudioOut {
+    sampleRate: number;
+    /** audioOutSettings.channels (1 or 2). */
+    channels: number;
+    /** audioOutSettings.latency: seconds renderAudio keeps queued. */
+    latency: number;
+    /** Queues audio after what is already queued; returns the frames written (fewer if the queue is full). */
+    write(data: Float32Array | Float32Array[]): number;
+    /** Frames that can be written now. */
+    space(): number;
+    /** Frames queued and not played yet. */
+    buffered(): number;
 }
 
 /** The input of updateParameter. */
@@ -141,6 +158,8 @@ export interface Ctx {
     };
     /** Seconds on the page's clock, the clock of user notes' createdAt.seconds. */
     now(): number;
+    /** The agent's audio output (config.yaml interactionMode.audioOut: true), or null. */
+    audioOut: AudioOut | null;
     /** The microphone stream, once it runs (audio mode). */
     audio: {sampleRate: number; channelCount: number} | null;
     types: {
@@ -175,6 +194,11 @@ export interface AgentHooks {
     processAudioBuffer?(channels: Float32Array[], ctx: Ctx): Awaitable<HookOutput>;
     /** A Settings widget changed; ctx.params already holds the new value. */
     updateParameter?(change: ParamChange, ctx: Ctx): Awaitable<void>;
+    /**
+     * Audio output (interactionMode.audioOut): return `frames` frames, one Float32Array per channel (or one for
+     * all). Called whenever less than audioOut.latency seconds are queued, one call at a time.
+     */
+    renderAudio?(frames: number, ctx: Ctx): Awaitable<Float32Array | Float32Array[] | void>;
 }
 
 export declare const AGENT_MARK: unique symbol;

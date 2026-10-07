@@ -29,6 +29,8 @@ export interface EuterpeHandle {
     /** The agent's messages from number `since` on. */
     agentMessages(since?: number): Array<{t: number; hookType: number; message: Record<number, unknown>}>;
     readonly agentMessageCount: number;
+    /** The agent's audio output: frames played and underruns so far (null if audioOut is off). */
+    readonly audioOut: {played: number; underruns: number; playing: boolean} | null;
 }
 
 declare global {

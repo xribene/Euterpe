@@ -39,6 +39,7 @@ import {installHandle} from '../utils/handle.js';
 // the agent's YAML configs and intro text, from the project's agent/ folder (see euterpe/vite)
 import {config as agentConfig, introMarkdown} from 'virtual:euterpe-config';
 import recorderWorkletSource from '../worker/recorder-worklet.js?raw';
+import playerWorkletSource from '../worker/player-worklet.js?raw';
 import ringbufClassicSource from '../worker/ringbuf-classic.js?raw';
 
 // the max BPM shown in Settings is estimated from the agent's inference times of the last 400 ticks
@@ -314,6 +315,18 @@ export default {
         // window.__euterpe, for tests and scripts
         installHandle(vm);
 
+        // The agent's audio output (config.yaml interactionMode.audioOut): a ring buffer the agent writes
+        // (ctx.audioOut, renderAudio) and a player worklet reads, holding max(1 s, 4 x latency) of audio
+        const audioOut = vm.config.interactionMode?.audioOut ? {
+            channels: vm.config.audioOutSettings?.channels ?? 2,
+            latency: vm.config.audioOutSettings?.latency ?? 0.1,
+        } : null;
+        if (audioOut) {
+            const seconds = Math.max(1, 4 * audioOut.latency);
+            vm.sabAudioOut = rb.RingBuffer.getStorageForCapacity(
+                Math.ceil(vm.audioContext.sampleRate * seconds) * audioOut.channels, Float32Array);
+        }
+
         // Send a message to agent with some necessary
         // configurations and constants to store inside the agent
         // TODO : i removed await
@@ -338,8 +351,14 @@ export default {
                 sab_par_agent: vm.sab_par_agent,
                 channelCount: 2,
                 sampleRate: vm.audioContext.sampleRate,
+                sabAudioOut: vm.sabAudioOut ?? null,
+                audioOut,
             },
         });
+        if (audioOut) {
+            vm.startAudioOut(audioOut).catch((error) =>
+                console.error('[euterpe] could not start the agent\'s audio output', error));
+        }
 
         if (vm.showMonitor) {
             if (vm.config.gui.monitor.structure) {
@@ -1452,6 +1471,7 @@ export default {
         */
         entryProgram() {
             const vm = this;
+            vm.audioOutNode?.port.postMessage({play: true});
             vm.$refs.mainLoadingScreen.classList.add('fade-out');
             vm.$refs.mainLoadingScreen.style.display = 'none';
             vm.$refs.mainContent.style.display = 'block';
@@ -1460,6 +1480,39 @@ export default {
             if (vm.config.clockSettings.autoStart === true) {
                 vm.toggleClock();
             }
+        },
+
+        /**
+         * The agent's audio output: the player worklet, on the shared AudioContext, into the agent's mixer bus
+         * (so the agent's volume and mute apply).
+         * @param {{channels: number, latency: number}} audioOut
+         */
+        async startAudioOut({channels, latency}) {
+            const vm = this;
+            const url = URL.createObjectURL(new Blob([playerWorkletSource, ringbufClassicSource],
+                {type: 'application/javascript'}));
+            await vm.audioContext.audioWorklet.addModule(url);
+            const node = new AudioWorkletNode(vm.audioContext, 'euterpe-player', {
+                numberOfInputs: 0,
+                numberOfOutputs: 1,
+                outputChannelCount: [2],
+                // starts (and restarts after an underrun) with half the latency queued
+                processorOptions: {sab: vm.sabAudioOut, channels, prebuffer: Math.round(latency / 2 * vm.audioContext.sampleRate)},
+            });
+            Tone.connect(node, vm.$store.state.samplers.samplersAndBuses.agent.bus);
+            vm.audioOutNode = node;
+            // the agent's audio plays from the start button on (if it was already pressed: now)
+            if (vm.$refs.mainContent?.style.display === 'block') node.port.postMessage({play: true});
+            vm.audioOutStats = {played: 0, underruns: 0, playing: false};
+            node.port.onmessage = ({data}) => {
+                const before = vm.audioOutStats.underruns;
+                vm.audioOutStats = data;
+                // warn the first time, then every 50th
+                if (data.underruns > before && (before === 0 || Math.floor(data.underruns / 50) > Math.floor(before / 50))) {
+                    console.warn(`[euterpe] the agent's audio output ran dry (${data.underruns} so far): renderAudio ` +
+                        '(or ctx.audioOut.write) did not keep up. Make it faster or raise audioOutSettings.latency.');
+                }
+            };
         },
 
         displayPlayBtn() {

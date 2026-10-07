@@ -14,7 +14,7 @@ export {
 export const AGENT_MARK = Symbol.for('euterpe.agent');
 
 export const HOOK_NAMES = ['loadAlgorithm', 'processClockEvent', 'processNoteEvent', 'processAudioBuffer',
-    'updateParameter'];
+    'updateParameter', 'renderAudio'];
 
 /**
  * Declares the agent. agent/hooks.js does `export default defineAgent({...})`; every hook is optional and may be
@@ -26,8 +26,10 @@ export const HOOK_NAMES = ['loadAlgorithm', 'processClockEvent', 'processNoteEve
  *   processAudioBuffer(channels, ctx)   every microphone frame (audio mode)
  *   updateParameter(change, ctx)        a widget changed: change.kind ('slider' | 'switch' | 'button' |
  *                                       'dropdown'), change.id, change.value (ctx.params is already updated)
+ *   renderAudio(frames, ctx)            audio output (interactionMode.audioOut): return `frames` frames,
+ *                                       called whenever the output queue holds less than audioOut.latency
  *
- * A hook returns the agent's output: an array of notes, or {notes, text, label, vector, key}, or nothing.
+ * A hook returns the agent's output: an array of notes, or {notes, text, label, vector, key, audio}, or nothing.
  * @param {Object} hooks
  * @return {Object} The agent, as the worker runtime calls it.
  */

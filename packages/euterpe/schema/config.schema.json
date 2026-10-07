@@ -4,17 +4,36 @@
   "title": "Euterpe agent: config.yaml",
   "description": "How the agent interacts: note or audio input, grid (clock) or event mode, and the clock.",
   "type": "object",
-  "required": ["interactionMode", "noteModeSettings", "clockSettings"],
+  "required": [
+    "interactionMode",
+    "noteModeSettings",
+    "clockSettings"
+  ],
   "additionalProperties": false,
   "properties": {
-    "title": {"type": "string", "description": "The system's name, shown on the start screen."},
-    "subtitle": {"type": "string"},
+    "title": {
+      "type": "string",
+      "description": "The system's name, shown on the start screen."
+    },
+    "subtitle": {
+      "type": "string"
+    },
     "interactionMode": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "noteMode": {"type": "boolean", "description": "The user plays notes (laptop keyboard, MIDI keyboard, on-screen keyboard)."},
-        "audioMode": {"type": "boolean", "description": "The agent gets the microphone: processAudioBuffer is called for every frame."}
+        "noteMode": {
+          "type": "boolean",
+          "description": "The user plays notes (laptop keyboard, MIDI keyboard, on-screen keyboard)."
+        },
+        "audioMode": {
+          "type": "boolean",
+          "description": "The agent gets the microphone: processAudioBuffer is called for every frame."
+        },
+        "audioOut": {
+          "type": "boolean",
+          "description": "The agent plays audio it generates: ctx.audioOut.write(), the renderAudio hook, or {audio} in a hook's return value."
+        }
       }
     },
     "noteModeSettings": {
@@ -24,21 +43,44 @@
         "eventBased": {
           "type": "object",
           "additionalProperties": false,
-          "properties": {"status": {"type": "boolean", "description": "processNoteEvent is called for every user note, as it happens."}}
+          "properties": {
+            "status": {
+              "type": "boolean",
+              "description": "processNoteEvent is called for every user note, as it happens."
+            }
+          }
         },
         "gridBased": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "status": {"type": "boolean", "description": "processClockEvent is called on every clock tick."},
-            "eventBuffer": {"type": "boolean", "description": "The clock event carries userNotes: every user note since the last tick."},
-            "quantizedEvents": {"type": "boolean", "description": "The clock event carries userQuantizedNotes: the user's notes on this tick, aligned to the grid."},
+            "status": {
+              "type": "boolean",
+              "description": "processClockEvent is called on every clock tick."
+            },
+            "eventBuffer": {
+              "type": "boolean",
+              "description": "The clock event carries userNotes: every user note since the last tick."
+            },
+            "quantizedEvents": {
+              "type": "boolean",
+              "description": "The clock event carries userQuantizedNotes: the user's notes on this tick, aligned to the grid."
+            },
             "polyphony": {
               "type": "object",
               "additionalProperties": false,
-              "properties": {"input": {"type": "integer", "minimum": 1, "description": "At most this many simultaneous user notes in userQuantizedNotes."}}
+              "properties": {
+                "input": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "At most this many simultaneous user notes in userQuantizedNotes."
+                }
+              }
             },
-            "delayedExecution": {"type": "boolean", "description": "Run the agent a quarter tick after the tick, to catch notes played slightly late (better score alignment)."}
+            "delayedExecution": {
+              "type": "boolean",
+              "description": "Run the agent a quarter tick after the tick, to catch notes played slightly late (better score alignment)."
+            }
           }
         }
       }
@@ -47,38 +89,113 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "windowSize": {"type": "integer", "minimum": 128, "description": "Samples per frame passed to processAudioBuffer."},
-        "hopSize": {"type": "integer", "minimum": 1, "description": "Samples between consecutive frames."}
+        "windowSize": {
+          "type": "integer",
+          "minimum": 128,
+          "description": "Samples per frame passed to processAudioBuffer."
+        },
+        "hopSize": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Samples between consecutive frames."
+        }
+      }
+    },
+    "audioOutSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The agent's audio output (interactionMode.audioOut).",
+      "properties": {
+        "channels": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ],
+          "description": "1: mono (played on both speakers), 2: stereo. Default 2."
+        },
+        "latency": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 2,
+          "description": "Seconds of audio kept queued ahead of playback (renderAudio fills up to this). More: fewer dropouts, later sound. Default 0.1."
+        }
       }
     },
     "clockSettings": {
       "type": "object",
-      "required": ["ticksPerBeat"],
+      "required": [
+        "ticksPerBeat"
+      ],
       "additionalProperties": false,
       "properties": {
-        "autoStart": {"type": "boolean", "description": "Start the clock when the user presses the start button."},
-        "ticksPerBeat": {"type": "integer", "minimum": 1, "description": "4: a 16th-note grid in 4/4."},
+        "autoStart": {
+          "type": "boolean",
+          "description": "Start the clock when the user presses the start button."
+        },
+        "ticksPerBeat": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "4: a 16th-note grid in 4/4."
+        },
         "timeSignature": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "numerator": {"type": "integer", "minimum": 1},
-            "denominator": {"type": "integer", "enum": [1, 2, 4, 8, 16, 32]}
+            "numerator": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "denominator": {
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                4,
+                8,
+                16,
+                32
+              ]
+            }
           }
         },
-        "defaultBPM": {"type": "number", "exclusiveMinimum": 0},
-        "clockPeriod": {"type": ["number", "null"], "description": "A fixed tick period in ms (free time); null to use BPM and ticksPerBeat."}
+        "defaultBPM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "clockPeriod": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "A fixed tick period in ms (free time); null to use BPM and ticksPerBeat."
+        }
       }
     },
     "agentSettings": {
       "type": "object",
-      "properties": {"warmupRounds": {"type": "integer", "minimum": 0}}
+      "properties": {
+        "warmupRounds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     },
-    "introModal": {"type": "boolean", "description": "Show agent/intro.md when the page opens."},
-    "introModalMarkdown": {"type": "string", "description": "Ignored: the intro is agent/intro.md."},
+    "introModal": {
+      "type": "boolean",
+      "description": "Show agent/intro.md when the page opens."
+    },
+    "introModalMarkdown": {
+      "type": "string",
+      "description": "Ignored: the intro is agent/intro.md."
+    },
     "custom": {
       "type": "object",
-      "properties": {"useTriggerRelease": {"type": "boolean"}}
+      "properties": {
+        "useTriggerRelease": {
+          "type": "boolean"
+        }
+      }
     }
   }
 }

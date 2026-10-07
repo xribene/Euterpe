@@ -346,6 +346,19 @@ importers:
         specifier: ^5.0.10
         version: 5.0.10(@types/node@20.10.4)(terser@5.26.0)
 
+  tests/audio-out:
+    dependencies:
+      euterpe:
+        specifier: workspace:*
+        version: link:../../packages/euterpe
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vite:
+        specifier: ^5.0.10
+        version: 5.0.10(@types/node@20.10.4)(terser@5.26.0)
+
 packages:
 
   '@apidevtools/json-schema-ref-parser@11.9.3':
