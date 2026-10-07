@@ -8,6 +8,7 @@ import {AGENT_MARK, HOOK_NAMES} from '../agent.js';
 import {createContext, applyParameter, toMessage, warnOnce} from './context.js';
 import {createAudioOut, startRenderLoop, disableAudioOut} from './audioOut.js';
 import {createFramer} from './audioIn.js';
+import {liveCanvasState} from '../utils/liveCanvasState.js';
 
 // agent/hooks.js exports the hooks either as `export default defineAgent({...})` (the hooks get `ctx` and the
 // runtime reports when the agent is ready) or, as the original agents do, as named functions using self.*
@@ -356,6 +357,8 @@ async function initAgent(content) {
     try {
         loadConfig(content);
         ctx = createContext(content);
+        // the live canvas (gui.liveCanvas): its state, read directly at every tick (ctx.liveCanvas, self.liveCanvas)
+        if (content.sabLiveCanvas) ctx.liveCanvas = self.liveCanvas = liveCanvasState(content.sabLiveCanvas);
         // the agent's audio output (config.yaml interactionMode.audioOut): ctx.audioOut, self.audioOut
         if (content.sabAudioOut) {
             ctx.audioOut = createAudioOut(content.sabAudioOut, {

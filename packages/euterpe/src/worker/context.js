@@ -14,7 +14,7 @@ const INSTRUMENTS = {piano: instrumentType.PIANO, drums: instrumentType.DRUMS, b
 const MESSAGE_KEYS = {
     notes: messageType.NOTE_LIST, text: messageType.TEXT, label: messageType.LABEL, vector: messageType.VECTOR,
     key: messageType.KEY, session: messageType.SESSION, timingReset: messageType.TIMING_RESET,
-    status: messageType.STATUS,
+    status: messageType.STATUS, humanToken: messageType.HUMAN_TOKEN,
 };
 
 // uiParameterType index -> {kind, id}, e.g. 0 -> {kind: 'slider', id: 1}
@@ -43,6 +43,8 @@ export function createContext(init) {
         audio: null,
         // the agent's audio output (interactionMode.audioOut), set by the worker runtime
         audioOut: null,
+        // the live canvas's shared state (gui.liveCanvas), set by the worker runtime
+        liveCanvas: null,
         types: {noteType, playerType, instrumentType, messageType, statusType, uiParameterType},
         /** Seconds on the page's clock, the clock of user notes' createdAt.seconds. */
         now: () => (performance.now() + offset) / 1000,

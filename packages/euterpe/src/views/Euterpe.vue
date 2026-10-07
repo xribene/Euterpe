@@ -16,6 +16,8 @@ import Monitor from '../components/Monitor.vue';
 import Mixer from '../components/Mixer.vue';
 import TextBox from '../components/TextBox.vue';
 import SettingsModal from '../components/Settings.vue';
+import LiveCanvas from '../components/LiveCanvas.vue';
+import {LiveCanvasController} from '../utils/liveCanvas.js';
 
 import '../css/main.css';
 import * as Tone from 'tone';
@@ -61,7 +63,8 @@ export default {
         Mixer,
         Monitor,
         ChromaChart,
-        SettingsModal
+        SettingsModal,
+        LiveCanvas,
     },
 
     data() {
@@ -214,6 +217,10 @@ export default {
 
         this.players = this.config.players;
 
+        // the live canvas (gui.liveCanvas, utils/liveCanvas.js); not reactive: the widget polls it every frame
+        this.liveCanvas = this.config.gui.liveCanvas?.status ?
+            new LiveCanvasController(this, this.config.gui.liveCanvas) : null;
+
         // if (vm.config.gui.monitor && this.config.gui.monitor.status){
         if (this.showMonitor) {
             this.monitorObserverInterval = 10;
@@ -318,6 +325,7 @@ export default {
         vm.agent.onmessage = vm.agentCallback;
         // window.__euterpe, for tests and scripts
         installHandle(vm);
+        vm.liveCanvas?.installTestHook();
 
         // The agent's audio output (config.yaml interactionMode.audioOut): a ring buffer the agent writes
         // (ctx.audioOut, renderAudio) and a player worklet reads, holding max(1 s, 4 x latency) of audio
@@ -361,6 +369,8 @@ export default {
                 sampleRate: vm.audioContext.sampleRate,
                 sabAudioOut: vm.sabAudioOut ?? null,
                 audioOut,
+                // the live canvas's shared state (gui.liveCanvas)
+                sabLiveCanvas: vm.liveCanvas?.sab ?? null,
             },
         });
         if (audioOut) {
@@ -576,6 +586,8 @@ export default {
             const vm = this;
             if (vm.$store.getters.getClockStatus) {
                 vm.$store.commit('incrementTick');
+                // the live canvas plays the user's note for this tick before the quantizer runs
+                vm.liveCanvas?.onTick(vm.$store.getters.getGlobalTick);
 
                 // Trigger the metronome only if there is a "metronome" entry in config_players.yaml
                 if (vm.config.players.metronome) {
@@ -1089,6 +1101,10 @@ export default {
                             bpm: vm.localBPM,
                             ticksPerBeat: vm.$store.getters.getTicksPerBeat,
                         });
+                        break;
+                    case vm.messageType.HUMAN_TOKEN:
+                        // the live canvas: the user's note for the next tick
+                        vm.liveCanvas?.onHumanToken(messageValue);
                         break;
                     case vm.messageType.CLOCK_TIME:
                         break;
@@ -1966,6 +1982,8 @@ export default {
             <div v-if="config.gui.score.status">
                 <Score :scrollStatus="scrollStatus"/>
             </div>"
+
+            <LiveCanvas v-if="liveCanvas" :controller="liveCanvas" />
 
             <div v-if="audioAndChroma">
                 <ChromaChart/>

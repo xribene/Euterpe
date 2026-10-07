@@ -10,6 +10,8 @@ export {
     playerType, instrumentType, eventSourceType, messageType, statusType, noteType, uiParameterType, agentHookType,
 } from './utils/types.js';
 
+export {liveCanvasState} from './utils/liveCanvasState.js';
+
 // marks an agent made with defineAgent (its hooks get the ctx argument and the runtime reports readiness)
 export const AGENT_MARK = Symbol.for('euterpe.agent');
 

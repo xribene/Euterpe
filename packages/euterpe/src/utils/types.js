@@ -20,6 +20,7 @@ export const eventSourceType = {
     MOUSE: 0, // for on-screen keyboard
     MIDI_KEYBOARD: 1, // external midi keyboard
     KEYBOARD: 2, // laptop keyboard
+    CANVAS: 3, // the live canvas's voice (gui.liveCanvas)
 };
 
 export const messageType = {
@@ -34,6 +35,7 @@ export const messageType = {
     KEY: 15, // the agent's current key estimate, e.g. 'E♭ major' (used to spell notes)
     SESSION: 16, // a recorded session (see src/agent/sessionLog.js), downloaded by the UI
     TIMING_RESET: 18, // the agent switched to another model: the UI restarts its max-BPM estimate
+    HUMAN_TOKEN: 19, // the live canvas: the user's note for the next tick, {tick, midi, artic, candidate, ...}
     CLOCK_TIME: 1,
     INFERENCE_TIME: 2,
 };

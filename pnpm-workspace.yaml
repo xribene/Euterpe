@@ -9,3 +9,4 @@ allowBuilds:
   core-js: false
   protobufjs: false
   vue-material: false
+  onnxruntime-node: false

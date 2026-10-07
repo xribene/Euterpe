@@ -7,12 +7,15 @@ export type {Config, ConfigYaml, WidgetsYaml, PlayersYaml} from './config.js';
 
 export declare const playerType: {readonly HUMAN: 0; readonly AGENT: 1; readonly METRONOME: 2};
 export declare const instrumentType: {readonly PIANO: 0; readonly DRUMS: 1; readonly BASS: 2; readonly SYNTH: 3};
-export declare const eventSourceType: {readonly MOUSE: 0; readonly MIDI_KEYBOARD: 1; readonly KEYBOARD: 2};
+export declare const eventSourceType: {
+    readonly MOUSE: 0; readonly MIDI_KEYBOARD: 1; readonly KEYBOARD: 2; readonly CANVAS: 3;
+};
 export declare const noteType: {readonly NOTE_ON: 1; readonly NOTE_OFF: -1; readonly NOTE_HOLD: 0; readonly REST: 2};
 export declare const messageType: {
     readonly STATUS: 0; readonly CLOCK_TIME: 1; readonly INFERENCE_TIME: 2; readonly NOTE_LIST: 4;
     readonly AUDIO_BUFFER: 7; readonly CHROMA_VECTOR: 10; readonly VECTOR: 11; readonly CHORD_LABEL: 12;
     readonly TEXT: 13; readonly LABEL: 14; readonly KEY: 15; readonly SESSION: 16; readonly TIMING_RESET: 18;
+    readonly HUMAN_TOKEN: 19;
 };
 export declare const statusType: {
     readonly LOADED: 0; readonly WARMUP: 1; readonly SUCCESS: 2; readonly ERROR: 3; readonly REPORT: 4;
@@ -91,6 +94,8 @@ export type HookOutput = void | null | undefined | Array<NoteEvent | PlainNote> 
     audio?: Float32Array | Float32Array[];
     /** The agent switched models: the UI restarts its max-BPM estimate. */
     timingReset?: boolean;
+    /** The live canvas (gui.liveCanvas): the user's note for a coming tick, which the page plays as the user's. */
+    humanToken?: HumanToken;
     /** A recorded session for the UI to download. */
     session?: unknown;
     /** The original protocol: values keyed by messageType number. */
@@ -119,6 +124,36 @@ export type AudioFrame = Float32Array[] & {
     time: number | null;
     sampleRate: number;
 };
+
+/** The live canvas's state, shared with the page and read directly (not polled). */
+export interface LiveCanvasState {
+    /** The canvas voice plays. */
+    readonly armed: boolean;
+    /** Drawing mode is on. */
+    readonly pen: boolean;
+    /** The tap key is down. */
+    readonly keyHeld: boolean;
+    /** Tap key presses so far. */
+    readonly keyDowns: number;
+    readonly model: 'rules' | 'onnx';
+    /** The line's height in semitones. */
+    readonly height: number;
+    read(): {armed: boolean; pen: boolean; keyHeld: boolean; keyDowns: number; model: 'rules' | 'onnx'; height: number};
+}
+
+/** A HUMAN_TOKEN: the user's note at `tick` (global), played by the page before the quantizer runs for it. */
+export interface HumanToken {
+    tick: number;
+    /** 0 = rest. */
+    midi: number;
+    /** 1 = a new note, 0 = held. */
+    artic: number;
+    /** The pitch a tap at `tick` plays. */
+    candidate?: number | null;
+    [extra: string]: unknown;
+}
+
+export declare function liveCanvasState(sab?: SharedArrayBuffer): LiveCanvasState;
 
 /** ctx.audioOut: the agent's audio output, a queue the page plays continuously. */
 export interface AudioOut {
@@ -181,6 +216,8 @@ export interface Ctx {
     now(): number;
     /** The agent's audio output (config.yaml interactionMode.audioOut: true), or null. */
     audioOut: AudioOut | null;
+    /** The live canvas's shared state (widgets.yaml gui.liveCanvas.status), or null. */
+    liveCanvas: LiveCanvasState | null;
     /**
      * The microphone's frames, once it runs (audio mode): their sample rate (audioModeSettings.sampleRate or the
      * page's), channels, window and hop sizes, and the page's own sample rate.

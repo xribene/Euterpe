@@ -38,6 +38,32 @@
         },
         "chromaChart": {"$ref": "#/definitions/status", "description": "Shows the agent's vector output (audio mode)."},
         "audioMeter": {"$ref": "#/definitions/status", "description": "Microphone level (audio mode)."},
+        "liveCanvas": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Live canvas (grid mode): the user draws a line with the mouse and taps a key for rhythm; the agent turns the line into the user's notes (messageType.HUMAN_TOKEN, ctx.liveCanvas). Used by apps/bachduet.",
+          "properties": {
+            "status": {"type": "boolean"},
+            "sensitivity": {"type": "number", "exclusiveMinimum": 0, "description": "Mouse pixels per semitone (vertical movement only). Default 20."},
+            "range": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "The line's range in semitones, [low, high]. Default [0, 24]."},
+            "tapKey": {"type": "string", "minLength": 1, "description": "The key held for rhythm (KeyboardEvent.key; not Space). Default 'f'."},
+            "tapRelease": {"enum": ["model", "off"], "description": "On key release: the model's rhythm takes over (default), or the note stops."},
+            "penUp": {"enum": ["hold", "rest", "free"], "description": "Drawing mode off: hold the note (default), rest, or let the model play on without the curve."},
+            "model": {"enum": ["rules", "onnx"], "description": "Curve to melody: 'rules' (nearest scale note) or 'onnx' (the Draw & Listen duet model). Switchable on the canvas."},
+            "modelDir": {"type": "string", "description": "Where duet.onnx and duet_constants.json are served. Default /models/drawlisten."},
+            "window": {"type": "integer", "minimum": 1, "maximum": 256, "description": "The model's window in ticks. Default 64."},
+            "armed": {"type": "boolean", "description": "The canvas voice plays from the start. Default true."},
+            "width": {"type": "integer", "minimum": 100},
+            "height": {"type": "integer", "minimum": 60},
+            "ticksShown": {"type": "integer", "minimum": 4, "description": "Ticks of the past shown left of the now marker. Default 48."},
+            "baseMidi": {"type": "integer", "minimum": 21, "maximum": 108, "description": "Rules (and the drawing): the MIDI note at the bottom of the range. Default 60."},
+            "density": {"type": "integer", "minimum": 1, "description": "Rules: new notes only on multiples of this many ticks. Default 2 (8th notes)."},
+            "hysteresis": {"type": "number", "minimum": 0, "description": "Rules: semitones the line must be nearer a new note than the current one. Default 0.4."},
+            "follow": {"type": "number", "description": "ONNX: follow strength w. 1 (default) = the model as trained; otherwise it runs twice per tick and uses uncond + w * (cond - uncond)."},
+            "softDirection": {"type": "boolean", "description": "ONNX: the pitch is sampled from pitch[dir] without restricting it to the direction bin."},
+            "inKey": {"type": "boolean", "description": "ONNX: pitches only from the current key's scale (the agent's key estimate)."}
+          }
+        },
         "monitor": {
           "type": "object",
           "additionalProperties": false,

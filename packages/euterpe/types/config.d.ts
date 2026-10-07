@@ -162,6 +162,81 @@ export interface WidgetsYaml {
     };
     chromaChart: Status1;
     audioMeter: Status2;
+    /**
+     * Live canvas (grid mode): the user draws a line with the mouse and taps a key for rhythm; the agent turns the line into the user's notes (messageType.HUMAN_TOKEN, ctx.liveCanvas). Used by apps/bachduet.
+     */
+    liveCanvas?: {
+      status?: boolean;
+      /**
+       * Mouse pixels per semitone (vertical movement only). Default 20.
+       */
+      sensitivity?: number;
+      /**
+       * The line's range in semitones, [low, high]. Default [0, 24].
+       *
+       * @minItems 2
+       * @maxItems 2
+       */
+      range?: [number, number];
+      /**
+       * The key held for rhythm (KeyboardEvent.key; not Space). Default 'f'.
+       */
+      tapKey?: string;
+      /**
+       * On key release: the model's rhythm takes over (default), or the note stops.
+       */
+      tapRelease?: "model" | "off";
+      /**
+       * Drawing mode off: hold the note (default), rest, or let the model play on without the curve.
+       */
+      penUp?: "hold" | "rest" | "free";
+      /**
+       * Curve to melody: 'rules' (nearest scale note) or 'onnx' (the Draw & Listen duet model). Switchable on the canvas.
+       */
+      model?: "rules" | "onnx";
+      /**
+       * Where duet.onnx and duet_constants.json are served. Default /models/drawlisten.
+       */
+      modelDir?: string;
+      /**
+       * The model's window in ticks. Default 64.
+       */
+      window?: number;
+      /**
+       * The canvas voice plays from the start. Default true.
+       */
+      armed?: boolean;
+      width?: number;
+      height?: number;
+      /**
+       * Ticks of the past shown left of the now marker. Default 48.
+       */
+      ticksShown?: number;
+      /**
+       * Rules (and the drawing): the MIDI note at the bottom of the range. Default 60.
+       */
+      baseMidi?: number;
+      /**
+       * Rules: new notes only on multiples of this many ticks. Default 2 (8th notes).
+       */
+      density?: number;
+      /**
+       * Rules: semitones the line must be nearer a new note than the current one. Default 0.4.
+       */
+      hysteresis?: number;
+      /**
+       * ONNX: follow strength w. 1 (default) = the model as trained; otherwise it runs twice per tick and uses uncond + w * (cond - uncond).
+       */
+      follow?: number;
+      /**
+       * ONNX: the pitch is sampled from pitch[dir] without restricting it to the direction bin.
+       */
+      softDirection?: boolean;
+      /**
+       * ONNX: pitches only from the current key's scale (the agent's key estimate).
+       */
+      inKey?: boolean;
+    };
     monitor?: {
       status?: boolean;
       title?: string;

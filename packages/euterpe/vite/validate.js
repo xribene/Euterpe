@@ -96,6 +96,11 @@ export function validateAgent(files) {
         const dup = ids.find((id, i) => id !== undefined && ids.indexOf(id) !== i);
         if (dup !== undefined) errors.push(`${files.widgets.file}: gui.settingsModal.${kind}: two widgets with id ${dup}`);
     }
+    const canvas = files.widgets?.data?.gui?.liveCanvas;
+    if (canvas?.status) {
+        if (!grid.status) warnings.push(`${files.widgets.file}: gui.liveCanvas needs noteModeSettings.gridBased (the canvas plays one note per tick)`);
+        if (canvas.tapKey === ' ') errors.push(`${files.widgets.file}: gui.liveCanvas.tapKey can't be Space (it starts and stops the clock)`);
+    }
     for (const [i, s] of (files.widgets?.data?.gui?.settingsModal?.switches ?? []).entries()) {
         if (s && 'value' in s && !('status' in s)) {
             warnings.push(`${files.widgets.file}: gui.settingsModal.switches[${i}]: switches use "status", not "value"`);
