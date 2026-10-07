@@ -144,6 +144,8 @@ export default function euterpe(options = {}) {
                     entries: ['**/*.html', `${agentDirOption}/**/*.{js,ts,mjs}`],
                     esbuildOptions: {supported: {bigint: true}},
                 },
+                // the UI is one large chunk for now (KNOWN_ISSUES F9); don't warn about it in every build
+                build: {chunkSizeWarningLimit: 8000},
                 // the agent is a module worker; ES output lets it lazy-load (e.g. onnxruntime-web)
                 worker: {format: 'es', plugins: () => [virtualModules()]},
             };

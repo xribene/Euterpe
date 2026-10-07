@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Rehearses `npm create euterpe@latest` end to end against a fresh local npm registry (Verdaccio), never the
 # public one: publishes packages/euterpe and packages/create-euterpe to it, then for each template, in a clean
-# folder: npm create, npm install, dev server + smoke check, npm run build, plain static server + smoke check.
+# folder: npm create, npm install, npm run smoke (dev server), npm run smoke -- --build (static build); and for
+# copycat, npx euterpe eject + install + smoke.
 #   tools/acceptance/rehearse.sh [template ...]      (default: empty copycat call-response)
 # Templates other than empty must answer the smoke check's phrase. Exits 1 on the first failure.
 set -euo pipefail
@@ -52,6 +53,8 @@ echo "registry: $REGISTRY  work: $WORK"
 printf 'registry=%s\n//localhost:%s/:_authToken=local-rehearsal\n' "$REGISTRY" "$PORT" > "$WORK/npmrc"
 export NPM_CONFIG_USERCONFIG="$WORK/npmrc"
 export npm_config_registry="$REGISTRY"
+# and an empty cache, like a first-time user (npx would otherwise reuse a create-euterpe of the same version)
+export npm_config_cache="$WORK/npm-cache"
 
 for pkg in euterpe create-euterpe; do
     (cd "$REPO/packages/$pkg" && npm publish --registry "$REGISTRY" > "$WORK/publish-$pkg.log" 2>&1) ||
@@ -59,30 +62,25 @@ for pkg in euterpe create-euterpe; do
     echo "published $pkg@$(node -p "require('$REPO/packages/$pkg/package.json').version") to $REGISTRY"
 done
 
-port=5310
 for template in "${TEMPLATES[@]}"; do
     echo "== $template"
     dir="$WORK/projects/$template"
     mkdir -p "$WORK/projects"
     (cd "$WORK/projects" && npm create euterpe@latest "$template" -- --template "$template" < /dev/null > /dev/null)
     (cd "$dir" && npm install --no-audit --no-fund > "$WORK/install-$template.log" 2>&1)
-    expect=(); [ "$template" != empty ] && expect=(--expect-answer)
-    PORTS+=("$port" $((port + 1)))
-
-    (cd "$dir" && exec npx vite --port "$port" --strictPort > "$WORK/dev-$template.log" 2>&1) &
-    PIDS+=($!)
-    for _ in $(seq 1 60); do curl -sf "http://localhost:$port/" > /dev/null && break; sleep 1; done
-    node "$REPO/tools/smoke/check.mjs" "http://localhost:$port/" ${expect[@]+"${expect[@]}"} > "$WORK/check-dev-$template.json" ||
-        { echo "dev check failed:"; cat "$WORK/check-dev-$template.json"; exit 1; }
+    # the commands a user runs: npm run smoke (dev server) and npm run smoke -- --build (static build)
+    (cd "$dir" && npm run --silent smoke -- --json > "$WORK/check-dev-$template.json" 2> "$WORK/check-dev-$template.err") ||
+        { echo "dev check failed:"; cat "$WORK/check-dev-$template.json" "$WORK/check-dev-$template.err"; exit 1; }
     echo "  dev:    ok $(node -p "JSON.stringify(require('$WORK/check-dev-$template.json').agentNoteOns)")"
-
-    (cd "$dir" && npm run build > "$WORK/build-$template.log" 2>&1)
-    node "$REPO/tools/acceptance/static-server.mjs" "$dir/dist" $((port + 1)) > /dev/null 2>&1 &
-    PIDS+=($!)
-    sleep 1
-    node "$REPO/tools/smoke/check.mjs" "http://localhost:$((port + 1))/" ${expect[@]+"${expect[@]}"} > "$WORK/check-build-$template.json" ||
-        { echo "build check failed:"; cat "$WORK/check-build-$template.json"; exit 1; }
+    (cd "$dir" && npm run --silent smoke -- --build --json > "$WORK/check-build-$template.json" 2> "$WORK/check-build-$template.err") ||
+        { echo "build check failed:"; cat "$WORK/check-build-$template.json" "$WORK/check-build-$template.err"; exit 1; }
     echo "  build:  ok $(node -p "JSON.stringify(require('$WORK/check-build-$template.json').agentNoteOns)") ($(du -sh "$dir/dist" | cut -f1))"
-    port=$((port + 2))
+    if [ "$template" = copycat ]; then
+        # eject: Euterpe copied into the project, installed from there, still passing
+        (cd "$dir" && npx euterpe eject > "$WORK/eject.log" && npm install --no-audit --no-fund >> "$WORK/eject.log" 2>&1 &&
+            npm run --silent smoke -- --json > "$WORK/check-eject.json" 2>> "$WORK/eject.log") ||
+            { echo "eject check failed:"; cat "$WORK/eject.log" "$WORK/check-eject.json"; exit 1; }
+        echo "  eject:  ok (euterpe -> $(node -p "require('$dir/package.json').dependencies.euterpe"))"
+    fi
 done
 echo "all passed"

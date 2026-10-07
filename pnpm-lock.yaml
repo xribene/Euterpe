@@ -217,6 +217,9 @@ importers:
       markdown-it-vue:
         specifier: ^1.1.7
         version: 1.1.7
+      playwright-core:
+        specifier: '>=1.40'
+        version: 1.63.0
       remixicon:
         specifier: ^3.5.0
         version: 3.7.0
@@ -282,6 +285,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/euterpe
     devDependencies:
+      playwright-core:
+        specifier: ^1.63.0
+        version: 1.63.0
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
@@ -295,6 +301,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/euterpe
     devDependencies:
+      playwright-core:
+        specifier: ^1.63.0
+        version: 1.63.0
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
@@ -308,6 +317,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/euterpe
     devDependencies:
+      playwright-core:
+        specifier: ^1.63.0
+        version: 1.63.0
       typescript:
         specifier: ^5.6.0
         version: 5.9.3

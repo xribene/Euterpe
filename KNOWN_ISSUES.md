@@ -43,6 +43,7 @@ Found while packaging Euterpe (branch `npm-package`). Newest first within each s
 | D4 | The turn-taking smoke test takes ~3.4 min per model (~30 min for all 9) and prints results only at the end, so a crash loses the whole run (it did once). | step 0 | Write each model's result as soon as it finishes | open |
 | D5 | Installing with npm prints install-script warnings (esbuild, vue-material); pnpm 12 refuses to install without `allowBuilds` in `pnpm-workspace.yaml`. | fresh installs | Templates ship the pnpm setting; F10 removes one of the two | workaround |
 | D8 | Changes to Euterpe's Vite plugin (`packages/euterpe/vite/`) need a dev server restart: Vite loads plugins once. A dev server left running serves stale virtual modules (the page fails with "does not provide an export named ..."). Only affects people working on Euterpe itself. | step 2, item 2 | Restart; nothing to fix | note |
+| D9 | `npm create` (npx) caches create-euterpe by name and version: republishing the same version (local rehearsals) scaffolds from the stale copy. Users never republish a version, so only the rehearsal is affected. | rehearsal scaffolded templates without `smoke` | rehearse.sh uses its own empty npm cache | fixed (rehearsal) |
 | D6 | The root README describes the old single-app layout (paths under `public/`, install steps). | `README.md` | Rewrite for the package (step 5) | open |
 
 ## Packaging and repo

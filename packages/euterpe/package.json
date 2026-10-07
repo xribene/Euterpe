@@ -23,6 +23,7 @@
   "files": [
     "src",
     "vite",
+    "cli",
     "types",
     "schema",
     "assets",
@@ -43,7 +44,8 @@
     "directory": "packages/euterpe"
   },
   "peerDependencies": {
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "playwright-core": ">=1.40"
   },
   "dependencies": {
     "@tonaljs/note": "^4.6.5",
@@ -78,5 +80,13 @@
   },
   "scripts": {
     "gen-types": "node scripts/gen-config-types.mjs"
+  },
+  "bin": {
+    "euterpe": "cli/index.js"
+  },
+  "peerDependenciesMeta": {
+    "playwright-core": {
+      "optional": true
+    }
   }
 }
