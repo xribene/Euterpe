@@ -86,6 +86,7 @@ export default {
             buttons: [],
             dropdowns: [],
             dropdownsNote: '',
+            textFields: [],
             // Information about the players and
             // instruments available to each player.
             // It's used to create the mixer modal.
@@ -207,6 +208,8 @@ export default {
             this.buttons = this.config.gui.settingsModal.buttons ?? this.buttons;
             this.dropdowns = this.config.gui.settingsModal.dropdowns ?? this.dropdowns;
             this.dropdownsNote = this.config.gui.settingsModal.dropdownsNote ?? this.dropdownsNote;
+            this.textFields = (this.config.gui.settingsModal.textFields ?? this.textFields)
+                .map((f) => ({...f, value: f.value ?? ''}));
         }
 
         this.players = this.config.players;
@@ -1676,6 +1679,12 @@ export default {
             }
         },
 
+        // a text field (settingsModal.textFields) was edited: the agent gets the whole text (strings don't fit
+        // the numeric parameter ring buffer, so it goes as a message)
+        textFieldChanged(field) {
+            this.agent?.postMessage({control: 'textField', id: field.id, value: String(field.value ?? '')});
+        },
+
         handleMixerUpdate(event) {
             this.$store.commit('handleMixerUpdate', event);
         },
@@ -1727,6 +1736,9 @@ export default {
         // Dropdowns that are also shown on the loading screen, next to the Play button
         introDropdowns: function() {
             return this.dropdowns.filter((d) => d.intro);
+        },
+        introTextFields: function() {
+            return this.textFields.filter((f) => f.intro);
         },
         audioAndMeter: function() {
             return this.config.gui.audioMeter.status && this.config.interactionMode.audioMode;
@@ -1871,6 +1883,14 @@ export default {
                     </div>
                     <p v-if="dropdownsNote" class="introDropdownsNote">{{ dropdownsNote }}</p>
                 </div>
+                <div v-if="introTextFields.length > 0" class="introDropdowns">
+                    <div v-for="field in introTextFields" :key="'introText' + field.id" class="introDropdown">
+                        <label :for="'introText' + field.id">{{ field.label }}</label>
+                        <input :id="'introText' + field.id" type="text" v-model="field.value"
+                            :placeholder="field.placeholder ?? ''" :data-testid="'euterpe-intro-text-' + field.id"
+                            @change="textFieldChanged(field)" @keydown.stop @keyup.stop>
+                    </div>
+                </div>
                 <div id="entryBtnContainer" style="width:100%;height:60px;">
                     <button @click="entryProgram" ref="entryBtn" data-testid="euterpe-start"
                         class="entryBtn" style="visibility: hidden;">
@@ -1916,12 +1936,14 @@ export default {
                 :buttons="buttons"
                 :dropdowns="dropdowns"
                 :dropdownsNote="dropdownsNote"
+                :textFields="textFields"
                 :maxBPM="maxBPM"
                 :initBPM="localBPM"
                 :WebMIDISupport="WebMIDISupport"
                 :activeDevices="activeDevices"
                 :activeMidiOutputDevices="activeMidiOutputDevices"
                 @button-click="buttonAction"
+                @text-change="textFieldChanged"
                 @midi-device-change="onMIDIDeviceSelectedChange"
                 @midi-output-device-change="onMIDIOutputDeviceSelectedChange"
                 @bpm-change="bpmValueChanged"
@@ -2021,6 +2043,11 @@ export default {
 .introDropdown label {
     display: block;
     margin-bottom: 4px;
+}
+
+.introDropdown input {
+    min-width: 260px;
+    padding: 4px 6px;
 }
 
 .introDropdown select {

@@ -752,6 +752,152 @@ export interface WidgetsYaml {
           ]
         | null;
       dropdownsNote?: string;
+      /**
+       * ctx.params.text[id]: the field's text. The agent gets it when the user presses Enter or leaves the field (updateParameter with kind 'text').
+       *
+       * @maxItems 4
+       */
+      textFields?:
+        | []
+        | [
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            }
+          ]
+        | [
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            },
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            }
+          ]
+        | [
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            },
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            },
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            }
+          ]
+        | [
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            },
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            },
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            },
+            {
+              id: number;
+              label: string;
+              /**
+               * The initial text.
+               */
+              value?: string;
+              placeholder?: string;
+              /**
+               * Also show this field on the start screen.
+               */
+              intro?: boolean;
+            }
+          ]
+        | null;
     };
   };
 }

@@ -92,6 +92,17 @@
                                 </div>
                             </div>
 
+                            <!-- Text fields for agent Parameters (sent on Enter or when the field loses focus) -->
+                            <div v-if="textFields.length > 0" class="controlCollection">
+                                <div v-for="field in textFields" :key="'text' + field.id" class="text-container">
+                                    <label :for="'text' + field.id">{{ field.label }}</label>
+                                    <input :id="'text' + field.id" type="text" v-model="field.value"
+                                        :placeholder="field.placeholder ?? ''"
+                                        :data-testid="'euterpe-text-' + field.id"
+                                        @change="$emit('text-change', field)" @keydown.stop @keyup.stop>
+                                </div>
+                            </div>
+
                             <!-- Dropdowns for agent Parameters -->
                             <div v-if="dropdowns.length > 0" class="controlCollection">
                                 <div v-for="dropdownItem in dropdowns" :key="'dropdown' + dropdownItem.id"
@@ -169,6 +180,10 @@ export default {
             type: Array,
             default: () => [],
         },
+        textFields: {
+            type: Array,
+            default: () => [],
+        },
         dropdownsNote: {
             type: String,
             default: '',
@@ -237,6 +252,18 @@ export default {
 .dropdownsNote {
     font-size: 13px;
     opacity: 0.8;
+}
+
+.text-container {
+    display: flex;
+    flex-direction: column;
+    margin-right: 20px;
+    margin-bottom: 10px;
+}
+
+.text-container input {
+    min-width: 260px;
+    padding: 4px 6px;
 }
 
 .dropdown-container {

@@ -90,6 +90,7 @@ export function installHandle(vm) {
                 slider: Object.fromEntries(vm.sliders.map((s, i) => [s.id ?? i + 1, s.value])),
                 switch: Object.fromEntries(vm.switches.map((s, i) => [s.id ?? i + 1, s.status])),
                 dropdown: Object.fromEntries(vm.dropdowns.map((d) => [d.id, d.value])),
+                text: Object.fromEntries(vm.textFields.map((f) => [f.id, f.value])),
             };
         },
         setParam(kind, id, value) {
@@ -101,6 +102,11 @@ export function installHandle(vm) {
             else if (kind === 'switch') byId(vm.switches).status = Boolean(value);
             else if (kind === 'dropdown') byId(vm.dropdowns).value = value;
             else if (kind === 'button') vm.buttonAction(id);
+            else if (kind === 'text') {
+                const field = byId(vm.textFields);
+                field.value = String(value);
+                vm.textFieldChanged(field);
+            }
             else throw new Error(`__euterpe.setParam: unknown widget kind "${kind}"`);
         },
         noteOn(midi, velocity = 127) {

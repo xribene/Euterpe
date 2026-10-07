@@ -98,12 +98,13 @@ export function createContext(init) {
 
 function initialParams(config) {
     const modal = config.gui?.settingsModal ?? {};
-    const params = {slider: {}, switch: {}, button: {}, dropdown: {}};
+    const params = {slider: {}, switch: {}, button: {}, dropdown: {}, text: {}};
     // by YAML id (sliders and switches without one: their position)
     (modal.sliders ?? []).forEach((s, i) => params.slider[s.id ?? i + 1] = s.value);
     (modal.switches ?? []).forEach((s, i) => params.switch[s.id ?? i + 1] = Boolean(s.status));
     (modal.dropdowns ?? []).forEach((d) => params.dropdown[d.id] = d.value ?? 0);
     (modal.buttons ?? []).forEach((b) => params.button[b.id] = 0);
+    (modal.textFields ?? []).forEach((f) => params.text[f.id] = f.value ?? '');
     return params;
 }
 

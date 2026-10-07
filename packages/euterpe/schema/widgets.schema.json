@@ -131,7 +131,23 @@
                 }
               }
             },
-            "dropdownsNote": {"type": "string"}
+            "dropdownsNote": {"type": "string"},
+            "textFields": {
+              "type": ["array", "null"],
+              "maxItems": 4,
+              "description": "ctx.params.text[id]: the field's text. The agent gets it when the user presses Enter or leaves the field (updateParameter with kind 'text').",
+              "items": {
+                "type": "object",
+                "required": ["id", "label"],
+                "properties": {
+                  "id": {"type": "integer", "minimum": 1, "maximum": 4},
+                  "label": {"type": "string"},
+                  "value": {"type": "string", "description": "The initial text."},
+                  "placeholder": {"type": "string"},
+                  "intro": {"type": "boolean", "description": "Also show this field on the start screen."}
+                }
+              }
+            }
           }
         }
       }

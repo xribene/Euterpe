@@ -144,13 +144,16 @@ export interface AudioOut {
 
 /** The input of updateParameter. */
 export interface ParamChange {
-    kind: 'slider' | 'switch' | 'button' | 'dropdown' | 'unknown';
+    kind: 'slider' | 'switch' | 'button' | 'dropdown' | 'text' | 'unknown';
     /** The widget's id in widgets.yaml (sliders and switches without one: their position, 1-based). */
     id: number;
-    /** Slider: its value; switch: on/off; dropdown: the selected option's index; button: presses so far. */
-    value: number | boolean;
-    /** The raw uiParameterType index. */
-    index: number;
+    /**
+     * Slider: its value; switch: on/off; dropdown: the selected option's index; button: presses so far;
+     * text: the field's text.
+     */
+    value: number | boolean | string;
+    /** The raw uiParameterType index (not set for text fields). */
+    index?: number;
 }
 
 /** The second argument of every hook. */
@@ -171,6 +174,8 @@ export interface Ctx {
         button: Record<number, number>;
         /** By id: the selected option's index. */
         dropdown: Record<number, number>;
+        /** By id: the text field's text (updated when the user presses Enter or leaves the field). */
+        text: Record<number, string>;
     };
     /** Seconds on the page's clock, the clock of user notes' createdAt.seconds. */
     now(): number;

@@ -25,7 +25,8 @@ export const HOOK_NAMES = ['loadAlgorithm', 'processClockEvent', 'processNoteEve
  *   processNoteEvent(noteEvent, ctx)    every user note (event mode)
  *   processAudioBuffer(channels, ctx)   every microphone frame (audio mode)
  *   updateParameter(change, ctx)        a widget changed: change.kind ('slider' | 'switch' | 'button' |
- *                                       'dropdown'), change.id, change.value (ctx.params is already updated)
+ *                                       'dropdown' | 'text'), change.id, change.value (ctx.params is already
+ *                                       updated)
  *   renderAudio(frames, ctx)            audio output (interactionMode.audioOut): return `frames` frames,
  *                                       called whenever the output queue holds less than audioOut.latency
  *

@@ -155,15 +155,19 @@ function _uiParameterObserver() {
     if (self.param_reader.dequeue_change(newParameterUI)) {
         console.debug('param index: ' + newParameterUI.index + ' value: ' + newParameterUI.value);
         const change = applyParameter(ctx, newParameterUI);
-        if (defined && ctx._loading) {
-            // ctx.params has the new value already; the hook runs once loadAlgorithm has finished
-            pendingChanges.push(change);
-        } else if (defined) {
-            runUpdateParameter(change);
-        } else {
-            updateParameter(newParameterUI);
-        }
+        if (defined) dispatchChange(change);
+        else updateParameter(newParameterUI);
     }
+}
+
+/**
+ * Passes a widget change (ctx.params already updated) to a defineAgent agent's updateParameter, or holds it
+ * until loadAlgorithm has finished.
+ * @param {Object} change
+ */
+function dispatchChange(change) {
+    if (ctx._loading) pendingChanges.push(change);
+    else runUpdateParameter(change);
 }
 
 /**
@@ -249,6 +253,14 @@ async function onMessageFunction(obj) {
     // control messages from the page (not hooks)
     if (obj.data?.control === 'audioOutUnavailable') {
         disableAudioOut(ctx?.audioOut ?? null, renderLoop);
+        return;
+    }
+    if (obj.data?.control === 'textField') {
+        // a text field (settingsModal.textFields): ctx.params.text[id], then updateParameter (defineAgent agents)
+        const {id, value} = obj.data;
+        if (!ctx) return;
+        ctx.params.text[id] = value;
+        if (defined) dispatchChange({kind: 'text', id, value});
         return;
     }
     if (obj.data?.control === 'audioInStart') {

@@ -91,7 +91,7 @@ export function validateAgent(files) {
         warnings.push(`${file}: gridBased, eventBased and audioMode are all off, so the agent's hooks get no input`);
     }
     const modal = files.widgets?.data?.gui?.settingsModal ?? {};
-    for (const kind of ['sliders', 'switches', 'buttons', 'dropdowns']) {
+    for (const kind of ['sliders', 'switches', 'buttons', 'dropdowns', 'textFields']) {
         const ids = (modal[kind] ?? []).map((w, i) => w?.id ?? (kind === 'sliders' || kind === 'switches' ? i + 1 : undefined));
         const dup = ids.find((id, i) => id !== undefined && ids.indexOf(id) !== i);
         if (dup !== undefined) errors.push(`${files.widgets.file}: gui.settingsModal.${kind}: two widgets with id ${dup}`);

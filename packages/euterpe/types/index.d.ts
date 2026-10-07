@@ -21,8 +21,9 @@ export interface EuterpeHandle {
     readonly bpm: number;
     setBPM(bpm: number): void;
     /** As the agent's ctx.params. */
-    readonly params: {slider: Record<number, number>; switch: Record<number, boolean>; dropdown: Record<number, number>};
-    setParam(kind: 'slider' | 'switch' | 'dropdown' | 'button', id: number, value?: number | boolean): void;
+    readonly params: {slider: Record<number, number>; switch: Record<number, boolean>; dropdown: Record<number, number>;
+        text: Record<number, string>};
+    setParam(kind: 'slider' | 'switch' | 'dropdown' | 'button' | 'text', id: number, value?: number | boolean | string): void;
     /** A user note, as from the laptop keyboard. */
     noteOn(midi: number, velocity?: number): void;
     noteOff(midi: number): void;
