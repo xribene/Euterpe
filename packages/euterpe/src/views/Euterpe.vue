@@ -1953,6 +1953,7 @@ export default {
                 :dropdowns="dropdowns"
                 :dropdownsNote="dropdownsNote"
                 :textFields="textFields"
+                :liveCanvas="liveCanvas"
                 :maxBPM="maxBPM"
                 :initBPM="localBPM"
                 :WebMIDISupport="WebMIDISupport"
@@ -1983,7 +1984,7 @@ export default {
                 <Score :scrollStatus="scrollStatus"/>
             </div>"
 
-            <LiveCanvas v-if="liveCanvas" :controller="liveCanvas" />
+            <LiveCanvas v-if="liveCanvas && liveCanvas.ui.visible" :controller="liveCanvas" />
 
             <div v-if="audioAndChroma">
                 <ChromaChart/>

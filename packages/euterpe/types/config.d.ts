@@ -206,6 +206,10 @@ export interface WidgetsYaml {
        * The canvas voice plays from the start. Default true.
        */
       armed?: boolean;
+      /**
+       * The canvas is shown from the start (default true); false: hidden until Settings' "Draw your part" is ticked.
+       */
+      visible?: boolean;
       width?: number;
       height?: number;
       /**

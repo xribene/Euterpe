@@ -8,6 +8,7 @@
  * keyboard input. A tap plays the latest onset candidate at once (like a MIDI key) and holds it while the key is
  * down. LiveCanvas.vue draws it all.
  */
+import Vue from 'vue';
 import {Midi} from '@tonaljs/tonal';
 import {NoteEvent} from './NoteEvent.js';
 import {liveCanvasState} from './liveCanvasState.js';
@@ -29,6 +30,10 @@ export const LIVE_CANVAS_DEFAULTS = {
     model: 'rules',
     // the canvas voice plays from the start (the switch next to the canvas turns it off)
     armed: true,
+    // the canvas is shown (else Settings' "Draw your part" shows it)
+    visible: true,
+    // the ONNX model's follow strength (Settings slider 0.3-1)
+    follow: 1,
     // the canvas's size in pixels
     width: 640,
     height: 240,
@@ -52,7 +57,12 @@ export class LiveCanvasController {
         const [lo, hi] = this.options.range;
         this.shared.height = (lo + hi) / 2;
         this.shared.model = this.options.model;
-        this.shared.armed = this.options.armed;
+        this.shared.penUp = this.options.penUp;
+        this.shared.follow = this.options.follow;
+        // what Settings shows and changes (reactive); a hidden canvas doesn't play
+        this.ui = Vue.observable({visible: Boolean(this.options.visible), penUp: this.options.penUp,
+            follow: this.options.follow, model: this.options.model});
+        this.shared.armed = this.ui.visible && this.options.armed;
         // HUMAN_TOKEN payloads by tick, until their tick comes
         this.pending = new Map();
         // the canvas voice's note sounding now (MIDI), or null
@@ -92,11 +102,29 @@ export class LiveCanvasController {
         if (!on) this._release();
     }
 
+    /** Settings' "Draw your part": shows the canvas and lets it play (hidden: off). */
+    setVisible(on) {
+        this.ui.visible = Boolean(on);
+        this.setArmed(this.ui.visible && this.options.armed);
+        if (!on) this.setPen(false);
+    }
+
+    setPenUp(mode) {
+        this.ui.penUp = mode;
+        this.shared.penUp = mode;
+    }
+
+    setFollow(w) {
+        this.ui.follow = Number(w);
+        this.shared.follow = Number(w);
+    }
+
     setPen(on) {
         this.shared.pen = Boolean(on);
     }
 
     setModel(name) {
+        this.ui.model = name;
         this.shared.model = name;
     }
 
@@ -178,7 +206,7 @@ export class LiveCanvasController {
     // ---- taps ----
 
     _onKey(e) {
-        if (!this.vm.config.gui?.liveCanvas?.status) return;
+        if (!this.vm.config.gui?.liveCanvas?.status || !this.ui.visible) return;
         if ((e.key ?? '').toLowerCase() !== String(this.options.tapKey).toLowerCase()) return;
         const target = e.target;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')) {
@@ -298,6 +326,9 @@ export class LiveCanvasController {
         const c = this;
         window.__euterpe.liveCanvas = {
             setArmed: (on) => c.setArmed(on),
+            setVisible: (on) => c.setVisible(on),
+            setPenUp: (mode) => c.setPenUp(mode),
+            setFollow: (w) => c.setFollow(w),
             setPen: (on) => c.setPen(on),
             setHeight: (h) => c.setHeight(h),
             move: (dy) => c.move(dy),

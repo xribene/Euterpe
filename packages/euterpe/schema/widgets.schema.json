@@ -53,6 +53,7 @@
             "modelDir": {"type": "string", "description": "Where duet.onnx and duet_constants.json are served. Default /models/drawlisten."},
             "window": {"type": "integer", "minimum": 1, "maximum": 256, "description": "The model's window in ticks. Default 64."},
             "armed": {"type": "boolean", "description": "The canvas voice plays from the start. Default true."},
+            "visible": {"type": "boolean", "description": "The canvas is shown from the start (default true); false: hidden until Settings' \"Draw your part\" is ticked."},
             "width": {"type": "integer", "minimum": 100},
             "height": {"type": "integer", "minimum": 60},
             "ticksShown": {"type": "integer", "minimum": 4, "description": "Ticks of the past shown left of the now marker. Default 48."},

@@ -1,6 +1,7 @@
 <template>
     <div>
-        <modal name="settingsModal" :minWidth=700 :minHeight=600 :adaptive="true">
+        <modal name="settingsModal" width="90%" height="85%" :maxWidth="1200" :minWidth="320" :minHeight="300"
+            :adaptive="true">
             <div class="settingsContainer">
                 <div class="settingsHeader">
                     <p class="settingsTitle">
@@ -11,7 +12,7 @@
                             style="padding:0;margin:0;height:24px">close</md-icon>
                     </button>
                 </div>
-                <div class="settingsContent" style="overflow-y: scroll; height:600px">
+                <div class="settingsContent">
                     <div id="ClockSection" class="settingsBorderedTitle"
                         style="display:flex;justify-content:start;align-items:center">
                         <p class="settingsSubtitle" style="padding:0; margin-right:50px">
@@ -130,6 +131,37 @@
                                     </button>
                                 </div>
                             </div>
+                            <!-- The live canvas (gui.liveCanvas): show it, and its generation settings -->
+                            <div v-if="liveCanvas" class="controlCollection liveCanvasSettings">
+                                <label class="lcRow" data-testid="euterpe-live-canvas-visible">
+                                    <input type="checkbox" :checked="liveCanvas.ui.visible"
+                                        @change="liveCanvas.setVisible($event.target.checked)">
+                                    Draw your part
+                                </label>
+                                <div class="dropdown-container">
+                                    <label for="lcPenUp">When not drawing</label>
+                                    <select id="lcPenUp" :value="liveCanvas.ui.penUp"
+                                        data-testid="euterpe-live-canvas-penup"
+                                        @change="liveCanvas.setPenUp($event.target.value)">
+                                        <option value="hold">hold the note</option>
+                                        <option value="free">let the model play on its own</option>
+                                    </select>
+                                </div>
+                                <div class="dropdown-container">
+                                    <label for="lcModel">Canvas model</label>
+                                    <select id="lcModel" :value="liveCanvas.ui.model"
+                                        @change="liveCanvas.setModel($event.target.value)">
+                                        <option value="onnx">Draw &amp; Listen</option>
+                                        <option value="rules">rules (nearest scale note)</option>
+                                    </select>
+                                </div>
+                                <div class="lcFollow">
+                                    <label for="lcFollow">Follow the line: {{ Number(liveCanvas.ui.follow).toFixed(2) }}</label>
+                                    <input id="lcFollow" type="range" min="0.3" max="1" step="0.05"
+                                        :value="liveCanvas.ui.follow" data-testid="euterpe-live-canvas-follow"
+                                        @input="liveCanvas.setFollow($event.target.value)">
+                                </div>
+                            </div>
                             <!-- Switches for agent Parameters -->
                             <div v-if="switches.length > 0" class="controlCollection">
                                 <div class="switchContainer" v-for="(swi, i) in switches" :key="'switch' + swi.id"
@@ -183,6 +215,11 @@ export default {
         textFields: {
             type: Array,
             default: () => [],
+        },
+        // the live canvas's controller (utils/liveCanvas.js), if the page has one
+        liveCanvas: {
+            type: Object,
+            default: null,
         },
         dropdownsNote: {
             type: String,
@@ -447,5 +484,82 @@ select {
     text-align: center;
 }
 
+
+/* layout: the body scrolls inside the modal; control groups in a responsive grid (nothing clipped) */
+.settingsContainer {
+    height: 100%;
+}
+
+.settingsHeader {
+    flex: 0 0 auto;
+    min-height: 56px;
+}
+
+.settingsContent {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 2% 24px;
+    font-size: 18px;
+    box-sizing: border-box;
+}
+
+#ClockSection, #MIDISection {
+    flex-wrap: wrap;
+    gap: 12px 24px;
+}
+
+.agentParametersContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.controlCollection {
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border: 1px dashed var(--foreground-color);
+    border-radius: 6px;
+    min-width: 0;
+}
+
+.dropdown-container {
+    display: block;
+    margin-right: 0;
+    text-align: left;
+}
+
+select {
+    width: 100%;
+    max-width: 320px;
+}
+
+.agentParameterButton,
+.agentParameterButton:hover {
+    width: auto;
+    min-width: 50%;
+    padding: 6px 16px;
+}
+
+.switchContainer {
+    border-right: none;
+}
+
+.liveCanvasSettings {
+    text-align: left;
+}
+
+.lcRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+}
+
+.lcFollow input {
+    width: 100%;
+}
 </style>
 

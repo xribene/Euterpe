@@ -85,6 +85,7 @@ export default {
     },
     beforeDestroy() {
         cancelAnimationFrame(this.raf);
+        if (document.pointerLockElement === this.$refs.canvas) document.exitPointerLock();
         document.removeEventListener('mousemove', this.onMouseMove);
         document.removeEventListener('pointerlockchange', this.onLockChange);
         document.removeEventListener('mousedown', this.onMouseDown);
