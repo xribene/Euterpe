@@ -172,6 +172,13 @@ export default {
         this.$store.commit('setConfig', this.config);
         this.$store.commit('initQuantBuffers', this.config);
         this.$store.commit('setTicksPerMeasure', this.config);
+        // One AudioContext for everything: Tone.js (samplers, metronome) and the microphone (analyser, recorder
+        // worklet) share it, so playback and input run on one audio clock. Set before the samplers are created.
+        // lookAhead 0: a note starts when it is triggered (Tone's default, 0.1 s, would delay every note; that was
+        // the "huge latency" when the context was first shared).
+        this.audioContext = new AudioContext({latencyHint: 'interactive'});
+        Tone.setContext(this.audioContext);
+        Tone.getContext().lookAhead = 0;
         this.$store.commit('createInstruments', this.config);
         this.$store.commit('setNoteType', this.noteType);
 
@@ -277,11 +284,7 @@ export default {
         vm.$refs.mainContent.style.display = 'none';
         vm.$refs.entryBtn.style.visibility = 'hidden';
 
-        vm.audioContext = new AudioContext();
-        // this cause huge latency for some reason
-        // Tone.setContext(vm.audioContext);
-        // increase it if you experience audio clicks
-        Tone.context.lookAhead = 0;
+        // (vm.audioContext, shared with Tone.js, was created in created())
 
         // SAB
         // get a memory region for the Audio ring buffer
@@ -318,6 +321,8 @@ export default {
             hookType: vm.agentHookType.INIT_AGENT,
             content: {
                 config: vm.config,
+                // the page's clock origin: the worker's ctx.now() is on the same clock as createdAt.seconds
+                timeOrigin: performance.timeOrigin,
                 // the page's URL query, for agent options such as ?ortThreads=4
                 urlParams: Object.fromEntries(new URLSearchParams(window.location.search)),
                 playerType: vm.playerType,
@@ -468,7 +473,7 @@ export default {
             newNoteEvent.midi = note.note;
             newNoteEvent.velocity = 127;
             newNoteEvent.createdAt = {
-                seconds: performance.now(),
+                seconds: performance.now() / 1000,
                 tick: vm.$store.getters.getGlobalTickDelayed,
             };
             newNoteEvent.playAfter = {
@@ -492,7 +497,7 @@ export default {
             newNoteEvent.midi = note.note;
             newNoteEvent.velocity = 127;
             newNoteEvent.createdAt = {
-                seconds: performance.now(),
+                seconds: performance.now() / 1000,
                 tick: vm.$store.getters.getGlobalTickDelayed,
             };
             newNoteEvent.playAfter = {
@@ -990,6 +995,7 @@ export default {
                                 this.$store.dispatch('storeAgentQuantizedOutput', noteEvent);
                             } else {
                                 // console.debug("type ", noteEvent.type, " ", noteEvent.midi);
+                                this.$store.commit('agentNotePlayedImmediately', noteEvent);
                                 vm.processAgentNoteEvent(noteEvent);
                             }
                         });
@@ -1335,7 +1341,7 @@ export default {
                 newNoteEvent.midi = message.data[1];
                 newNoteEvent.velocity = message.data[2];
                 newNoteEvent.createdAt = {
-                    seconds: performance.now(), // message.timestamp
+                    seconds: performance.now() / 1000, // message.timestamp
                     tick: vm.$store.getters.getGlobalTickDelayed,
                 };
                 newNoteEvent.playAfter = {
@@ -1358,7 +1364,7 @@ export default {
                 newNoteEvent.midi = message.data[1];
                 newNoteEvent.velocity = message.data[2];
                 newNoteEvent.createdAt = {
-                    seconds: performance.now(), // message.timestamp
+                    seconds: performance.now() / 1000, // message.timestamp
                     tick: vm.$store.getters.getGlobalTickDelayed,
                 };
                 newNoteEvent.playAfter = {
@@ -1681,7 +1687,8 @@ export default {
                     const oldStatus = oldStates.length == 0 ? null : oldStates[index].status;
                     if (newState.status !== oldStatus) {
                         const floatStatus = newState.status ? 1.0 : 0.0;
-                        const switchPropertyName = `SWITCH_${index + 1}`;
+                        // by the switch's YAML id (its position if it has none)
+                        const switchPropertyName = `SWITCH_${newState.id ?? index + 1}`;
                         if (
                             this.paramWriter != null &&
                                             !this.paramWriter.enqueue_change(
@@ -1704,7 +1711,8 @@ export default {
                     const oldStatus = oldStates.length == 0 ? null : oldStates[index].status;
                     if (newState.value !== oldStatus) {
                         // let floatStatus = newState.status ? 1.0 : 0.0;
-                        const sliderPropertyName = `SLIDER_${index + 1}`;
+                        // by the slider's YAML id (its position if it has none)
+                        const sliderPropertyName = `SLIDER_${newState.id ?? index + 1}`;
                         console.debug('detected ', sliderPropertyName, ' change to ', newState.value);
                         if (
                             this.paramWriter != null &&

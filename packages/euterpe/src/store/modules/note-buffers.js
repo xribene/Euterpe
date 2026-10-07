@@ -85,6 +85,8 @@ const state = {
     lastHumanQuantizedNote: {'midi': -1, 'cpc': -1, 'name': '', 'dur': 0, 'startTick': -1},
     // The last note the AI played (quantized by default for a grid-based worker)
     lastAgentNote: {'midi': 0, 'cpc': 12, 'name': 'R', 'dur': 1, 'startTick': -1},
+    // agent notes played at once (playAfter.tick 0, free time): the score, which shows grid timing, skips them
+    immediateAgentNotes: new Set(),
 
 };
 
@@ -217,7 +219,10 @@ const actions = {
             } else {
                 // a note-off for a note the score didn't see start (never played, played at once with
                 // playAfter.tick 0, or one of a chord): harmless to the audio; the score shows one agent voice
-                if (!warnedUnmatchedOff) {
+                // (not for a note played at once: the score never shows those)
+                const freeTime = noteOffEvents.every((e) => state.immediateAgentNotes.has(e.midi));
+                for (const e of noteOffEvents) state.immediateAgentNotes.delete(e.midi);
+                if (!freeTime && !warnedUnmatchedOff) {
                     warnedUnmatchedOff = true;
                     console.warn(`[euterpe] the agent turned off note ${noteOffEvents.map((e) => e.midi).join(', ')}, ` +
                         `which the score did not see start (it shows the agent's last note-on, ${state.lastAgentNote.midi}); ` +
@@ -406,6 +411,10 @@ const actions = {
 };
 
 const mutations = {
+    agentNotePlayedImmediately(state, noteEvent) {
+        if (noteEvent.type === state.noteType.NOTE_ON) state.immediateAgentNotes.add(noteEvent.midi);
+        else if (noteEvent.type === state.noteType.NOTE_OFF) state.immediateAgentNotes.delete(noteEvent.midi);
+    },
     // initPianoState (state) {
     //     // Create a range of midi numbers from 21 to 108 (piano keys)
     //     state.pianoMidiNumbers = [...Array(88).keys()].map(i => i + 21);

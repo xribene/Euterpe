@@ -232,7 +232,7 @@ export default {
             newNoteEvent.midi = midi;
             newNoteEvent.velocity = 127;
             newNoteEvent.createdAt = {
-                seconds: performance.now(),
+                seconds: performance.now() / 1000,
                 tick: this.$store.getters.getGlobalTickDelayed,
             };
             newNoteEvent.playAfter = {
@@ -274,7 +274,7 @@ export default {
             newNoteEvent.midi = midi;
             newNoteEvent.velocity = 127;
             newNoteEvent.createdAt = {
-                seconds: performance.now(),
+                seconds: performance.now() / 1000,
                 tick: this.$store.getters.getGlobalTickDelayed,
             };
             newNoteEvent.playAfter = {

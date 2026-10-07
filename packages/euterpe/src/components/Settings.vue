@@ -82,7 +82,7 @@
                         <div class="agentParametersContainer">
                             <div v-if="sliders.length > 0" class="controlCollection">
                                 <div v-for="(sliderItem, i) in sliders" :key="'slider' + sliderItem.id"
-                                    :data-testid="'euterpe-slider-' + (i + 1)">
+                                    :data-testid="'euterpe-slider-' + (sliderItem.id ?? i + 1)">
                                     <Slider
                                         v-model="sliderItem.value"
                                         :min="sliderItem.min"
@@ -122,7 +122,7 @@
                             <!-- Switches for agent Parameters -->
                             <div v-if="switches.length > 0" class="controlCollection">
                                 <div class="switchContainer" v-for="(swi, i) in switches" :key="'switch' + swi.id"
-                                    :data-testid="'euterpe-switch-' + (i + 1)">
+                                    :data-testid="'euterpe-switch-' + (swi.id ?? i + 1)">
                                     <div class="switchLabel">{{ swi.label }}</div>
                                     <toggle-button class="switch"
                                         color="#e6a100"

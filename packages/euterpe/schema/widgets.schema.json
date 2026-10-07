@@ -78,12 +78,12 @@
             "sliders": {
               "type": ["array", "null"],
               "maxItems": 6,
-              "description": "ctx.params.slider[n]: n is the slider's position (1-based).",
+              "description": "ctx.params.slider[id].",
               "items": {
                 "type": "object",
                 "required": ["label", "value", "min", "max"],
                 "properties": {
-                  "id": {"type": "integer"},
+                  "id": {"type": "integer", "minimum": 1, "maximum": 6, "description": "ctx.params.slider[id] (default: the slider's position)."},
                   "label": {"type": "string"},
                   "value": {"type": "number"},
                   "min": {"type": "number"},
@@ -94,11 +94,11 @@
             "switches": {
               "type": ["array", "null"],
               "maxItems": 4,
-              "description": "ctx.params.switch[n]: n is the switch's position (1-based).",
+              "description": "ctx.params.switch[id].",
               "items": {
                 "type": "object",
                 "required": ["label"],
-                "properties": {"id": {"type": "integer"}, "label": {"type": "string"}, "status": {"type": "boolean"}}
+                "properties": {"id": {"type": "integer", "minimum": 1, "maximum": 4, "description": "ctx.params.switch[id] (default: the switch's position)."}, "label": {"type": "string"}, "status": {"type": "boolean"}}
               }
             },
             "buttons": {

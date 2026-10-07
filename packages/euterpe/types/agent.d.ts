@@ -44,10 +44,7 @@ export declare class NoteEvent {
     chroma: number | null;
     channel: number | null;
     velocity: number;
-    /**
-     * When the note was played. `seconds` is the page's performance.now() in **milliseconds** (a different clock
-     * from the worker's): use differences only.
-     */
+    /** When the note was played: `seconds` on the page's clock (compare with ctx.now()), and the tick. */
     createdAt: TickTime | null;
     /** When to play the note: `tick` ticks from now (0: at once) plus `seconds`. */
     playAfter: TickTime | null;
@@ -115,7 +112,7 @@ export interface ClockEvent {
 /** The input of updateParameter. */
 export interface ParamChange {
     kind: 'slider' | 'switch' | 'button' | 'dropdown' | 'unknown';
-    /** Sliders and switches: their position in widgets.yaml (1-based); dropdowns and buttons: their id. */
+    /** The widget's id in widgets.yaml (sliders and switches without one: their position, 1-based). */
     id: number;
     /** Slider: its value; switch: on/off; dropdown: the selected option's index; button: presses so far. */
     value: number | boolean;
@@ -133,15 +130,17 @@ export interface Ctx {
     ticksPerMeasure: number;
     /** The widgets' current values, starting from widgets.yaml. */
     params: {
-        /** By position in widgets.yaml (1-based). */
+        /** By id in widgets.yaml. */
         slider: Record<number, number>;
-        /** By position in widgets.yaml (1-based). */
+        /** By id in widgets.yaml. */
         switch: Record<number, boolean>;
         /** By id: presses so far. */
         button: Record<number, number>;
         /** By id: the selected option's index. */
         dropdown: Record<number, number>;
     };
+    /** Seconds on the page's clock, the clock of user notes' createdAt.seconds. */
+    now(): number;
     /** The microphone stream, once it runs (audio mode). */
     audio: {sampleRate: number; channelCount: number} | null;
     types: {

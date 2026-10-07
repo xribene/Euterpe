@@ -30,6 +30,8 @@ const WIDGETS = Object.fromEntries(Object.entries(uiParameterType).map(([name, i
 export function createContext(init) {
     const config = init.config;
     const clock = config.clockSettings ?? {};
+    // the page's clock in the worker: user notes' createdAt.seconds are on it
+    const offset = performance.timeOrigin - (init.timeOrigin ?? performance.timeOrigin);
     const ctx = {
         config,
         urlParams: init.urlParams ?? {},
@@ -40,6 +42,8 @@ export function createContext(init) {
         // set when the microphone stream starts (audio mode)
         audio: null,
         types: {noteType, playerType, instrumentType, messageType, statusType, uiParameterType},
+        /** Seconds on the page's clock, the clock of user notes' createdAt.seconds. */
+        now: () => (performance.now() + offset) / 1000,
 
         /**
          * A note for the agent to play.
@@ -93,9 +97,9 @@ export function createContext(init) {
 function initialParams(config) {
     const modal = config.gui?.settingsModal ?? {};
     const params = {slider: {}, switch: {}, button: {}, dropdown: {}};
-    // the UI sends sliders and switches by position (SLIDER_1 is the first slider), dropdowns by id
-    (modal.sliders ?? []).forEach((s, i) => params.slider[i + 1] = s.value);
-    (modal.switches ?? []).forEach((s, i) => params.switch[i + 1] = Boolean(s.status));
+    // by YAML id (sliders and switches without one: their position)
+    (modal.sliders ?? []).forEach((s, i) => params.slider[s.id ?? i + 1] = s.value);
+    (modal.switches ?? []).forEach((s, i) => params.switch[s.id ?? i + 1] = Boolean(s.status));
     (modal.dropdowns ?? []).forEach((d) => params.dropdown[d.id] = d.value ?? 0);
     (modal.buttons ?? []).forEach((b) => params.button[b.id] = 0);
     return params;

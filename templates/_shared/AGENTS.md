@@ -31,7 +31,7 @@ export default defineAgent({
 
 - Every hook is optional and may be `async`. The hooks run in a Web Worker: no DOM, no `window`.
 - `clock`: `tick` (position in the bar), `globalTick`, `barReset` (the bar restarted), `userQuantizedNotes` (the user's notes on this tick, if `gridBased.quantizedEvents: true`), `userNotes` (raw notes since the last tick, if `gridBased.eventBuffer: true`).
-- A note (`NoteEvent`): `midi`, `type` (`ctx.types.noteType`: `NOTE_ON` 1, `NOTE_OFF` -1, `NOTE_HOLD` 0), `velocity`, `createdAt` (`{tick, seconds}`, where `seconds` is in milliseconds on the page's clock: use differences only).
+- A note (`NoteEvent`): `midi`, `type` (`ctx.types.noteType`: `NOTE_ON` 1, `NOTE_OFF` -1, `NOTE_HOLD` 0), `velocity`, `createdAt` (`{tick, seconds}`: when it was played; `seconds` is on the page's clock, the same as `ctx.now()`).
 - Return what the agent plays and shows: an array of notes, or `{notes, text, label, vector, key}`, or nothing.
 - The time budget of `processClockEvent` is one tick (150 ms at 100 BPM in 16ths). A note scheduled for a tick that has already passed is dropped.
 
@@ -40,7 +40,8 @@ export default defineAgent({
 | | |
 |---|---|
 | `ctx.noteOn(midi, {tick, seconds, velocity, instrument, duration})`, `ctx.noteOff(midi, {...})` | A note to return. `tick`: ticks from now (0: at once); `instrument`: `'piano'`, `'drums'`, `'bass'`, `'synth'` |
-| `ctx.params.slider[1]`, `.switch[1]`, `.dropdown[1]`, `.button[1]` | Current widget values (starting from widgets.yaml). Sliders and switches are numbered by position, dropdowns and buttons by `id` |
+| `ctx.params.slider[1]`, `.switch[1]`, `.dropdown[1]`, `.button[1]` | Current widget values (starting from widgets.yaml), by the widget's `id` in widgets.yaml |
+| `ctx.now()` | Seconds on the page's clock (compare with a note's `createdAt.seconds`) |
 | `ctx.config` | The merged YAML files |
 | `ctx.send({text})` | Send output outside a hook's return (e.g. loading progress) |
 | `ctx.monitor(id, value)` | Plot a value in the Monitor widget (widgets.yaml `gui.monitor`) |

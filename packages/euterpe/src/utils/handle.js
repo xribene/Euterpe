@@ -38,7 +38,7 @@ export function installHandle(vm) {
         note.channel = 140;
         note.midi = midi;
         note.velocity = velocity;
-        note.createdAt = {seconds: performance.now(), tick: store.getters.getGlobalTickDelayed};
+        note.createdAt = {seconds: performance.now() / 1000, tick: store.getters.getGlobalTickDelayed};
         note.playAfter = {seconds: 0, tick: 0};
         note.duration = null;
         vm.processUserNoteEvent(note);
@@ -84,18 +84,22 @@ export function installHandle(vm) {
         setBPM(bpm) {
             vm.bpmValueChanged(bpm);
         },
-        // as ctx.params: sliders and switches by position, dropdowns and buttons by id
+        // as ctx.params: by YAML id (sliders and switches without one: their position)
         get params() {
             return {
-                slider: Object.fromEntries(vm.sliders.map((s, i) => [i + 1, s.value])),
-                switch: Object.fromEntries(vm.switches.map((s, i) => [i + 1, s.status])),
+                slider: Object.fromEntries(vm.sliders.map((s, i) => [s.id ?? i + 1, s.value])),
+                switch: Object.fromEntries(vm.switches.map((s, i) => [s.id ?? i + 1, s.status])),
                 dropdown: Object.fromEntries(vm.dropdowns.map((d) => [d.id, d.value])),
             };
         },
         setParam(kind, id, value) {
-            if (kind === 'slider') vm.sliders[id - 1].value = value;
-            else if (kind === 'switch') vm.switches[id - 1].status = Boolean(value);
-            else if (kind === 'dropdown') vm.dropdowns.find((d) => d.id === id).value = value;
+            const byId = (list) => list.find((w, i) => (w.id ?? i + 1) === id) ??
+                (() => {
+                    throw new Error(`__euterpe.setParam: no ${kind} with id ${id}`);
+                })();
+            if (kind === 'slider') byId(vm.sliders).value = value;
+            else if (kind === 'switch') byId(vm.switches).status = Boolean(value);
+            else if (kind === 'dropdown') byId(vm.dropdowns).value = value;
             else if (kind === 'button') vm.buttonAction(id);
             else throw new Error(`__euterpe.setParam: unknown widget kind "${kind}"`);
         },
