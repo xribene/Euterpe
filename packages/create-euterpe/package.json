@@ -14,12 +14,20 @@
     "LICENSE"
   ],
   "scripts": {
-    "prepack": "node scripts/bundle-templates.mjs"
+    "prepack": "node scripts/bundle-templates.mjs",
+    "postpack": "node -e \"require('fs').rmSync('templates', {recursive: true, force: true})\""
   },
   "engines": {
     "node": ">=18"
   },
-  "keywords": ["euterpe", "music", "interactive", "agent", "create", "template"],
+  "keywords": [
+    "euterpe",
+    "music",
+    "interactive",
+    "agent",
+    "create",
+    "template"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xribene/Euterpe.git",
