@@ -320,6 +320,11 @@ export default {
         const audioOut = vm.config.interactionMode?.audioOut ? {
             channels: vm.config.audioOutSettings?.channels ?? 2,
             latency: vm.config.audioOutSettings?.latency ?? 0.1,
+            // the agent's sample rate (resampled to the page's) and block size, if set
+            sampleRate: vm.config.audioOutSettings?.sampleRate ?? null,
+            blockSize: vm.config.audioOutSettings?.blockSize ?? null,
+            // the device's output latency, for ctx.audioOut.playTime()
+            outputLatency: (vm.audioContext.baseLatency ?? 0) + (vm.audioContext.outputLatency ?? 0),
         } : null;
         if (audioOut) {
             const seconds = Math.max(1, 4 * audioOut.latency);
@@ -387,8 +392,15 @@ export default {
 
             // TODO: this is not correct. Needs to be in a try/catch
             // but for some reason it doesn't work
+            // the browser's speech processing (echo cancellation, noise suppression, automatic gain) distorts
+            // music, so it is off unless audioModeSettings turns it on
+            const inputSettings = vm.config.audioModeSettings ?? {};
             const stream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
+                audio: {
+                    echoCancellation: inputSettings.echoCancellation ?? false,
+                    noiseSuppression: inputSettings.noiseSuppression ?? false,
+                    autoGainControl: inputSettings.autoGainControl ?? false,
+                },
                 video: false,
             });
             console.debug('Audio stream initialized');    
@@ -427,14 +439,24 @@ export default {
                 vm.recorderWorkletNode = new AudioWorkletNode(
                     vm.audioContext,
                     'recorder-worklet',
-                    {processorOptions: vm.sab},
+                    // always two channels (a mono microphone is copied to both): the recorder interleaves two
+                    {processorOptions: vm.sab, channelCount: 2, channelCountMode: 'explicit',
+                        channelInterpretation: 'speakers'},
                 );
 
                 vm.recorderWorkletNode.port.postMessage('ping');
 
                 vm.recorderWorkletNode.port.addEventListener('message', (event) => {
-                    console.debug('Received from Worklet' + event.data);
+                    console.debug('Received from Worklet', event.data);
+                    // the audio clock time of the first recorded sample -> the page clock, for frame.time
+                    // (the audio thread's clock against performance.now() now: when the audio thread processed it;
+                    // not getOutputTimestamp(), which is about what the speakers play, an output latency later)
+                    if (typeof event.data?.start === 'number') {
+                        const ms = performance.now() - (vm.audioContext.currentTime - event.data.start) * 1000;
+                        vm.agent.postMessage({control: 'audioInStart', time: ms / 1000});
+                    }
                 });
+                vm.recorderWorkletNode.port.start();
                 // vm.recorderWorkletNode.port.start(); # TODO do I need this for ping/pong ?
                 // send the mic to the recorderNode --> recorderWorklet
                 vm.mediaStreamSource.connect(vm.recorderWorkletNode);

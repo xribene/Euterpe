@@ -28,15 +28,23 @@ class RecorderWorklet extends AudioWorkletProcessor {
     process(inputs, _outputs, _parameters) {
         // TODO : if (_parameters.recordingStatus[0] ===1)
 
-        if (inputs[0]) {
-            // interleave and store in the queue
-            // console.debug(inputs[0].length);
-            // if (_parameters.channels[0] === 2) {
-            interleave(inputs[0], this.interleaved);
-            if (this._audio_writer.enqueue(this.interleaved) !== 256) {
-                // console.debug("underrun: the worker doesn't dequeue fast enough!");
-            }
+        const input = inputs[0];
+        // nothing connected yet: no channels
+        if (!input || input.length === 0) return true;
+        if (!this.started) {
+            // when the first sample was recorded (audio clock), for the frames' timestamps
+            this.started = true;
+            this.port.postMessage({start: currentTime});
         }
+        // two channels, interleaved (the node is set to 2; a mono input is used for both), any block size
+        const left = input[0];
+        const right = input[1] ?? input[0];
+        if (this.interleaved.length !== 2 * left.length) this.interleaved = new Float32Array(2 * left.length);
+        for (let i = 0; i < left.length; i++) {
+            this.interleaved[2 * i] = left[i];
+            this.interleaved[2 * i + 1] = right[i];
+        }
+        this._audio_writer.enqueue(this.interleaved);
         return true;
     }
 }

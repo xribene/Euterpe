@@ -78,6 +78,10 @@ export function validateAgent(files) {
         warnings.push(`${file}: gridBased is on but quantizedEvents and eventBuffer are off, so processClockEvent ` +
             'never sees the user\'s notes');
     }
+    const am = config.audioModeSettings ?? {};
+    if (am.hopSize && am.windowSize && am.hopSize > am.windowSize) {
+        errors.push(`${file}: audioModeSettings.hopSize (${am.hopSize}) is larger than windowSize (${am.windowSize})`);
+    }
     if (config.audioOutSettings && !config.interactionMode?.audioOut) {
         warnings.push(`${file}: audioOutSettings is set but interactionMode.audioOut is not true, so the agent has no audio output`);
     }

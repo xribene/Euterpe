@@ -1,0 +1,11 @@
+{
+  "name": "test-audio-io",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node resampler.test.mjs && node framer.test.mjs && node audio-out.test.mjs"
+  },
+  "devDependencies": {
+    "ringbuf.js": "^0.3.6"
+  }
+}

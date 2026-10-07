@@ -7,6 +7,7 @@ import * as agentModule from 'virtual:euterpe-agent';
 import {AGENT_MARK, HOOK_NAMES} from '../agent.js';
 import {createContext, applyParameter, toMessage, warnOnce} from './context.js';
 import {createAudioOut, startRenderLoop, disableAudioOut} from './audioOut.js';
+import {createFramer} from './audioIn.js';
 
 // agent/hooks.js exports the hooks either as `export default defineAgent({...})` (the hooks get `ctx` and the
 // runtime reports when the agent is ready) or, as the original agents do, as named functions using self.*
@@ -36,7 +37,6 @@ const processClockEvent = hook('processClockEvent', () => ({}));
 const processNoteEvent = hook('processNoteEvent', () => undefined);
 const processAudioBuffer = hook('processAudioBuffer', () => undefined);
 
-import {deinterleaveCustom} from '../utils/helpers.js';
 import {LIFOQueue} from '../utils/dataStructures.js';
 import {NoteEvent} from '../utils/NoteEvent.js';
 
@@ -69,8 +69,9 @@ self.hopSize = null;
 let staging = null;
 let _audioReader = null;
 let framesPerTick = null;
-let sampleCounter = null;
-let currentFrame = null;
+// the microphone's frames (audioIn.js), and when its first sample was captured (page clock seconds), once known
+let framer = null;
+let audioInStart = null;
 let stagingIntervalID = null;
 let uiParameterIntervalID = null;
 // Clock events are processed in order, one at a time (see onMessageFunction)
@@ -95,52 +96,38 @@ self.param_writer = null;
 self.userToAgentNoteMapping = {};
 
 /**
- * Read some audio samples from queue, and process them
- * Here we create audio_frames based on windowSize and hopSize
- * and we send them for processing in the processAudioBuffer() hook
- * @return {number} - The number of samples read from the queue
+ * Reads the microphone's samples from the ring buffer, cuts them into frames (audioIn.js) and passes each frame
+ * to processAudioBuffer. A frame is an array of Float32Arrays (one per channel) with its position: `start`
+ * (samples since the microphone started, at frame.sampleRate), `time` (when its first sample was captured, in
+ * seconds on the page's clock, like ctx.now(); null until known) and `sampleRate`.
+ * @return {number} The samples read.
  */
 function _readFromQueue() {
-    const samplesRead = _audioReader.dequeue(staging);
-
-    if (!samplesRead) {
-        return 0;
-    }
-
-    // samplesRead can have less length than staging
-    for (let i = 0; i < samplesRead; i++) {
-        if (sampleCounter == self.windowSize - 1) {
-            // Here you can do some analysis on the current audio frame
-            const channel1 = new Float32Array(currentFrame.length / self.channelCount);
-            const channel2 = new Float32Array(currentFrame.length / self.channelCount);
-            const channels = [channel1, channel2];
-            // console.debug("in read from queue");
-            deinterleaveCustom(currentFrame, channels, self.channelCount);
-            const tempFrame = new Float32Array(self.windowSize);
-            // Copy the last windowSize - hopSize samples to the current frame
-            // to the beginning of the new frame
-            for (let j = 0; j < (self.windowSize - self.hopSize); j++) {
-                tempFrame[j] = currentFrame[j + self.hopSize];
-            }
-            currentFrame = tempFrame;
-            sampleCounter = self.windowSize - self.hopSize;
-
+    let total = 0;
+    for (;;) {
+        const samplesRead = _audioReader.dequeue(staging);
+        if (!samplesRead) break;
+        total += samplesRead;
+        for (const {planes, start} of framer.push(staging.subarray(0, samplesRead))) {
+            const frame = planes;
+            frame.start = start;
+            frame.sampleRate = ctx.audio.sampleRate;
+            frame.time = audioInStart === null ? null :
+                audioInStart + start / ctx.audio.sampleRate - framer.delay;
             if (defined) {
                 // frames that arrive while loadAlgorithm runs are dropped: the agent isn't ready for them
                 if (!ctx._loading) {
-                    Promise.resolve(processAudioBuffer(channels, ctx)).then((output) => {
+                    Promise.resolve(processAudioBuffer(frame, ctx)).then((output) => {
                         const message = toMessage(output, 'processAudioBuffer', ctx);
                         if (message) postMessage({hookType: self.agentHookType.NOTE_EVENT, message});
                     }).catch((error) => console.error('processAudioBuffer failed', error));
                 }
             } else {
-                processAudioBuffer(channels);
+                processAudioBuffer(frame);
             }
         }
-        currentFrame[sampleCounter] = staging[i];
-        sampleCounter += 1;
     }
-    return samplesRead;
+    return total;
 }
 
 /**
@@ -220,67 +207,30 @@ function loadConfig(content) {
  * @param {Object} content
  */
 function initAudio(content) {
-    // console.debug(content)
-    // Reads audio samples directly from the microphone
     _audioReader = new AudioReader(
         new RingBuffer(content.sab, Float32Array),
     );
 
-    // The number of channels of the audio stream read from the queue.
+    // the page's audio: interleaved, channelCount channels at the page's (AudioContext's) sample rate
     self.channelCount = content.channelCount;
-    // The sample-rate of the audio stream read from the queue.
     self.sampleRate = content.sampleRate;
-    ctx.audio = {sampleRate: self.sampleRate, channelCount: self.channelCount};
+    const settings = {windowSize: 1024, hopSize: 1024, ...self.config.audioModeSettings};
+    // the agent's frames: at audioModeSettings.sampleRate (resampled) or the page's rate
+    const sampleRate = settings.sampleRate ?? self.sampleRate;
+    ctx.audio = {sampleRate, channelCount: self.channelCount, windowSize: settings.windowSize,
+        hopSize: settings.hopSize, pageSampleRate: self.sampleRate};
+    framer = createFramer({channels: self.channelCount, inRate: self.sampleRate, outRate: sampleRate,
+        windowSize: settings.windowSize, hopSize: Math.min(settings.hopSize, settings.windowSize)});
 
-    // The frame/window size
-    // (audioModeSettings is optional: 1024 / 1024 by default)
-    const audioSettings = {windowSize: 1024, hopSize: 1024, ...self.config.audioModeSettings};
-    self.windowSize = audioSettings.windowSize * self.channelCount;
-
-    // The hop size
-    self.hopSize = audioSettings.hopSize * self.channelCount;
-
-    // Audio Frames per clock tick
-    framesPerTick = self.sampleRate * self.channelCount * 60 /
-                            60 / // self.config.clockSettings.tempo
-                            self.hopSize /
-                            self.config.clockSettings.ticksPerBeat;
-
-    /*
-        Store the audio data, as an array of frames
-        each frame is as array of float32 samples.
-        the size of the frame is equal to windowSize
-        This will be used in the AUDIO_BUFFER hook to
-        to feed the audio frames to the worker's music interaction algorithm.
-        We use a LIFOQueue to store the frames, so that we can efficiently
-        push and pop frames from the queue.
-        We set the max size of the queue to the equivalent duration of 16 clock ticks
-    */
+    // (for agents written the original way: sizes in interleaved samples, and the frame queues)
+    self.windowSize = settings.windowSize * self.channelCount;
+    self.hopSize = settings.hopSize * self.channelCount;
+    framesPerTick = self.sampleRate * self.channelCount / self.hopSize / self.config.clockSettings.ticksPerBeat;
     self.audio_frames_queue = new LIFOQueue(16 * framesPerTick);
-
-    // Same for the audio features queue. These features are extracted
-    // from the audio frames.
     self.audio_features_queue = new LIFOQueue(16 * framesPerTick);
 
-    // The current frame/window array. We'll keep pushing samples to it
-    // untill it's full (windowSize samples). Then we'll push it to the
-    // audio_frames_queue and start a new frame/window.
-    currentFrame = new Float32Array(self.windowSize);
-
-    // This counter will be used to keep track of the number of samples
-    // we have pushed to the current frame/window.
-    sampleCounter = 0;
-
-    /*
-    // A smaller staging array to copy the audio samples from, before conversion
-    // to uint16. It's size is 4 times less than the 1 second worth of data
-    // that the ring buffer can hold, so it's 250ms, allowing to not make
-    // deadlines:
-    */
-    staging = new Float32Array(self.hopSize);
-
-    // Meyda.bufferSize = self.config.audioModeSettings.windowSize;
-    // console.debug(self.windowSize, " ", self.Meyda.bufferSize);
+    // each read takes everything the ring buffer holds (up to 8192 samples per dequeue)
+    staging = new Float32Array(8192);
     stagingIntervalID = setInterval(_readFromQueue, 10);
     console.debug('finished setting up audio');
 }
@@ -293,6 +243,10 @@ async function onMessageFunction(obj) {
     // control messages from the page (not hooks)
     if (obj.data?.control === 'audioOutUnavailable') {
         disableAudioOut(ctx?.audioOut ?? null, renderLoop);
+        return;
+    }
+    if (obj.data?.control === 'audioInStart') {
+        audioInStart = obj.data.time;
         return;
     }
     if (obj.data?.control === 'audioOutQuantum') {
@@ -378,8 +332,12 @@ async function initAgent(content) {
         ctx = createContext(content);
         // the agent's audio output (config.yaml interactionMode.audioOut): ctx.audioOut, self.audioOut
         if (content.sabAudioOut) {
-            ctx.audioOut = createAudioOut(content.sabAudioOut,
-                {...content.audioOut, sampleRate: content.sampleRate}, warnOnce);
+            ctx.audioOut = createAudioOut(content.sabAudioOut, {
+                ...content.audioOut,
+                // the agent's rate (audioOutSettings.sampleRate) or the page's
+                sampleRate: content.audioOut.sampleRate ?? content.sampleRate,
+                pageSampleRate: content.sampleRate,
+            }, warnOnce, () => ctx.now());
             self.audioOut = ctx.audioOut;
         }
         if (defined) {

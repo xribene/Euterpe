@@ -111,9 +111,25 @@ export interface ClockEvent {
     userNotes: NoteEvent[];
 }
 
+/** A microphone frame: one Float32Array per channel (windowSize samples each), and where it sits in the stream. */
+export type AudioFrame = Float32Array[] & {
+    /** Samples (per channel, at sampleRate) since the microphone started, to the frame's first sample. */
+    start: number;
+    /** When the frame's first sample was captured, in seconds on the page's clock (ctx.now()); null until known. */
+    time: number | null;
+    sampleRate: number;
+};
+
 /** ctx.audioOut: the agent's audio output, a queue the page plays continuously. */
 export interface AudioOut {
+    /** The agent's output sample rate (audioOutSettings.sampleRate or the page's): write audio at this rate. */
     sampleRate: number;
+    /** The page's (AudioContext's) sample rate. */
+    pageSampleRate: number;
+    /** renderAudio's fixed block size (audioOutSettings.blockSize), or null. */
+    blockSize: number | null;
+    /** When audio written now will be heard, in seconds on the page's clock (ctx.now()). */
+    playTime(): number;
     /** audioOutSettings.channels (1 or 2). */
     channels: number;
     /** audioOutSettings.latency: seconds renderAudio keeps queued. */
@@ -160,8 +176,11 @@ export interface Ctx {
     now(): number;
     /** The agent's audio output (config.yaml interactionMode.audioOut: true), or null. */
     audioOut: AudioOut | null;
-    /** The microphone stream, once it runs (audio mode). */
-    audio: {sampleRate: number; channelCount: number} | null;
+    /**
+     * The microphone's frames, once it runs (audio mode): their sample rate (audioModeSettings.sampleRate or the
+     * page's), channels, window and hop sizes, and the page's own sample rate.
+     */
+    audio: {sampleRate: number; channelCount: number; windowSize: number; hopSize: number; pageSampleRate: number} | null;
     types: {
         noteType: typeof noteType;
         playerType: typeof playerType;
@@ -191,7 +210,7 @@ export interface AgentHooks {
     /** Every user note, as it happens (config.yaml eventBased.status: true). */
     processNoteEvent?(note: NoteEvent, ctx: Ctx): Awaitable<HookOutput>;
     /** Every microphone frame (config.yaml interactionMode.audioMode: true): one Float32Array per channel. */
-    processAudioBuffer?(channels: Float32Array[], ctx: Ctx): Awaitable<HookOutput>;
+    processAudioBuffer?(frame: AudioFrame, ctx: Ctx): Awaitable<HookOutput>;
     /** A Settings widget changed; ctx.params already holds the new value. */
     updateParameter?(change: ParamChange, ctx: Ctx): Awaitable<HookOutput>;
     /**

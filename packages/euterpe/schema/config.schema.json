@@ -92,12 +92,30 @@
         "windowSize": {
           "type": "integer",
           "minimum": 128,
-          "description": "Samples per frame passed to processAudioBuffer."
+          "description": "Samples per frame passed to processAudioBuffer (at audioModeSettings.sampleRate)."
         },
         "hopSize": {
           "type": "integer",
           "minimum": 1,
-          "description": "Samples between consecutive frames."
+          "description": "Samples between consecutive frames (at most windowSize)."
+        },
+        "sampleRate": {
+          "type": "integer",
+          "minimum": 8000,
+          "maximum": 192000,
+          "description": "The agent's input sample rate: frames are resampled to it (e.g. 16000 for a speech-rate model). Default: the page's (44100 or 48000, set by the device)."
+        },
+        "echoCancellation": {
+          "type": "boolean",
+          "description": "The browser's echo cancellation on the microphone. Default false (it distorts music)."
+        },
+        "noiseSuppression": {
+          "type": "boolean",
+          "description": "The browser's noise suppression. Default false (it removes sustained tones)."
+        },
+        "autoGainControl": {
+          "type": "boolean",
+          "description": "The browser's automatic gain control. Default false (it pumps the level)."
         }
       }
     },
@@ -119,6 +137,18 @@
           "minimum": 0.01,
           "maximum": 2,
           "description": "Seconds of audio kept queued ahead of playback (renderAudio fills up to this). More: fewer dropouts, later sound. Default 0.1."
+        },
+        "sampleRate": {
+          "type": "integer",
+          "minimum": 8000,
+          "maximum": 192000,
+          "description": "The agent's output sample rate: renderAudio / ctx.audioOut.write take audio at this rate and Euterpe resamples it. Default: the page's."
+        },
+        "blockSize": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 16384,
+          "description": "renderAudio is always asked for exactly this many frames (for models with a fixed block size). Default: variable, in steps of 128."
         }
       }
     },

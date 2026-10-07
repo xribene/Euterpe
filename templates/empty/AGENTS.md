@@ -53,6 +53,10 @@ export default defineAgent({
 
 `euterpe/agent` also exports `NoteEvent`, `clamp`, `clampMidi`, `LIFOQueue`, `FIFOQueue`.
 
+## Audio input
+
+With `interactionMode.audioMode: true` the agent gets the microphone in `processAudioBuffer(frame, ctx)`: `frame` is one `Float32Array` per channel (2; a mono microphone is copied to both) of `audioModeSettings.windowSize` samples, every `hopSize` samples, at `audioModeSettings.sampleRate` (resampled; default the page's 44.1 or 48 kHz). `frame.start` is its position in samples since the microphone started and `frame.time` when it was captured (page clock, like `ctx.now()` and notes' `createdAt.seconds`). The browser's speech processing (echo cancellation, noise suppression, automatic gain) is off unless `audioModeSettings` turns it on. For a longer context than one window, keep your own history of frames in `hooks.js`.
+
 ## Audio output
 
 An agent can play audio it generates (synthesis, a neural audio model), besides or instead of notes. In `config.yaml`:
@@ -64,6 +68,8 @@ audioOutSettings:
   channels: 2     # 1 (mono, on both speakers) or 2
   latency: 0.1    # seconds queued ahead of playback: more = fewer dropouts, later sound
 ```
+
+`audioOutSettings.sampleRate` sets the rate the agent writes at (Euterpe resamples it to the page's), and `audioOutSettings.blockSize` makes `renderAudio` always ask for exactly that many frames (for models with a fixed block size). `ctx.audioOut.playTime()` says when audio written now will be heard (page clock, like `ctx.now()`).
 
 Then either let Euterpe ask for audio (`renderAudio(frames, ctx)` is called whenever less than `latency` seconds are queued; return one `Float32Array` per channel, or one for all), or push it yourself (`ctx.audioOut.write(channels)` anywhere, or `{audio: channels}` returned from `processClockEvent`, `processNoteEvent`, `processAudioBuffer` or `updateParameter`; `ctx.audioOut.space()` and `.buffered()` say how much fits / is queued). The audio plays through the agent's mixer channel, from the start button on, at `ctx.audioOut.sampleRate`. Euterpe keeps at least two audio blocks (256 frames) queued whatever `latency` says. If the agent doesn't keep up, the output plays silence until `latency / 2` is queued again and the console says `[euterpe] the agent's audio output ran dry`. The sound lags by about `latency`.
 

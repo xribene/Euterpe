@@ -1,0 +1,16 @@
+{
+  "name": "test-audio-io-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc -p jsconfig.json"
+  },
+  "dependencies": {
+    "euterpe": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^5.0.10",
+    "typescript": "^5.6.0"
+  }
+}

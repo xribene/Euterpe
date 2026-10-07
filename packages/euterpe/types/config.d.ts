@@ -57,13 +57,29 @@ export interface ConfigYaml {
   };
   audioModeSettings?: {
     /**
-     * Samples per frame passed to processAudioBuffer.
+     * Samples per frame passed to processAudioBuffer (at audioModeSettings.sampleRate).
      */
     windowSize?: number;
     /**
-     * Samples between consecutive frames.
+     * Samples between consecutive frames (at most windowSize).
      */
     hopSize?: number;
+    /**
+     * The agent's input sample rate: frames are resampled to it (e.g. 16000 for a speech-rate model). Default: the page's (44100 or 48000, set by the device).
+     */
+    sampleRate?: number;
+    /**
+     * The browser's echo cancellation on the microphone. Default false (it distorts music).
+     */
+    echoCancellation?: boolean;
+    /**
+     * The browser's noise suppression. Default false (it removes sustained tones).
+     */
+    noiseSuppression?: boolean;
+    /**
+     * The browser's automatic gain control. Default false (it pumps the level).
+     */
+    autoGainControl?: boolean;
   };
   /**
    * The agent's audio output (interactionMode.audioOut).
@@ -77,6 +93,14 @@ export interface ConfigYaml {
      * Seconds of audio kept queued ahead of playback (renderAudio fills up to this). More: fewer dropouts, later sound. Default 0.1.
      */
     latency?: number;
+    /**
+     * The agent's output sample rate: renderAudio / ctx.audioOut.write take audio at this rate and Euterpe resamples it. Default: the page's.
+     */
+    sampleRate?: number;
+    /**
+     * renderAudio is always asked for exactly this many frames (for models with a fixed block size). Default: variable, in steps of 128.
+     */
+    blockSize?: number;
   };
   clockSettings: {
     /**

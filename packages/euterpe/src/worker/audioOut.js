@@ -1,32 +1,58 @@
 /**
  * The agent's audio output, worker side: ctx.audioOut writes interleaved frames into the ring buffer the
  * page's player worklet (player-worklet.js) reads, and startRenderLoop() keeps it filled from renderAudio().
+ * The agent works at its own sample rate (audioOutSettings.sampleRate, default the page's); if it differs from
+ * the page's, its audio is resampled on the way in. Counts (frames) are at the agent's rate.
  */
 import {AudioWriter, RingBuffer} from 'ringbuf.js';
+import {Resampler} from './resampler.js';
 
 /**
  * @param {SharedArrayBuffer} sab - The ring buffer's storage (from the page).
- * @param {{channels: number, latency: number, sampleRate: number}} options
+ * @param {{channels: number, latency: number, sampleRate: number, pageSampleRate: number,
+ *     blockSize?: number|null, outputLatency?: number}} options - sampleRate: the agent's; pageSampleRate: the
+ *     AudioContext's (the ring buffer's).
  * @param {(text: string) => void} warn
+ * @param {() => number} now - The page clock (ctx.now), for playTime().
  * @return {Object} ctx.audioOut
  */
-export function createAudioOut(sab, {channels, latency, sampleRate}, warn) {
+export function createAudioOut(sab, {channels, latency, sampleRate, pageSampleRate, blockSize = null,
+    outputLatency = 0}, warn, now) {
     const ringbuf = new RingBuffer(sab, Float32Array);
     const writer = new AudioWriter(ringbuf);
+    const ratio = pageSampleRate / sampleRate; // page frames per agent frame
+    // one resampler per output channel (if the rates differ); their delay is kept as a margin in space()
+    const resamplers = ratio === 1 ? null :
+        Array.from({length: channels}, () => new Resampler(sampleRate, pageSampleRate));
+    const margin = resamplers ? 2 * resamplers[0].halfTaps + 2 : 0;
     let staging = new Float32Array(0);
+    const pageFramesFree = () => Math.floor(writer.available_write() / channels);
+    const pageFramesQueued = () => Math.floor((ringbuf.capacity() - writer.available_write()) / channels);
+
     const audioOut = {
+        /** The agent's sample rate: write audio at this rate. */
         sampleRate,
+        /** The page's (AudioContext's) sample rate. */
+        pageSampleRate,
         channels,
         /** Seconds of audio renderAudio keeps queued ahead of playback (audioOutSettings.latency). */
         latency,
+        /** renderAudio's fixed block size in frames (audioOutSettings.blockSize), or null. */
+        blockSize,
         /** Frames that can be written now. */
-        space: () => Math.floor(writer.available_write() / channels),
+        space: () => Math.max(0, Math.floor(pageFramesFree() / ratio) - margin),
         /** Frames queued and not played yet. */
-        buffered: () => Math.floor((ringbuf.capacity() - writer.available_write()) / channels),
+        buffered: () => Math.floor(pageFramesQueued() / ratio),
+        /**
+         * When audio written now will be heard, in seconds on the page's clock (ctx.now()): after what is
+         * queued, plus the device's output latency.
+         * @return {number}
+         */
+        playTime: () => now() + pageFramesQueued() / pageSampleRate + outputLatency,
         /**
          * Queues audio for playback, after what is already queued.
          * @param {Float32Array|Float32Array[]} data - One Float32Array per channel (a single Float32Array is
-         *     the same signal on every channel).
+         *     the same signal on every channel), at audioOut.sampleRate.
          * @return {number} Frames written (fewer than given if the buffer is full).
          */
         write(data) {
@@ -49,12 +75,17 @@ export function createAudioOut(sab, {channels, latency, sampleRate}, warn) {
                     'audioOutSettings.latency)');
             }
             if (frames <= 0) return 0;
-            if (staging.length < frames * channels) staging = new Float32Array(frames * channels);
+            // per output channel, at the page's rate
+            let out = Array.from({length: channels},
+                (_, c) => used[Math.min(c, used.length - 1)].subarray(0, frames));
+            if (resamplers) out = out.map((plane, c) => resamplers[c].process(plane));
+            const pageFrames = Math.min(out[0].length, pageFramesFree());
+            if (staging.length < pageFrames * channels) staging = new Float32Array(pageFrames * channels);
             for (let c = 0; c < channels; c++) {
-                const plane = used[Math.min(c, used.length - 1)];
-                for (let i = 0; i < frames; i++) staging[i * channels + c] = plane[i];
+                const plane = out[c];
+                for (let i = 0; i < pageFrames; i++) staging[i * channels + c] = plane[i];
             }
-            writer.enqueue(staging.subarray(0, frames * channels));
+            writer.enqueue(staging.subarray(0, pageFrames * channels));
             return frames;
         },
     };
@@ -63,7 +94,8 @@ export function createAudioOut(sab, {channels, latency, sampleRate}, warn) {
 
 /**
  * Calls renderAudio(frames, ctx) whenever the queue holds less than audioOut.latency seconds, so the agent's
- * audio plays continuously; one call at a time (it may be async).
+ * audio plays continuously; one call at a time (it may be async). With audioOut.blockSize, `frames` is always
+ * blockSize.
  * @param {Function} renderAudio
  * @param {Object} ctx
  * @param {(error: Error) => void} onError
@@ -71,21 +103,21 @@ export function createAudioOut(sab, {channels, latency, sampleRate}, warn) {
  */
 export function startRenderLoop(renderAudio, ctx, onError) {
     const out = ctx.audioOut;
-    // whole 128-frame blocks (the audio thread's quantum), at least two, so playback can always start (the
-    // player starts with latency / 2 or one quantum queued, whichever is more)
-    const BLOCK = 128;
-    const latencyTarget = Math.max(2 * BLOCK, Math.ceil(out.latency * out.sampleRate / BLOCK) * BLOCK);
+    // blocks of 128 frames (the audio thread's quantum) unless the agent fixed its own block size
+    const BLOCK = out.blockSize ?? 128;
     let busy = false;
     const fill = async () => {
         if (busy || ctx._loading || out.unavailable) return;
         busy = true;
         try {
-            // up to the target (and two of the player's quanta: out.quantum, reported by the page), rounded up to
-            // whole blocks; at most 4096 frames at a time
-            const target = Math.max(latencyTarget, 2 * (out.quantum ?? BLOCK));
+            // up to the latency, at least two blocks and two of the player's quanta (out.quantum, page frames,
+            // reported by the page), in whole blocks; at most 4096 frames (or one fixed block) at a time
+            const quantum = Math.ceil((out.quantum ?? 128) * out.sampleRate / out.pageSampleRate);
+            const target = Math.max(2 * BLOCK, 2 * quantum, Math.ceil(out.latency * out.sampleRate / BLOCK) * BLOCK);
             const missing = target - out.buffered();
             const room = out.space() - out.space() % BLOCK;
-            const frames = Math.min(Math.ceil(missing / BLOCK) * BLOCK, room, 4096);
+            const frames = out.blockSize ? (room >= BLOCK ? BLOCK : 0) :
+                Math.min(Math.ceil(missing / BLOCK) * BLOCK, room, 4096);
             if (missing > 0 && frames > 0) {
                 const audio = await renderAudio(frames, ctx);
                 if (audio) out.write(audio);

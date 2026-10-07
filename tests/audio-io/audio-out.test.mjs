@@ -1,5 +1,5 @@
 // Unit tests of the agent audio output's worker side (packages/euterpe/src/worker/audioOut.js), in Node.
-//   node tests/audio-out/unit.mjs
+//   node tests/audio-io/audio-out.test.mjs
 import assert from 'node:assert/strict';
 import {RingBuffer} from 'ringbuf.js';
 import {createAudioOut, startRenderLoop} from '../../packages/euterpe/src/worker/audioOut.js';
@@ -8,7 +8,7 @@ const warnings = [];
 const warn = (text) => warnings.push(text);
 const make = (channels, seconds = 1, sampleRate = 48000, latency = 0.1) =>
     createAudioOut(RingBuffer.getStorageForCapacity(Math.ceil(sampleRate * seconds) * channels, Float32Array),
-        {channels, latency, sampleRate}, warn);
+        {channels, latency, sampleRate, pageSampleRate: sampleRate}, warn, () => 0);
 const test = async (name, fn) => {
     warnings.length = 0;
     await fn();
