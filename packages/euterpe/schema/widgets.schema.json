@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "euterpe/schema/widgets.schema.json",
+  "title": "Euterpe agent: widgets.yaml",
+  "description": "What the UI shows, and the agent's controls in Settings (read in hooks as ctx.params).",
+  "type": "object",
+  "required": ["gui"],
+  "additionalProperties": false,
+  "definitions": {
+    "status": {"type": "object", "properties": {"status": {"type": "boolean"}}}
+  },
+  "properties": {
+    "gui": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "textBox", "pianoRoll", "keyboard", "chromaChart", "audioMeter"],
+      "properties": {
+        "score": {"$ref": "#/definitions/status", "description": "Staff notation of the user (treble) and the agent (bass). Monophonic."},
+        "textBox": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {"status": {"type": "boolean"}, "title": {"type": "string"}},
+          "description": "Shows the agent's text/label output."
+        },
+        "pianoRoll": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {"status": {"type": "boolean"}, "human": {"type": "boolean"}, "agent": {"type": "boolean"}}
+        },
+        "keyboard": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {"type": "boolean"},
+            "octaveStart": {"type": "integer", "minimum": 0, "maximum": 8},
+            "octaveEnd": {"type": "integer", "minimum": 0, "maximum": 8}
+          }
+        },
+        "chromaChart": {"$ref": "#/definitions/status", "description": "Shows the agent's vector output (audio mode)."},
+        "audioMeter": {"$ref": "#/definitions/status", "description": "Microphone level (audio mode)."},
+        "monitor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {"type": "boolean"},
+            "title": {"type": "string"},
+            "structure": {
+              "type": ["array", "null"],
+              "items": {
+                "type": "object",
+                "required": ["label", "parameters"],
+                "properties": {
+                  "label": {"type": "string"},
+                  "parameters": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["id", "label"],
+                      "properties": {
+                        "id": {"type": "integer", "minimum": 0, "description": "The id the agent writes with ctx.monitor(id, value)."},
+                        "label": {"type": "string"},
+                        "interval": {"type": "number"},
+                        "graph": {"type": "boolean"},
+                        "min": {"type": "number"},
+                        "max": {"type": "number"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "settingsModal": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sliders": {
+              "type": ["array", "null"],
+              "maxItems": 6,
+              "description": "ctx.params.slider[n]: n is the slider's position (1-based).",
+              "items": {
+                "type": "object",
+                "required": ["label", "value", "min", "max"],
+                "properties": {
+                  "id": {"type": "integer"},
+                  "label": {"type": "string"},
+                  "value": {"type": "number"},
+                  "min": {"type": "number"},
+                  "max": {"type": "number"}
+                }
+              }
+            },
+            "switches": {
+              "type": ["array", "null"],
+              "maxItems": 4,
+              "description": "ctx.params.switch[n]: n is the switch's position (1-based).",
+              "items": {
+                "type": "object",
+                "required": ["label"],
+                "properties": {"id": {"type": "integer"}, "label": {"type": "string"}, "status": {"type": "boolean"}}
+              }
+            },
+            "buttons": {
+              "type": ["array", "null"],
+              "maxItems": 4,
+              "description": "ctx.params.button[id]: how many times it was pressed.",
+              "items": {
+                "type": "object",
+                "required": ["id", "label"],
+                "properties": {
+                  "id": {"type": "integer", "minimum": 1, "maximum": 4},
+                  "label": {"type": "string"},
+                  "resetsClock": {"type": "boolean", "description": "Also restart the bar: the next tick is beat 1, and the agent gets clock.barReset."}
+                }
+              }
+            },
+            "dropdowns": {
+              "type": ["array", "null"],
+              "maxItems": 4,
+              "description": "ctx.params.dropdown[id]: the index of the selected option.",
+              "items": {
+                "type": "object",
+                "required": ["id", "label", "options"],
+                "properties": {
+                  "id": {"type": "integer", "minimum": 1, "maximum": 4},
+                  "label": {"type": "string"},
+                  "options": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+                  "value": {"type": "integer", "minimum": 0},
+                  "intro": {"type": "boolean", "description": "Also show this dropdown on the start screen."}
+                }
+              }
+            },
+            "dropdownsNote": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}

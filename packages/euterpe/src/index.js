@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import store from './store/index.js';
 import App from './App.vue';
+import {configWarnings} from 'virtual:euterpe-config';
 import Vue2TouchEvents from 'vue2-touch-events';
 import ToggleButton from 'vue-js-toggle-button';
 import VModal from 'vue-js-modal';
@@ -45,6 +46,8 @@ const FONT_STYLESHEETS = [
  * @return {Vue} The root Vue instance.
  */
 export function mount(el = '#app') {
+    // problems in the agent's YAML files (also printed by the dev server and the build)
+    for (const warning of configWarnings) console.warn(`[euterpe] ${warning}`);
     for (const href of FONT_STYLESHEETS) {
         if (document.querySelector(`link[href="${href}"]`)) continue;
         const link = document.createElement('link');

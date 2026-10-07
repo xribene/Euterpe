@@ -40,6 +40,9 @@ const pianoState = pianoMidiNumbers.reduce((map, midi) => {
     return map;
 }, {});
 
+// agent notes dropped because they arrived after their tick (warned about in popAgentNotesToBePlayedAt)
+let lateNotes = 0;
+
 const state = {
 
     noteType: {},
@@ -167,7 +170,13 @@ const getters = {
             let ind = 0;
             while (state.agentNotesToBePlayed.length > 0 && ind <= numElems) {
                 if (state.agentNotesToBePlayed.get(0)._playAt.tick < currentGlobalTick) {
-                    state.agentNotesToBePlayed.remove(0); // const discard =
+                    const late = state.agentNotesToBePlayed.remove(0);
+                    lateNotes++;
+                    if (lateNotes === 1 || lateNotes % 50 === 0) {
+                        console.warn(`[euterpe] an agent note (midi ${late._midi}) for tick ${late._playAt.tick} ` +
+                            `arrived at tick ${currentGlobalTick} and was dropped (${lateNotes} so far): the agent ` +
+                            'answered after the note\'s tick.');
+                    }
                     ind++;
                 } else if (state.agentNotesToBePlayed.get(0)._playAt.tick === currentGlobalTick) {
                     notesToBePlayed.push(state.agentNotesToBePlayed.remove(0));

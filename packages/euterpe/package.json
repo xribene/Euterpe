@@ -13,11 +13,19 @@
   "files": [
     "src",
     "vite",
+    "schema",
     "assets",
     "LICENSE",
     "README.md"
   ],
-  "keywords": ["music", "interactive", "agent", "midi", "web-audio", "vite"],
+  "keywords": [
+    "music",
+    "interactive",
+    "agent",
+    "midi",
+    "web-audio",
+    "vite"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xribene/Euterpe.git",
@@ -30,6 +38,7 @@
     "@tonaljs/note": "^4.6.5",
     "@tonaljs/tonal": "^4.6.5",
     "@vitejs/plugin-vue2": "^2.3.1",
+    "ajv": "^8.17.1",
     "audiokeys": "^0.1.1",
     "chart.js": "^3.9.1",
     "js-yaml": "^4.1.0",

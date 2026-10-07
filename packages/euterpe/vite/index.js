@@ -16,6 +16,7 @@ import {fileURLToPath} from 'node:url';
 import yaml from 'js-yaml';
 import vue2 from '@vitejs/plugin-vue2';
 import {normalizePath} from 'vite';
+import {validateAgent} from './validate.js';
 
 const PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SAMPLES_DIR = path.join(PACKAGE_DIR, 'assets', 'samples');
@@ -86,6 +87,7 @@ export default function euterpe(options = {}) {
                 return `import * as agent from ${JSON.stringify(normalizePath(hooks))};\nexport default agent;\n`;
             }
             if (id === '\0' + CONFIG_MODULE) {
+                const files = {};
                 const readYaml = (kind, required) => {
                     const file = findFile(kind);
                     if (!file) {
@@ -93,13 +95,21 @@ export default function euterpe(options = {}) {
                         return {};
                     }
                     this.addWatchFile(file);
+                    let data;
                     try {
-                        return yaml.load(fs.readFileSync(file, 'utf8')) ?? {};
+                        data = yaml.load(fs.readFileSync(file, 'utf8')) ?? {};
                     } catch (error) {
                         this.error(`euterpe: ${path.relative(state.root, file)}: ${error.message}`);
                     }
+                    files[kind] = {file: normalizePath(path.relative(state.root, file)), data};
+                    return data;
                 };
                 const config = {...readYaml('config', true), ...readYaml('players'), ...readYaml('widgets')};
+                const {errors, warnings} = validateAgent(files);
+                for (const warning of warnings) this.warn(warning);
+                if (errors.length) {
+                    this.error(`euterpe: the agent's configuration has errors:\n  ${errors.join('\n  ')}`);
+                }
                 const introFile = findFile('intro');
                 if (introFile) this.addWatchFile(introFile);
                 const intro = introFile ? fs.readFileSync(introFile, 'utf8') : '';
@@ -107,6 +117,7 @@ export default function euterpe(options = {}) {
                     `export const config = ${JSON.stringify(config)};`,
                     `export const introMarkdown = ${JSON.stringify(intro)};`,
                     `export const samplesBaseUrl = ${JSON.stringify(samplesBaseUrl())};`,
+                    `export const configWarnings = ${JSON.stringify(warnings)};`,
                 ].join('\n');
             }
         },

@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../node_modules/euterpe/schema/config.schema.json
 ---
 # The name of your system
 title: "Copycat"

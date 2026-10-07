@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../node_modules/euterpe/schema/widgets.schema.json
 gui:
   score:
     status: true
@@ -65,6 +66,3 @@ gui:
             graph: true
             min: 0
             max: 40
-
-
-

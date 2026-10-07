@@ -13,6 +13,10 @@ import {createContext, applyParameter, toMessage} from './context.js';
 const hooksModule = agentModule.default;
 const agent = hooksModule.default ?? hooksModule;
 const defined = agent[AGENT_MARK] === true;
+if (!['loadAlgorithm', 'loadExternalFiles', 'processClockEvent', 'processNoteEvent', 'processAudioBuffer',
+    'updateParameter'].some((name) => typeof agent[name] === 'function')) {
+    console.warn('[euterpe] agent/hooks.js defines no hooks: expected `export default defineAgent({...})`');
+}
 // the ctx passed to defineAgent hooks (created with the config)
 let ctx = null;
 const missing = (name) => () => console.warn(`agent/hooks.js does not define ${name}()`);
@@ -119,7 +123,7 @@ function _readFromQueue() {
 
             if (defined) {
                 Promise.resolve(processAudioBuffer(channels, ctx)).then((output) => {
-                    const message = toMessage(output, 'processAudioBuffer');
+                    const message = toMessage(output, 'processAudioBuffer', ctx);
                     if (message) postMessage({hookType: self.agentHookType.NOTE_EVENT, message});
                 }).catch((error) => console.error('processAudioBuffer failed', error));
             } else {
@@ -292,7 +296,7 @@ async function onMessageFunction(obj) {
             clockQueue = clockQueue.then(async () => {
                 const startTime = performance.now();
                 let message = defined ?
-                    toMessage(await processClockEvent(content, ctx), 'processClockEvent') :
+                    toMessage(await processClockEvent(content, ctx), 'processClockEvent', ctx) :
                     await processClockEvent(content);
                 const endTime = performance.now();
                 if (typeof message === 'undefined') {
@@ -311,7 +315,7 @@ async function onMessageFunction(obj) {
             const noteEvent = NoteEvent.fromPlain(obj.data.content);
             noteQueue = noteQueue.then(async () => {
                 const message = defined ?
-                    toMessage(await processNoteEvent(noteEvent, ctx), 'processNoteEvent') :
+                    toMessage(await processNoteEvent(noteEvent, ctx), 'processNoteEvent', ctx) :
                     await processNoteEvent(noteEvent);
                 if (typeof message !== 'undefined') {
                     postMessage({

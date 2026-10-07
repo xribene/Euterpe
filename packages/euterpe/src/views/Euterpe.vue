@@ -919,6 +919,18 @@ export default {
                 }
                 const agentInferenceTime = e.data.message[vm.messageType.INFERENCE_TIME];
                 vm.modelInferenceTimes.push(agentInferenceTime);
+                // the hook's time budget is one tick: warn (the first time, then every 100th) when it takes longer
+                const tickMs = vm.config.clockSettings.clockPeriod ??
+                    60000 / vm.localBPM / vm.$store.getters.getTicksPerBeat;
+                if (agentInferenceTime > tickMs) {
+                    vm.overrunCount = (vm.overrunCount ?? 0) + 1;
+                    if (vm.overrunCount === 1 || vm.overrunCount % 100 === 0) {
+                        console.warn(`[euterpe] processClockEvent took ${Math.round(agentInferenceTime)} ms, ` +
+                            `longer than a tick (${Math.round(tickMs)} ms at ${vm.localBPM} BPM; ` +
+                            `${vm.overrunCount} so far): its notes can arrive after their tick and be ` +
+                            'dropped. Make the hook faster or lower the BPM.');
+                    }
+                }
                 if (vm.modelInferenceTimes.length > 2 * MAX_BPM_WINDOW) {
                     vm.modelInferenceTimes.splice(0, vm.modelInferenceTimes.length - MAX_BPM_WINDOW);
                 }

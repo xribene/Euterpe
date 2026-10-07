@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../node_modules/euterpe/schema/players.schema.json
 players:
   human:
     label: 'User' # player labels must be unique

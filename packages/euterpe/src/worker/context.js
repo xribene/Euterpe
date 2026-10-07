@@ -74,7 +74,7 @@ export function createContext(init) {
          * @param {Object|Array} output - As a hook would return it.
          */
         send(output) {
-            const message = toMessage(output, 'send');
+            const message = toMessage(output, 'ctx.send', ctx);
             if (message) postMessage({hookType: ctx._loading ? agentHookType.INIT_AGENT : agentHookType.NOTE_EVENT, message});
         },
         /**
@@ -116,18 +116,71 @@ export function applyParameter(ctx, update) {
     return {...widget, value, index: update.index};
 }
 
+// each distinct problem is reported once (hooks run on every tick)
+const reported = new Set();
+function warnOnce(text) {
+    if (reported.has(text)) return;
+    reported.add(text);
+    console.warn(`[euterpe] ${text}`);
+}
+
+/**
+ * Checks the notes a hook returned, and turns plain {midi, type, ...} objects into NoteEvents.
+ * @param {Array} notes
+ * @param {string} hookName
+ * @param {Object} ctx
+ * @return {NoteEvent[]}
+ */
+function checkNotes(notes, hookName, ctx) {
+    if (!Array.isArray(notes)) {
+        warnOnce(`${hookName}: notes must be an array, got ${typeof notes}`);
+        return [];
+    }
+    const out = [];
+    notes.forEach((note, i) => {
+        if (!(note instanceof NoteEvent)) {
+            if (note && typeof note === 'object' && 'midi' in note) {
+                const {midi, type = 'on', ...options} = note;
+                note = ctx.note(midi, type, options);
+            } else {
+                warnOnce(`${hookName}: notes[${i}] is not a note (use ctx.noteOn(midi) / ctx.noteOff(midi)); dropped`);
+                return;
+            }
+        }
+        if (!Number.isInteger(note.midi) || note.midi < 0 || note.midi > 127) {
+            warnOnce(`${hookName}: a note has midi ${JSON.stringify(note.midi)}; it must be an integer 0-127; dropped`);
+            return;
+        }
+        if (![noteType.NOTE_ON, noteType.NOTE_OFF, noteType.NOTE_HOLD].includes(note.type)) {
+            warnOnce(`${hookName}: a note has type ${JSON.stringify(note.type)}; use 'on', 'off' or 'hold'; dropped`);
+            return;
+        }
+        const after = note.playAfter ?? {};
+        if (!(after.tick >= 0) || !(after.seconds >= 0)) {
+            warnOnce(`${hookName}: a note has playAfter ${JSON.stringify(after)}; tick and seconds must be >= 0; ` +
+                'set to play at once');
+            note.playAfter = {tick: Math.max(0, after.tick || 0), seconds: Math.max(0, after.seconds || 0)};
+        }
+        if (note.player === undefined || note.player === null) note.player = playerType.AGENT;
+        if (note.instrument === undefined || note.instrument === null) note.instrument = instrumentType.PIANO;
+        out.push(note);
+    });
+    return out;
+}
+
 /**
  * A hook's return value as an MICP message: an array of notes, an object keyed by name ({notes, text, ...}) or
- * by messageType number (the original protocol), or nothing.
+ * by messageType number (the original protocol), or nothing. The notes are checked (checkNotes).
  * @param {*} output
- * @param {string} hookName - For the warning about unknown keys.
+ * @param {string} hookName - For the warnings.
+ * @param {Object} [ctx]
  * @return {Object|undefined}
  */
-export function toMessage(output, hookName) {
+export function toMessage(output, hookName, ctx) {
     if (output === undefined || output === null) return undefined;
-    if (Array.isArray(output)) return {[messageType.NOTE_LIST]: output};
+    if (Array.isArray(output)) output = {notes: output};
     if (typeof output !== 'object') {
-        console.warn(`${hookName} returned ${typeof output}; return an array of notes or {notes, text, label, ...}`);
+        warnOnce(`${hookName} returned ${typeof output}; return an array of notes or {notes, text, label, ...}`);
         return undefined;
     }
     const message = {};
@@ -137,8 +190,13 @@ export function toMessage(output, hookName) {
         } else if (key in MESSAGE_KEYS) {
             message[MESSAGE_KEYS[key]] = value;
         } else {
-            console.warn(`${hookName} returned an unknown key "${key}" (known: ${Object.keys(MESSAGE_KEYS).join(', ')})`);
+            warnOnce(`${hookName} returned an unknown key "${key}" (known: ${Object.keys(MESSAGE_KEYS).join(', ')})`);
         }
+    }
+    if (ctx && message[messageType.NOTE_LIST] !== undefined) {
+        message[messageType.NOTE_LIST] = checkNotes(message[messageType.NOTE_LIST], hookName, ctx);
     }
     return message;
 }
+
+export {warnOnce};
