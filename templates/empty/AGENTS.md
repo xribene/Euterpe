@@ -71,6 +71,15 @@ npm run smoke -- --build   # the same on the production build, served like a sta
 - The page must be cross-origin isolated (`self.crossOriginIsolated === true` in the console); the dev server and the provided deploy configs make sure of that.
 - Scripts and browser tests (e.g. Playwright) drive the page through `window.__euterpe` instead of clicking: `await __euterpe.whenReady()`, `__euterpe.enter()`, `__euterpe.startClock()`, `__euterpe.noteOn(60)` / `noteOff(60)`, `__euterpe.setParam('slider', 1, 40)`, `__euterpe.params`, `__euterpe.tick`, `__euterpe.agentMessages()` (what the agent sent). Controls carry `data-testid`s: `euterpe-start`, `euterpe-clock`, `euterpe-settings`, `euterpe-slider-1`, `euterpe-dropdown-1`, ...
 
+## Agents with a neural network
+
+Two complete projects in the Euterpe repository show the pattern (model in the worker, weights in `public/`, one inference step per tick):
+
+- [apps/realchords](https://github.com/xribene/Euterpe/tree/main/apps/realchords): ONNX transformer with a KV cache (onnxruntime-web), `defineAgent`, polyphonic output, a parity test against PyTorch.
+- [apps/bachduet](https://github.com/xribene/Euterpe/tree/main/apps/bachduet): LSTMs in TF.js (WASM backend), several models behind a dropdown, turn-taking, session logging.
+
+Add the runtime as a dependency (`npm install onnxruntime-web` or `@tensorflow/tfjs @tensorflow/tfjs-backend-wasm`) and import it in `agent/`; Euterpe's Vite plugin pre-bundles whatever the agent imports.
+
 ## Changing Euterpe itself
 
 Euterpe's source ships readable in `node_modules/euterpe/src` (Vue 2 UI in `src/views/Euterpe.vue`, the worker runtime in `src/worker/agentWorker.js`, the Vite plugin in `vite/index.js`). Do not edit it in place: the next install discards the change. For a small fix use `npx patch-package euterpe` (npm) or `pnpm patch euterpe` (pnpm), which keep the change as a patch file in the project. For bigger changes, `npx euterpe eject` copies Euterpe into `./euterpe` and points `package.json` at it; then it is ordinary project code (and no longer updates with new releases). Fixes are welcome upstream: https://github.com/xribene/Euterpe.
