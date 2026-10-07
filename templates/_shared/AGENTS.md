@@ -56,7 +56,10 @@ export default defineAgent({
 npm run dev       # dev server with the full UI; agent/ changes reload the page
 npm run build     # static site in dist/ (needs COOP/COEP headers: netlify.toml and vercel.json are set up)
 npm run preview   # serve dist/ locally with the headers
+npm run typecheck # check agent/ against Euterpe's types (hooks, ctx, notes, config)
 ```
+
+`agent/hooks.js` is JavaScript checked by TypeScript (`// @ts-check`, `jsconfig.json`): hook names, `ctx`, note helpers and `ctx.config` are typed, so editors autocomplete them and `npm run typecheck` catches a misspelled hook or a note given as a string. Renaming it to `hooks.ts` works too.
 
 ## Checking your work
 

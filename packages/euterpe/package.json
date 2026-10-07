@@ -5,14 +5,25 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./src/index.js",
-    "./agent": "./src/agent.js",
-    "./vite": "./vite/index.js",
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./agent": {
+      "types": "./types/agent.d.ts",
+      "default": "./src/agent.js"
+    },
+    "./vite": {
+      "types": "./types/vite.d.ts",
+      "default": "./vite/index.js"
+    },
+    "./schema/*": "./schema/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src",
     "vite",
+    "types",
     "schema",
     "assets",
     "LICENSE",
@@ -61,6 +72,11 @@
     "webmidi": "3.1.7"
   },
   "devDependencies": {
+    "json-schema-to-typescript": "^15.0.4",
+    "typescript": "^5.9.3",
     "vite": "^5.0.10"
+  },
+  "scripts": {
+    "gen-types": "node scripts/gen-config-types.mjs"
   }
 }
