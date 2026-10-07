@@ -114,10 +114,10 @@ export default {
             this.renderer.setClearColor(0xffffff, 0);
             this.renderer.sortObjects = false;
             this.$refs.canvas.appendChild(this.renderer.domElement);
-            console.log('size of canvas is ',
+            console.debug('size of canvas is ',
                 this.$refs.canvas.clientWidth, this.$refs.canvas.clientHeight);
-            console.log('size of window is ', window.innerWidth, window.innerHeight);
-            // console.log("size of renderer is ", this.renderer.getSize);
+            console.debug('size of window is ', window.innerWidth, window.innerHeight);
+            // console.debug("size of renderer is ", this.renderer.getSize);
         },
 
         resize() {
@@ -154,7 +154,7 @@ export default {
             // if (noteInput == null) {
             //     noteInput = Midi.midiToNoteName(noteEvent.midi, {sharps: true});
             // }
-            // console.log("keyDown midi is ", noteEvent.midi);
+            // console.debug("keyDown midi is ", noteEvent.midi);
             const noteInput = Midi.midiToNoteName(noteEvent.midi, {sharps: true});
             if (this.$store.getters.getClockStatus) {
                 // TODO pianoRoll should be based on Midi number.
@@ -199,7 +199,7 @@ export default {
             // if (noteInput == null) {
             //     noteInput = Midi.midiToNoteName(noteEvent.midi, {sharps: true});
             // }
-            // console.log("keyUp midi is ", noteEvent.midi);
+            // console.debug("keyUp midi is ", noteEvent.midi);
             const noteInput = Midi.midiToNoteName(noteEvent.midi, {sharps: true});
             const selector = (noteEvent.player == playerType.AGENT) ?
                 playerType.AGENT + noteInput : playerType.HUMAN + noteInput;
@@ -219,7 +219,7 @@ export default {
             }
         },
         keyDownDummy() {
-            console.log('keyDown\n\n\n\n\n\n\n\n\n');
+            console.debug('keyDown\n\n\n\n\n\n\n\n\n');
             // Define the noteblock plane.
             const plane = new THREE.Mesh(geometry, humanMaterial);
             const noteWidth = 30;

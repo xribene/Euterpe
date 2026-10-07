@@ -99,3 +99,8 @@ body {
 .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
+
+/* the agent failed to load (statusType.ERROR) */
+.loadingStatus.agentError {
+    color: #ff8a80;
+}

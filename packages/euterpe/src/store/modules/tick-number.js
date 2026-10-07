@@ -85,7 +85,7 @@ const mutations = {
             state.barNumber += 1;
             state.barTick += 1;
         }
-        // console.log('incrementTick to ', state.globalTick);
+        // console.debug('incrementTick to ', state.globalTick);
     },
     incrementTickDelayed(state) {
         state.globalTickDelayed += 1;
@@ -95,7 +95,7 @@ const mutations = {
         } else {
             state.localTickDelayed = (state.localTickDelayed + 1) % state.ticksPerMeasure;
         }
-        // console.log('incrementDelayedTick to ', state.globalTickDelayed);
+        // console.debug('incrementDelayedTick to ', state.globalTickDelayed);
     },
     // Restart the bar at the next tick (see resetPending above)
     requestBarReset(state) {

@@ -19,7 +19,7 @@ class RecorderWorklet extends AudioWorkletProcessor {
         const sab = options.processorOptions;
         this._audio_writer = new AudioWriter(new RingBuffer(sab, Float32Array));
         this.port.onmessage = (e) => {
-            console.log('Received from Node' + e.data);
+            console.debug('Received from Node' + e.data);
             this.port.postMessage('pong');
         };
     }
@@ -30,11 +30,11 @@ class RecorderWorklet extends AudioWorkletProcessor {
 
         if (inputs[0]) {
             // interleave and store in the queue
-            // console.log(inputs[0].length);
+            // console.debug(inputs[0].length);
             // if (_parameters.channels[0] === 2) {
             interleave(inputs[0], this.interleaved);
             if (this._audio_writer.enqueue(this.interleaved) !== 256) {
-                // console.log("underrun: the worker doesn't dequeue fast enough!");
+                // console.debug("underrun: the worker doesn't dequeue fast enough!");
             }
         }
         return true;

@@ -105,6 +105,9 @@ export default function euterpe(options = {}) {
                     return data;
                 };
                 const config = {...readYaml('config', true), ...readYaml('players'), ...readYaml('widgets')};
+                // the instruments the build needs samples for
+                state.instruments = new Set(Object.values(config.players ?? {})
+                    .flatMap((player) => (player?.instruments ?? []).map((instrument) => instrument.id)));
                 const {errors, warnings} = validateAgent(files);
                 for (const warning of warnings) this.warn(warning);
                 if (errors.length) {
@@ -183,11 +186,13 @@ export default function euterpe(options = {}) {
         },
         generateBundle() {
             if (options.samplesBaseUrl || !fs.existsSync(SAMPLES_DIR)) return;
+            // only the instruments players.yaml lists (all of them if the config wasn't loaded)
+            const used = (name) => !state.instruments || state.instruments.has(name);
             const copy = (dir) => {
                 for (const entry of fs.readdirSync(dir, {withFileTypes: true})) {
                     const file = path.join(dir, entry.name);
                     if (entry.isDirectory()) {
-                        copy(file);
+                        if (dir !== SAMPLES_DIR || used(entry.name)) copy(file);
                     } else if (CONTENT_TYPES[path.extname(file)]) {
                         const fileName = SAMPLES_PATH + normalizePath(path.relative(SAMPLES_DIR, file));
                         this.emitFile({type: 'asset', fileName, source: fs.readFileSync(file)});

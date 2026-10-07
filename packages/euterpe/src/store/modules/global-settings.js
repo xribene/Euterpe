@@ -67,7 +67,7 @@ const mutations = {
     },
     writeSessionID(state, id) {
         state.sessionID = id;
-        console.log(id);
+        console.debug(id);
     },
     changeClockStatus(state) {
         state.clockStatus = !state.clockStatus;
@@ -79,7 +79,7 @@ const mutations = {
         state.clockInitialized = true;
     },
     setBPM(state, bpm) {
-        console.log('setBPM: ' + bpm);
+        console.debug('setBPM: ' + bpm);
         state.currentBPM = bpm;
     },
     changeModalStatus(state) {

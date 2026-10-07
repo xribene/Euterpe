@@ -129,7 +129,7 @@ export default {
     mounted() {
         // this.width = 300;
         // this.height = 300;
-        console.log('mounted chromaChart start/end');
+        console.debug('mounted chromaChart start/end');
         // this.triggerCollapse();
     },
 

@@ -71,16 +71,16 @@ export default {
         };
     },
     beforeCreate() {
-        console.log('beforeCreate monitor start');
-        console.log('beforeCreate monitor end');
+        console.debug('beforeCreate monitor start');
+        console.debug('beforeCreate monitor end');
     },
     created() {
-        console.log('created monitor start');
+        console.debug('created monitor start');
         this.$root.$refs.monitor = this;
-        console.log(' created monitor end');
+        console.debug(' created monitor end');
     },
     mounted() {
-        console.log('mounted monitor start');
+        console.debug('mounted monitor start');
     },
 
     methods: {
@@ -129,7 +129,7 @@ export default {
             //     expanded: true,
             // });
             // vm.pane.on('fold', (ev) => {
-            //     console.log('changed: ', ev.value);
+            //     console.debug('changed: ', ev.value);
             //     ev.stopPropagation();
             //     ev.preventDefault();
             //     ev.cancelBubble = true;
@@ -139,14 +139,14 @@ export default {
             if (vm.structure) {
                 vm.structure.forEach((tab) => {
                     // Create a folder for each tab
-                    console.log('tab ', tab);
+                    console.debug('tab ', tab);
                     const folder = vm.pane.addFolder({
                         title: tab.label,
                         expanded: true,
                     });
-                    console.log('tab.label ', tab.label);
-                    console.log('tab.parameters ', tab.parameters);
-                    console.log('dataFromParent ', vm.$props.dataFromParent);
+                    console.debug('tab.label ', tab.label);
+                    console.debug('tab.parameters ', tab.parameters);
+                    console.debug('dataFromParent ', vm.$props.dataFromParent);
                     // Iterate over the parameters in each tab
                     tab.parameters.forEach((parameter) => {
                         // Add a monitor for each parameter

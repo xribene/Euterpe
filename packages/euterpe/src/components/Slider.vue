@@ -51,7 +51,7 @@ export default {
   methods: {
     updateValue(value) {
         this.internalValue = value;
-        console.log(value);
+        console.debug(value);
     },
     sendValue(value) {
         this.$emit('input', Number(value));

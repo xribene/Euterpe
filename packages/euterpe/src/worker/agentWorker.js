@@ -110,7 +110,7 @@ function _readFromQueue() {
             const channel1 = new Float32Array(currentFrame.length / self.channelCount);
             const channel2 = new Float32Array(currentFrame.length / self.channelCount);
             const channels = [channel1, channel2];
-            // console.log("in read from queue");
+            // console.debug("in read from queue");
             deinterleaveCustom(currentFrame, channels, self.channelCount);
             const tempFrame = new Float32Array(self.windowSize);
             // Copy the last windowSize - hopSize samples to the current frame
@@ -143,7 +143,7 @@ function _readFromQueue() {
 function _uiParameterObserver() {
     const newParameterUI = {index: null, value: null};
     if (self.param_reader.dequeue_change(newParameterUI)) {
-        console.log('param index: ' + newParameterUI.index + ' value: ' + newParameterUI.value);
+        console.debug('param index: ' + newParameterUI.index + ' value: ' + newParameterUI.value);
         const change = applyParameter(ctx, newParameterUI);
         if (defined) {
             Promise.resolve(updateParameter(change, ctx)).catch((error) => console.error('updateParameter failed', error));
@@ -187,7 +187,7 @@ function loadConfig(content) {
     self.agentHookType = content.agentHookType;
     self.ticksPerMeasure = self.config.clockSettings.ticksPerBeat *
                                 self.config.clockSettings.timeSignature.numerator;
-    console.log('finished loading config');
+    console.debug('finished loading config');
 }
 
 /**
@@ -198,7 +198,7 @@ function loadConfig(content) {
  * @param {Object} content
  */
 function initAudio(content) {
-    // console.log(content)
+    // console.debug(content)
     // Reads audio samples directly from the microphone
     _audioReader = new AudioReader(
         new RingBuffer(content.sab, Float32Array),
@@ -256,9 +256,9 @@ function initAudio(content) {
     staging = new Float32Array(self.hopSize);
 
     // Meyda.bufferSize = self.config.audioModeSettings.windowSize;
-    // console.log(self.windowSize, " ", self.Meyda.bufferSize);
+    // console.debug(self.windowSize, " ", self.Meyda.bufferSize);
     stagingIntervalID = setInterval(_readFromQueue, 10);
-    console.log('finished setting up audio');
+    console.debug('finished setting up audio');
 }
 
 /**
@@ -273,7 +273,7 @@ async function onMessageFunction(obj) {
             console.error('Agent not initialized correctly. Failed to load config');
             return;
         } else {
-            console.log('Agent is initialized');
+            console.debug('Agent is initialized');
             return;
         }
     } else {
@@ -334,7 +334,7 @@ async function onMessageFunction(obj) {
  * @param {Object} content
  */
 async function initAgent(content) {
-    console.log('inside initAgent');
+    console.debug('inside initAgent');
     try {
         loadConfig(content);
         ctx = createContext(content);
@@ -348,7 +348,7 @@ async function initAgent(content) {
             initAudio(content);
             initParameterSharing(content);
         }
-        console.log('Initialization complete');
+        console.debug('Initialization complete');
     } catch (error) {
         console.error('Error initializing worker:', error);
     }

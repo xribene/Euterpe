@@ -167,7 +167,7 @@ export default {
     created() {
         const vm = this;
 
-        console.log('created main start');
+        console.debug('created main start');
 
         this.$store.commit('setConfig', this.config);
         this.$store.commit('initQuantBuffers', this.config);
@@ -214,17 +214,17 @@ export default {
             }
         }
         this.localBPM = this.config.clockSettings.defaultBPM;
-        console.log('created main end');
+        console.debug('created main end');
     },
 
     beforeMount() {
-        console.log('beforeMount main start');
+        console.debug('beforeMount main start');
         // let vm = this;
-        console.log('beforeMount main end');
+        console.debug('beforeMount main end');
     },
 
     async mounted() {
-        console.log('main mounted');
+        console.debug('main mounted');
         const vm = this;
         /*
         * Minor
@@ -257,16 +257,16 @@ export default {
         });
 
         document.addEventListener('visibilitychange', function() {
-            console.log('Visibility changed');
-            console.log(vm.$refs.entryBtn.style.visibility);
+            console.debug('Visibility changed');
+            console.debug(vm.$refs.entryBtn.style.visibility);
         });
 
         window.onload = function() {
-            console.log('window loaded');
+            console.debug('window loaded');
         };
         
         if (vm.showMonitor) {
-            console.log('MA DEN EPREPE');
+            console.debug('MA DEN EPREPE');
             vm.$root.$refs.monitor.loadMonitorConfig(vm.config.gui.monitor);
         }
         vm.$root.$refs.mixer.loadMixerConfig(vm.config.players);
@@ -363,7 +363,7 @@ export default {
                 audio: true,
                 video: false,
             });
-            console.log('Audio stream initialized');    
+            console.debug('Audio stream initialized');    
             vm.permissionAudio = true;
             // } catch (error) {
             //     console.error('Error accessing the microphone: ', error);
@@ -375,7 +375,7 @@ export default {
                 vm.mediaStreamSource = vm.audioContext.createMediaStreamSource(
                     stream,
                 );
-                console.log('Audio stream initialized');
+                console.debug('Audio stream initialized');
 
                 vm.analyserNode = vm.audioContext.createAnalyser();
 
@@ -405,7 +405,7 @@ export default {
                 vm.recorderWorkletNode.port.postMessage('ping');
 
                 vm.recorderWorkletNode.port.addEventListener('message', (event) => {
-                    console.log('Received from Worklet' + event.data);
+                    console.debug('Received from Worklet' + event.data);
                 });
                 // vm.recorderWorkletNode.port.start(); # TODO do I need this for ping/pong ?
                 // send the mic to the recorderNode --> recorderWorklet
@@ -423,19 +423,19 @@ export default {
         //         access.onstatechange = vm.onEnabled;
         //     })
         //     .catch(function(err) {
-        //         console.log('requestMIDIAccess Error: ' + err);
+        //         console.debug('requestMIDIAccess Error: ' + err);
         //     });
             
         //     // Enable WebMIDI, then call onEnabled method.
         //     WebMidi.enable()
         //         .then(vm.onEnabled)
-        //         .catch((err) => console.log('WebMIDI Error: ' + err));
+        //         .catch((err) => console.debug('WebMIDI Error: ' + err));
         // }
         try {
             if (navigator.requestMIDIAccess) {
                 // Await MIDI permission
                 await this.initializeMIDI();
-                console.log('MIDI initialized');
+                console.debug('MIDI initialized');
                 vm.permissionMIDI = true;
             }
         } catch (error) {
@@ -506,7 +506,7 @@ export default {
 
         
         vm.modelLoadTime = Date.now();
-        console.log('TONE TONE TONE ', Tone.now());
+        console.debug('TONE TONE TONE ', Tone.now());
 
         // Now set the permissionsGrated flag
         // It is true if  (permissionMIDI is true) AND (permissionAudio is true OR vm.config.interactionMode.audioMode is false)
@@ -540,7 +540,7 @@ export default {
                 // TUTOR: have a flag for that in config named delayedExecution
                 if (vm.config.noteModeSettings.gridBased.status) {
                     if (vm.config.noteModeSettings.gridBased.delayedExecution) {
-                        // console.log("delayedExecution");
+                        // console.debug("delayedExecution");
                         vm.timeout_IDS_live.push(setTimeout(function() {
                             vm.estimateHumanQuantizedNote();
                             vm.runTheAgent();
@@ -628,7 +628,7 @@ export default {
             // is null then the key is not on screen
             const keyOnScreenRange = this.$root.$refs.keyboard.$refs[noteEvent.name] ? true : false;
             if (noteEvent.type == vm.noteType.NOTE_ON) {
-                // console.log("note on");
+                // console.debug("note on");
                 if (this.config.gui.pianoRoll.status && this.config.gui.pianoRoll.human) {
                     vm.$root.$refs.pianoRoll.keyDown(noteEvent);
                 }
@@ -679,7 +679,7 @@ export default {
         // TODO : change the name : agent, clock event, tick etc
         runTheAgent() {
             const vm = this;
-            // console.log("runningTheagent");
+            // console.debug("runningTheagent");
             // remember, runTheAgent might happen with a small delay of tick/4 after the tick
             // here I just keep track of the 'delayed' tick
             this.$store.commit('incrementTickDelayed');
@@ -725,9 +725,9 @@ export default {
                 bufferEvent.push(vm.noteOffEventForNextTick);
             }
 
-            // console.log("bufferEvent", bufferEvent.length);
+            // console.debug("bufferEvent", bufferEvent.length);
             // if (bufferEvent.length > 1) {
-            //     console.log("bufferEvent", bufferEvent);
+            //     console.debug("bufferEvent", bufferEvent);
             // }
             // a COPY activePianoNotes are sorted by their "on" timestamp (newest to oldest)
             const activePianoNotes = [...this.$store.getters.getActivePianoNotes];
@@ -813,7 +813,7 @@ export default {
                     currentQuantizedEvents.push(noteHoldEvent);
                 }
             }
-            // console.log("currentQuantEvents", currentQuantizedEvents);
+            // console.debug("currentQuantEvents", currentQuantizedEvents);
             // TODO : it seems I ignore rests. If no active notes,
             // then currentQuantizedEvents will be empty
 
@@ -855,10 +855,10 @@ export default {
             } else {
                 constrainedCurrentQuantizedEvents = [...currentQuantizedEvents];
             }
-            // console.log("currentQuantEvents", currentQuantizedEvents);
-            // console.log("CONSTRAINTQuantEvents", constrainedCurrentQuantizedEvents);
+            // console.debug("currentQuantEvents", currentQuantizedEvents);
+            // console.debug("CONSTRAINTQuantEvents", constrainedCurrentQuantizedEvents);
             // constrainedCurrentQuantizedEvents.forEach(elem => {
-            //     console.log("type ", elem.type);
+            //     console.debug("type ", elem.type);
             // })
             this.$store.dispatch('storeUserQuantizedNotes', constrainedCurrentQuantizedEvents);
 
@@ -891,7 +891,7 @@ export default {
                     vm.processAgentNoteEvent(noteEvent);
                 });
             } else {
-                // console.log("no agent notes to be played");
+                // console.debug("no agent notes to be played");
             }
         },
 
@@ -934,7 +934,7 @@ export default {
                 if (vm.modelInferenceTimes.length > 2 * MAX_BPM_WINDOW) {
                     vm.modelInferenceTimes.splice(0, vm.modelInferenceTimes.length - MAX_BPM_WINDOW);
                 }
-                // console.log("just pushed ", agentInferenceTime, " to modelInferenceTimes")
+                // console.debug("just pushed ", agentInferenceTime, " to modelInferenceTimes")
             }
 
             for (const messageTypeStr in message) {
@@ -944,11 +944,18 @@ export default {
 
                     switch (messageType) {
                     case vm.messageType.STATUS:
+                        if (messageValue == vm.statusType.ERROR) {
+                            // the agent failed to load: its TEXT message (the error) is on the loading screen
+                            vm.agentFailed = true;
+                            vm.$refs.agentStatus.classList.add('agentError');
+                            console.error('[euterpe] the agent failed to load (see the message on the page and ' +
+                                'the worker\'s console error above)');
+                        }
                         if (messageValue == vm.statusType.SUCCESS) {
                             vm.agentLoaded = true;
                             vm.displayPlayBtn();
                             vm.modelLoadTime = Date.now() - vm.modelLoadTime;
-                            // console.log('agent loaded');
+                            // console.debug('agent loaded');
                         }
                         break;
                     case vm.messageType.NOTE_LIST: {
@@ -979,10 +986,10 @@ export default {
                             // End of hack
 
                             if (noteEvent.playAfter.tick > 0) {
-                                // console.log("NAI NAI NAI NIA NIA NIA ");
+                                // console.debug("NAI NAI NAI NIA NIA NIA ");
                                 this.$store.dispatch('storeAgentQuantizedOutput', noteEvent);
                             } else {
-                                // console.log("type ", noteEvent.type, " ", noteEvent.midi);
+                                // console.debug("type ", noteEvent.type, " ", noteEvent.midi);
                                 vm.processAgentNoteEvent(noteEvent);
                             }
                         });
@@ -1029,7 +1036,7 @@ export default {
                     case vm.messageType.INFERENCE_TIME:
                         break;
                     default:
-                        console.log('Unknown message type: ', messageType);
+                        console.warn(`[euterpe] the agent sent an unknown message type ${messageType} (see messageType in euterpe/agent)`);
                         break;
                     }
                 }
@@ -1098,10 +1105,10 @@ export default {
                         // ---------------- Second OPTION ----------------
                         if (vm.config.custom.useTriggerRelease) {
                             this.$store.dispatch('samplerOnOff', noteEvent);
-                        // console.log("option2  ")
+                        // console.debug("option2  ")
                         } else {
                             this.$store.dispatch('samplerOn', noteEvent);
-                        // console.log("option1 ")
+                        // console.debug("option1 ")
                         }
                         // else {
                         // If its duration is specified in ticks, then
@@ -1123,7 +1130,7 @@ export default {
                     } else if (noteEvent.duration.tick == 0) {
                         if (noteEvent.duration.seconds > 0) {
                             if (vm.config.custom.useTriggerRelease) {
-                                // console.log("about to send samplerOnOff ", noteEvent.midi);
+                                // console.debug("about to send samplerOnOff ", noteEvent.midi);
                                 this.$store.dispatch('samplerOnOff', noteEvent);
                                 // vm.timeout_IDS_live.push(setTimeout(() => {
                                 //     this.uiNoteOffAgent(noteEvent);
@@ -1134,10 +1141,10 @@ export default {
                                 }, noteEvent.duration.seconds * 1000),
                                 );
 
-                                // console.log("option2  ")
+                                // console.debug("option2  ")
                             } else {
                                 this.$store.dispatch('samplerOn', noteEvent);
-                                console.log('option1 ');
+                                console.debug('option1 ');
                                 // TODO
                                 // if I want option1 when duration is 0ticks and >0seconds
                                 // I need to create a new noteOff event, and send it after >0seconds
@@ -1171,16 +1178,16 @@ export default {
                     this.$store.dispatch('samplerOff', noteEvent);
                     this.sendNoteOff(noteEvent, 1);
                 }
-                // console.log("about to call uiNoteOffAgent");
+                // console.debug("about to call uiNoteOffAgent");
                 this.uiNoteOffAgent(noteEvent);
             } else if (noteEvent.type === vm.noteType.NOTE_HOLD) {
-                console.log('HOLD event received from agent');
+                console.debug('HOLD event received from agent');
             }
         },
 
         uiNoteOffAgent(noteEvent) {
             const vm = this;
-            // console.log("uiNoteOffAgent")
+            // console.debug("uiNoteOffAgent")
             // TODO : the agent should do that
             const noteName = Midi.midiToNoteName(noteEvent.midi, {sharps: true});
             // If '#' in noteName then whiteKey is false else true
@@ -1193,11 +1200,11 @@ export default {
             // vm.timeout_IDS_live.push(setTimeout(() => {
             //     if (keyOnScreenRange) {
             //         if (whiteKey) {
-            //             // console.log("released white key ", noteName)
+            //             // console.debug("released white key ", noteName)
             //             this.$root.$refs.keyboard.$refs[noteName][0].
             //                 classList.remove('active-white-key-agent');
             //         } else {
-            //             // console.log("released black key ", noteName)
+            //             // console.debug("released black key ", noteName)
             //             this.$root.$refs.keyboard.$refs[noteName][0].
             //                 classList.remove('active-black-key-agent');
             //         }
@@ -1211,11 +1218,11 @@ export default {
             vm.timeout_IDS_live.push(setTimeout(() => {
                 if (keyOnScreenRange) {
                     if (whiteKey) {
-                        // console.log("released white key ", noteName)
+                        // console.debug("released white key ", noteName)
                         vm.$root.$refs.keyboard.$refs[noteName][0].
                             classList.remove('active-white-key-agent');
                     } else {
-                        // console.log("released black key ", noteName)
+                        // console.debug("released black key ", noteName)
                         vm.$root.$refs.keyboard.$refs[noteName][0].
                             classList.remove('active-black-key-agent');
                     }
@@ -1249,9 +1256,9 @@ export default {
 
         onMidiStateChange(state) {
             if (state.port.state === 'connected') {
-                console.log('MIDI device connected:', state.port.name);
+                console.debug('MIDI device connected:', state.port.name);
             } else if (state.port.state === 'disconnected') {
-                console.log('MIDI device disconnected:', state.port.name);
+                console.debug('MIDI device disconnected:', state.port.name);
             }
             // this.onEnabled();
             // Find a non-buggy way to correctly update the MIDI devices
@@ -1371,7 +1378,7 @@ export default {
                 // Note On message is sent as [0x90 + channel, noteNumber, velocity]
                 // outputDevice.send([0x90, noteNumber, velocity]);
                 outputDevice.playNote(noteEvent.midi, {channels: [channel]});
-                console.log(`Sent Note On to external device`);
+                console.debug(`Sent Note On to external device`);
             // } else {
             //     console.error('No output device selected.');
             }
@@ -1386,7 +1393,7 @@ export default {
                     outputDevice.playNote(noteEvent.midi, {channels: [channel], duration: duration});
                 else
                     outputDevice.playNote(noteEvent.name, {channels: [channel], duration: duration});
-                console.log(`Sent Note On to external device`);
+                console.debug(`Sent Note On to external device`);
             // } else {
             //     console.error('No output device selected.');
             }
@@ -1398,7 +1405,7 @@ export default {
             if (outputDevice) {
                 // Note Off message is sent as [0x80 + channel, noteNumber, 0]
                 outputDevice.stopNote(noteEvent.midi, {time: after, channels: [channel]});
-                // console.log(`Sent Note Off: Note ${noteEvent.midi} to external device`);
+                // console.debug(`Sent Note Off: Note ${noteEvent.midi} to external device`);
             // } else {
             //     console.error('No output device selected.');
             }
@@ -1411,7 +1418,7 @@ export default {
             for (let i = 0; i < 128; i++) {
                 this.sendNoteOff({midi: i}, 1, "+200");
             }
-            console.log('Killed all notes on the external midi device');
+            console.debug('Killed all notes on the external midi device');
         },
 
         startRecording() {
@@ -1425,7 +1432,7 @@ export default {
             while (id--) {
                 // check if id is in timeout_IDS_live. if not, then clear it
                 if (this.timeout_IDS_kill.includes(id)) {
-                // console.log("deleting timeout id " + id);
+                // console.debug("deleting timeout id " + id);
                     clearTimeout(id); // will do nothing if no timeout with id is present
                 }
             }
@@ -1443,18 +1450,18 @@ export default {
             vm.$refs.mainLoadingScreen.style.display = 'none';
             vm.$refs.mainContent.style.display = 'block';
             vm.$modal.show('introModal');
-            console.log('TONE ENTRY ', Tone.now());
+            console.debug('TONE ENTRY ', Tone.now());
             if (vm.config.clockSettings.autoStart === true) {
                 vm.toggleClock();
             }
         },
 
         displayPlayBtn() {
-            console.log('in displayPlayBtn');
+            console.debug('in displayPlayBtn');
             if (this.agentLoaded && this.permissionsGranted) {
                 const vm = this;
                 // vm.$refs.entryBtn.classList.remove('fade-out');
-                console.log('AAAAAAAAAAAAAAAAAAAAAAAA');
+                console.debug('AAAAAAAAAAAAAAAAAAAAAAAA');
                 vm.$refs.entryBtn.classList.add('fade-in');
                 vm.$refs.entryBtn.style.visibility = 'visible';
             }
@@ -1484,9 +1491,9 @@ export default {
 
         zoomInOct() {
         // ugly code to prevent the user from zooming in too much
-            console.log('range before was ', this.keyboardoctaveEnd - this.keyboardoctaveStart);
+            console.debug('range before was ', this.keyboardoctaveEnd - this.keyboardoctaveStart);
             if (this.keyboardoctaveEnd - this.keyboardoctaveStart <= 1) {
-                console.log('MIN was reched before');
+                console.debug('MIN was reched before');
                 this.keyboardMinRangeDisplayed = true;
             } else {
                 if (this.keyboardoctaveEnd - this.keyboardoctaveStart == 2) {
@@ -1495,9 +1502,9 @@ export default {
                     this.keyboardoctaveStart = Math.max(0, this.keyboardoctaveStart + 1);
                     this.keyboardoctaveEnd = Math.min(8, this.keyboardoctaveEnd - 1);
                 }
-                console.log('this.keyboardoctaveEnd - this.keyboardoctaveStart != 1');
+                console.debug('this.keyboardoctaveEnd - this.keyboardoctaveStart != 1');
                 if (this.keyboardoctaveEnd - this.keyboardoctaveStart <= 1) {
-                    console.log('MIN range reached');
+                    console.debug('MIN range reached');
                     this.keyboardMinRangeDisplayed = true;
                 } else {
                     this.keyboardMinRangeDisplayed = false;
@@ -1507,16 +1514,16 @@ export default {
         },
 
         zoomOutOct() {
-            console.log('range before was ', this.keyboardoctaveEnd - this.keyboardoctaveStart);
+            console.debug('range before was ', this.keyboardoctaveEnd - this.keyboardoctaveStart);
             if (this.keyboardoctaveEnd - this.keyboardoctaveStart >= 8) {
-                console.log('MAX was reched before');
+                console.debug('MAX was reched before');
                 this.keyboardMaxRangeDisplayed = true;
             } else {
                 this.keyboardoctaveStart = Math.max(0, this.keyboardoctaveStart - 1);
                 this.keyboardoctaveEnd = Math.min(8, this.keyboardoctaveEnd + 1);
-                console.log('this.keyboardoctaveEnd - this.keyboardoctaveStart != 8');
+                console.debug('this.keyboardoctaveEnd - this.keyboardoctaveStart != 8');
                 if (this.keyboardoctaveEnd - this.keyboardoctaveStart >= 8) {
-                    console.log('MAX range reached');
+                    console.debug('MAX range reached');
                     this.keyboardMaxRangeDisplayed = true;
                 } else {
                     this.keyboardMaxRangeDisplayed = false;
@@ -1526,7 +1533,7 @@ export default {
         },
 
         modalCallback(eventName) {
-            console.log('modal callback', eventName);
+            console.debug('modal callback', eventName);
             this.$store.commit('changeModalStatus');
         },
 
@@ -1541,7 +1548,7 @@ export default {
         },
 
         bpmValueChanged(value) {
-            console.log(value);
+            console.debug(value);
             this.localBPM = value;
             let revertToDefault = false;
             if (this.localSyncClockStatus) {
@@ -1576,15 +1583,15 @@ export default {
 
         manuallyUpdateMixer(event) {
             this.mixer_data = event;
-            console.log('Main got mixer update', event);
+            console.debug('Main got mixer update', event);
         },
 
         manuallyUpdateData() {
             const vm = this;
             for (const [player, playerData] of Object.entries(vm.mixer_data)) {
-                console.log('player', player);
+                console.debug('player', player);
                 for (const [instId, instData] of Object.entries(playerData.instruments)) {
-                    console.log('instId', instId);
+                    console.debug('instId', instId);
                     const changeEvent = {
                         playerId: player,
                         instrumentId: instId,
@@ -1661,7 +1668,7 @@ export default {
         localBPM: {
             immediate: true,
             handler(newValue) {
-                console.log('localBPM changed to ', newValue);
+                console.debug('localBPM changed to ', newValue);
                 this.$store.commit('setBPM', newValue);
             },
         },
@@ -1698,7 +1705,7 @@ export default {
                     if (newState.value !== oldStatus) {
                         // let floatStatus = newState.status ? 1.0 : 0.0;
                         const sliderPropertyName = `SLIDER_${index + 1}`;
-                        console.log('detected ', sliderPropertyName, ' change to ', newState.value);
+                        console.debug('detected ', sliderPropertyName, ' change to ', newState.value);
                         if (
                             this.paramWriter != null &&
                                             !this.paramWriter.enqueue_change(

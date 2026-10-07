@@ -258,7 +258,7 @@ export default {
                 }
                 return;
             }
-            console.log('releasing note ', currentNote);
+            console.debug('releasing note ', currentNote);
             this.lastNote = null;
             const noteName = currentNote; // Midi.midiToNoteName(note.note, { sharps: true });
             // get midi number from noteName

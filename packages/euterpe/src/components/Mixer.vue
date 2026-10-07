@@ -62,18 +62,18 @@ export default {
         };
     },
     beforeCreate() {
-        console.log('beforeCreate mixer start');
+        console.debug('beforeCreate mixer start');
         // this.$root.$refs.mixer = this;
-        console.log('beforeCreate mixer end');
+        console.debug('beforeCreate mixer end');
     },
     created() {
-        console.log('created mixer start');
+        console.debug('created mixer start');
         this.$root.$refs.mixer = this;
         // this.startAnalyser();
-        console.log(' created mixer end');
+        console.debug(' created mixer end');
     },
     mounted() {
-        console.log('mounted mixer start');
+        console.debug('mounted mixer start');
         this.getMixerData();
     },
 
@@ -115,14 +115,14 @@ export default {
                 title: 'Mixer',
             });
             // vm.pane.on('fold', (ev) => {
-            //     console.log('changed: ', ev.value);
+            //     console.debug('changed: ', ev.value);
             //     // ev.stopPropagation();
             //     // ev.preventDefault();
             //     // ev.cancelBubble = true;
             // });
             // vm.pane.on('change', (ev) => {
-            //     console.log(ev);
-            //     console.log('changed: ' + JSON.stringify(ev.value));
+            //     console.debug(ev);
+            //     console.debug('changed: ' + JSON.stringify(ev.value));
             // });
 
             // Create the mixer data object for Pane.
@@ -134,7 +134,7 @@ export default {
                     instruments: {},
                 };
                 playerData.instruments.forEach((instrument) => {
-                    console.log(instrument.id + ' ' + instrument.label);
+                    console.debug(instrument.id + ' ' + instrument.label);
                     vm.data[`${player}`].instruments[`${instrument.id}`] = {
                         label: instrument.label,
                         mute: instrument.mute,
@@ -145,7 +145,7 @@ export default {
 
             // Iterate over the 'players' in the config file
             for (const [player, playerData] of Object.entries(vm.data)) {
-                console.log(player, ' ', playerData);
+                console.debug(player, ' ', playerData);
                 const playerFolder = vm.pane.addFolder({
                     title: playerData.label,
                     expanded: true,
@@ -179,13 +179,13 @@ export default {
                 },
                 );
                 for (const [instId, instData] of Object.entries(playerData.instruments)) {
-                    console.log(instData.label);
+                    console.debug(instData.label);
                     // player.instruments.forEach((instrument) => {
                     const instFolder = playerFolder.addFolder({
                         title: instData.label,
                         expanded: false,
                     });
-                    console.log('added sub');
+                    console.debug('added sub');
                     instFolder.addInput(vm.data[player].instruments[instId], 'volume',
                         {
                             label: 'vol.',

@@ -74,7 +74,7 @@ export default {
             this.analyserNode.fftSize = this.fft_bins;
             this.bufferLength = this.analyserNode.frequencyBinCount; // half of FFT size
             this.dataArray = new Uint8Array(this.bufferLength);
-            console.log('AudioMeter initialized');
+            console.debug('AudioMeter initialized');
         },
 
         updateAnalysis() {

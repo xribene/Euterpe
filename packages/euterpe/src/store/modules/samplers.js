@@ -77,7 +77,7 @@ const actions = {
                     'is not available for the Agent. ' +
                     ' Make sure it is declared in the config_players file.');
             } else {
-                // console.log("samplerON before play ", Tone.now(), 'after seconds ', noteEvent.playAfter.seconds);
+                // console.debug("samplerON before play ", Tone.now(), 'after seconds ', noteEvent.playAfter.seconds);
                 // This doesn't work if there are both note_on and note_off events of the same note
                 // tone.js just ignores the note_on if we call triggerAttack and triggerRelease at the same time (Tone.now())
                 // even if we add noteEvent.playAfter.seconds to the time of the note_on event.
@@ -89,7 +89,7 @@ const actions = {
                 },  Math.floor(noteEvent.playAfter.seconds * 1000));
             }
         } else if (noteEvent.player == playerType.METRONOME) {
-            // console.log("click", noteEvent)
+            // console.debug("click", noteEvent)
             context.state.samplersAndBuses['metronome'].samplers['click']
                 .triggerAttack(noteEvent.name, Tone.now() + noteEvent.playAfter.seconds);
             // release the note 0.5s after the attack
@@ -125,7 +125,7 @@ const actions = {
                     ' is not available for the Agent. ' +
                     ' Make sure it is declared in the config_players file.');
             } else {
-                // console.log("samplerOFF before play ", Tone.now(), 'after seconds ', noteEvent.playAfter.seconds);
+                // console.debug("samplerOFF before play ", Tone.now(), 'after seconds ', noteEvent.playAfter.seconds);
                 if (noteEvent.playAfter.seconds == 0) {
                 instrumentToPlayOn.triggerRelease(name, Tone.now());
                 } else {
@@ -159,7 +159,7 @@ const mutations = {
 
     createInstruments(state, config) {
         state.playersConfig = config.players;
-        console.log('inside setInstrumentsConfig', state.playersConfig);
+        console.debug('inside setInstrumentsConfig', state.playersConfig);
         state.limiter = new Tone.Limiter(-5).toDestination();
         // state.limiter = new Tone.Channel().toDestination();
         // const tremolo = new Tone.Tremolo(9, 0.75).toDestination().start();

@@ -134,7 +134,7 @@ export default {
 
         // vm.scrollEnabled = this.$store.getters.config.gui.score;
         if (vm.$props.scrollStatus == false) {
-            console.log('scrolling disabled');
+            console.debug('scrolling disabled');
             this.triggerCollapse();
         }
 
@@ -257,7 +257,7 @@ export default {
         enableScrolling() {
             setInterval(() => {
                 if (this.$store.getters.getClockStatus && this.scrollEnabled) {
-                    // console.log("scrolling score")
+                    // console.debug("scrolling score")
                     this.scrollScore(1);
                     this.scrollsCounter += 1;
                     this.scrollsNumberPerMeasure =
@@ -318,7 +318,7 @@ export default {
             [durationTokens, durations] = this.DurationFormatter(
                 quantNoteDict.dur - afairetis,
             );
-            // console.log(formName, " ", durationTokens);
+            // console.debug(formName, " ", durationTokens);
             // stem_direction vm.VF.StaveNote.STEM_UP
             const notes = [];
             for (let i = 0; i < durationTokens.length; i++) {
@@ -461,7 +461,7 @@ export default {
         draw() {
             const humanQuantNoteDict = this.$store.getters.getLastHumanNoteQuantized;
             const aiQuantNoteDict = this.$store.getters.getLastAINoteQuantized;
-            // console.log("TO DRAW ", aiQuantNoteDict.midi);
+            // console.debug("TO DRAW ", aiQuantNoteDict.midi);
 
             if (aiQuantNoteDict.startTick == -1) {
                 aiQuantNoteDict.dur = this.preDur;
@@ -532,7 +532,7 @@ export default {
 
                 if (this.scrollEnabled == true) {
                     const scrollsDiff = this.scrollsNumberPerMeasure - this.scrollsCounter;
-                    // console.log(scrollsDiff);
+                    // console.debug(scrollsDiff);
                     this.scrollScore(scrollsDiff);
                     this.scrollsCounter = 0;
                 }
@@ -543,7 +543,7 @@ export default {
             // find the position of the next note in relation with the screenWidth
             const pos = (this.xCurrent - this.viewX) / this.screenWidth;
             if (pos > this.latestNotePosition) {
-                // console.log(pos);
+                // console.debug(pos);
                 this.scrollEnabled = true;
             }
 

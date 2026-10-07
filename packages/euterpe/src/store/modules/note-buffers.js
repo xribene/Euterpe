@@ -40,6 +40,8 @@ const pianoState = pianoMidiNumbers.reduce((map, midi) => {
     return map;
 }, {});
 
+// the score's unmatched-note-off warning is shown once
+let warnedUnmatchedOff = false;
 // agent notes dropped because they arrived after their tick (warned about in popAgentNotesToBePlayedAt)
 let lateNotes = 0;
 
@@ -199,7 +201,7 @@ const actions = {
 
         if (noteOnEvents.length > 0) {
             // console.error("Agent's output is not monophonic, score can't work properly");
-            // console.log("noteOnEvents", noteOnEvents);
+            // console.debug("noteOnEvents", noteOnEvents);
             state.lastAgentNote.midi = noteOnEvents[0].midi;
             // state.lastAgentNote.cpc =
             state.lastAgentNote.dur = 1;
@@ -213,7 +215,14 @@ const actions = {
                 state.lastAgentNote.dur = 1;
                 state.lastAgentNote.startTick = getters.getGlobalTick;
             } else {
-                console.error('Agent\'s output is not monophonic, score can\'t work properly (2)');
+                // a note-off for a note the score didn't see start (never played, played at once with
+                // playAfter.tick 0, or one of a chord): harmless to the audio; the score shows one agent voice
+                if (!warnedUnmatchedOff) {
+                    warnedUnmatchedOff = true;
+                    console.warn(`[euterpe] the agent turned off note ${noteOffEvents.map((e) => e.midi).join(', ')}, ` +
+                        `which the score did not see start (it shows the agent's last note-on, ${state.lastAgentNote.midi}); ` +
+                        'the score shows one agent voice. Reported once.');
+                }
             }
         }
     },
@@ -270,13 +279,13 @@ const actions = {
         // set the playAt to noteEvent.playAfter.tick + state.globalTick
         // this will be its actual tick when it's supposed to be played
         // and the SortedArray will use that to sort the notes correctly based on their globalTick
-        // console.log("inside storeAgentQuantizedOutput", workerNoteEvent)
+        // console.debug("inside storeAgentQuantizedOutput", workerNoteEvent)
         workerNoteEvent._playAt = {
             tick: workerNoteEvent.playAfter.tick + getters.getGlobalTickDelayed - 1,
             seconds: workerNoteEvent.playAfter.seconds,
         };
         state.agentNotesToBePlayed.insert(workerNoteEvent);
-        // console.log("pushed to agentNotesToBePlayed", workerNoteEvent);
+        // console.debug("pushed to agentNotesToBePlayed", workerNoteEvent);
         // const nextTick = getters.getNextLocalTick;//(noteEvent.tick);
         // store the predicted note in the quantizedBufferAgent
         // state.quantizedBufferAgent[nextTick] = workerNoteEvent
@@ -326,11 +335,11 @@ const actions = {
         // TODO : I still need this to display the notes in the score
         // TODO : Move this code to score.js
         let args = {};
-        // console.log("in store", quantizedEventList)
+        // console.debug("in store", quantizedEventList)
         // keep only the "on" and "hold" type events from quantizedEventList in a new array
         const quantizedEventListOnHold = quantizedEventList.filter((event) =>
             event.type === state.noteType.NOTE_ON || event.type === state.noteType.NOTE_HOLD);
-        // console.log("in store ON HOLD", quantizedEventListOnHold);
+        // console.debug("in store ON HOLD", quantizedEventListOnHold);
         if ( quantizedEventListOnHold.length > 0 ) {
             args = {midi: quantizedEventList[0].midi,
                 // articulation is 1 if type="on" and 0 if type="hold"
@@ -349,7 +358,7 @@ const actions = {
                 // state.lastHumanQuantizedNote.name = args.name;
                 state.lastHumanQuantizedNote.dur = 1;
                 state.lastHumanQuantizedNote.startTick = getters.getGlobalTickDelayed;
-                // console.log("mesa")
+                // console.debug("mesa")
             }
         } else {
             if (args.articulation == 1) {
@@ -408,7 +417,7 @@ const mutations = {
 
     setNoteType(state, noteType) {
         state.noteType = noteType;
-        console.log(state.noteType);
+        console.debug(state.noteType);
     },
     initQuantBuffers(state, config) {
         const restNote = {
@@ -433,7 +442,7 @@ const mutations = {
             state.pianoState[i].status = false;
             state.pianoState[i].timestamp = 0;
         }
-        // console.log("cleared pianoState");
+        // console.debug("cleared pianoState");
     },
 };
 
