@@ -49,7 +49,9 @@ pnpm rehearse     # publish to a local registry, then create, build and smoke ev
 
 If you use Euterpe in your research, please cite:
 
-> Y. Zang, C. Benetatos, and Z. Duan, "Euterpe: A Web Framework for Interactive Music Systems," *Journal of the Audio Engineering Society*, vol. 71, no. 11, pp. 738–752, 2023. doi:[10.17743/jaes.2022.0117](https://doi.org/10.17743/jaes.2022.0117)
+> Y. Zang\*, C. Benetatos\*, and Z. Duan, "Euterpe: A Web Framework for Interactive Music Systems," *Journal of the Audio Engineering Society*, vol. 71, no. 11, pp. 738–752, 2023. doi:[10.17743/jaes.2022.0117](https://doi.org/10.17743/jaes.2022.0117)
+>
+> \* Equal contribution.
 
 ```bibtex
 @article{zang2023euterpe,
