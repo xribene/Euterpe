@@ -4,8 +4,6 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter template-empty dev",
-    "dev:bachduet": "pnpm --filter bachduet dev",
-    "build:bachduet": "pnpm --filter bachduet build",
     "sync-templates": "node tools/sync-templates.mjs",
     "check-templates": "node tools/sync-templates.mjs --check",
     "rehearse": "tools/acceptance/rehearse.sh",

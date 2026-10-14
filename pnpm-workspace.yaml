@@ -1,7 +1,6 @@
 packages:
   - packages/*
   - templates/*
-  - apps/*
   - tests/*
 # install scripts: only esbuild's (it checks its binary)
 allowBuilds:
