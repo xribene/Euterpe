@@ -154,7 +154,8 @@
                   "label": {"type": "string"},
                   "options": {"type": "array", "items": {"type": "string"}, "minItems": 1},
                   "value": {"type": "integer", "minimum": 0},
-                  "intro": {"type": "boolean", "description": "Also show this dropdown on the start screen."}
+                  "intro": {"type": "boolean", "description": "Also show this dropdown on the start screen."},
+                  "note": {"type": "string", "description": "A short explanation shown under this dropdown in Settings."}
                 }
               }
             },

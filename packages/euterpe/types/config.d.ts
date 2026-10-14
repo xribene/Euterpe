@@ -704,6 +704,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             }
           ]
         | [
@@ -719,6 +723,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             },
             {
               id: number;
@@ -732,6 +740,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             }
           ]
         | [
@@ -747,6 +759,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             },
             {
               id: number;
@@ -760,6 +776,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             },
             {
               id: number;
@@ -773,6 +793,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             }
           ]
         | [
@@ -788,6 +812,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             },
             {
               id: number;
@@ -801,6 +829,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             },
             {
               id: number;
@@ -814,6 +846,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             },
             {
               id: number;
@@ -827,6 +863,10 @@ export interface WidgetsYaml {
                * Also show this dropdown on the start screen.
                */
               intro?: boolean;
+              /**
+               * A short explanation shown under this dropdown in Settings.
+               */
+              note?: string;
             }
           ]
         | null;

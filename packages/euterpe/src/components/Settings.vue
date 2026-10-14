@@ -115,6 +115,7 @@
                                             {{ option }}
                                         </option>
                                     </select>
+                                    <p v-if="dropdownItem.note" class="dropdownsNote">{{ dropdownItem.note }}</p>
                                 </div>
                                 <p v-if="dropdownsNote" class="dropdownsNote">{{ dropdownsNote }}</p>
                             </div>
