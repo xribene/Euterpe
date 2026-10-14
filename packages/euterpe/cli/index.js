@@ -4,6 +4,7 @@
  *
  *   euterpe smoke [url]        check the agent in a headless browser: starts the dev server unless a URL is given
  *         --build              check the production build instead, served like a static host (COOP/COEP)
+ *         --mode=name          the Vite mode (vite.config.js gets it, e.g. two builds of one agent)
  *         --expect-answer      fail if the agent plays nothing in answer to the test phrase
  *         --set=slider:3:7     change a widget first (kind:id:value, as ctx.params)
  *         --wait=ms --json --logs --screenshot=file.png
@@ -45,16 +46,17 @@ async function smokeCommand() {
     if (!url) {
         // the project's own Vite, with its vite.config.js
         const vite = await import('vite');
+        const mode = typeof flags.mode === 'string' ? flags.mode : undefined;
         if (flags.build) {
-            console.error(dim('building...'));
-            await vite.build({root: process.cwd(), logLevel: 'warn'});
-            const config = await vite.resolveConfig({root: process.cwd()}, 'build');
+            console.error(dim(`building${mode ? ` (mode ${mode})` : ''}...`));
+            await vite.build({root: process.cwd(), logLevel: 'warn', mode});
+            const config = await vite.resolveConfig({root: process.cwd(), mode}, 'build');
             const {serveStatic} = await import('./serve.js');
             const server = await serveStatic(path.resolve(config.root, config.build.outDir), 0, config.base);
             url = server.url;
             stop = server.close;
         } else {
-            const server = await vite.createServer({root: process.cwd(), logLevel: 'error', server: {port: 0}});
+            const server = await vite.createServer({root: process.cwd(), logLevel: 'error', mode, server: {port: 0}});
             await server.listen();
             url = server.resolvedUrls.local[0];
             stop = () => server.close();

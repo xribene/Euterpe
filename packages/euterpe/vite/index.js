@@ -55,6 +55,9 @@ const CONTENT_TYPES = {'.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio
 /**
  * @param {Object} [options]
  * @param {string} [options.agentDir='agent'] - The agent's folder, relative to the project root.
+ * @param {{hooks?: string, config?: string, widgets?: string, players?: string, intro?: string}} [options.files] -
+ *     Other files to use instead of the agent folder's, relative to the project root: e.g. two builds of one agent
+ *     with different widgets (`files: {widgets: 'agent/widgets.official.yaml'}`).
  * @param {string} [options.samplesBaseUrl] - Where the instrument samples are served from (e.g. a CDN). By
  *     default the plugin serves the samples that ship with Euterpe and copies them into the build.
  * @return {import('vite').Plugin[]}
@@ -64,6 +67,10 @@ export default function euterpe(options = {}) {
     const state = {root: process.cwd(), base: '/'};
     const agentDir = () => path.resolve(state.root, agentDirOption);
     const findFile = (kind) => {
+        if (options.files?.[kind]) {
+            const file = path.resolve(state.root, options.files[kind]);
+            return fs.existsSync(file) ? file : null;
+        }
         for (const name of AGENT_FILES[kind]) {
             const file = path.join(agentDir(), name);
             if (fs.existsSync(file)) return file;
@@ -184,7 +191,9 @@ export default function euterpe(options = {}) {
         },
         handleHotUpdate({file, server}) {
             // a YAML or intro change: rebuild the config module and reload the page
-            if (path.dirname(file) === agentDir() && /\.(ya?ml|md)$/.test(file)) {
+            const override = Object.entries(options.files ?? {})
+                .some(([kind, f]) => kind !== 'hooks' && path.resolve(state.root, f) === file);
+            if (override || (path.dirname(file) === agentDir() && /\.(ya?ml|md)$/.test(file))) {
                 const module = server.moduleGraph.getModuleById('\0' + CONFIG_MODULE);
                 if (module) server.moduleGraph.invalidateModule(module);
                 server.ws.send({type: 'full-reload'});
