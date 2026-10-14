@@ -74,8 +74,8 @@ Found while packaging Euterpe (branch `npm-package`). Newest first within each s
 
 | # | Issue | Evidence | Suggested fix | Status |
 |---|---|---|---|---|
-| P1 | The licence and origin of the 17 MB of instrument samples are unknown. The file names match the tonejs-instruments set. They ship inside the `euterpe` tarball for now. | `packages/euterpe/assets/samples` | Confirm the source and licence before publishing; otherwise host them elsewhere (CDN) with attribution | open, blocks publish |
-| P2 | The copyright line names Yongyi Zang, whose agreement to MIT is still needed. | `LICENSE` | Ask Yongyi before publishing | open, blocks publish |
+| P1 | The licence and origin of the 17 MB of instrument samples are unknown. The file names match the tonejs-instruments set. They ship inside the `euterpe` tarball for now. | `packages/euterpe/assets/samples` | Confirm the source and licence before publishing; otherwise host them elsewhere (CDN) with attribution | resolved (2026-10-13): Christos's own recordings in Tone.js format, MIT; bundled in 0.1.0 (`assets/samples/README.md`); a CDN or separate package can come in 0.2 |
+| P2 | The copyright line names Yongyi Zang, whose agreement to MIT is still needed. | `LICENSE` | Ask Yongyi before publishing | resolved (2026-10-13): Yongyi agreed to MIT |
 | P3 | The same dev fixes (permissions / play button / MIDI init) exist on `dev` and on `primed-anticipation` under different hashes, so merging those branches later will conflict on `Euterpe.vue`. | `git cherry-pick` of 811a40e conflicted, though the content was already there | Retire `dev` once `npm-package` lands | open |
 | P4 | Netlify builds bachduet.com from the repo root of the `bachDuet` branch. On the new layout the site's base directory is `apps/bachduet` (its `netlify.toml` pins Node 21.1.0). | `apps/bachduet/netlify.toml` | Change the Netlify settings only when switching the site over (ask first) | open |
 
