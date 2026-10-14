@@ -1,7 +1,7 @@
 /**
  * The live canvas on the page (gui.liveCanvas): the user draws a line with the mouse (drawing mode, pointer lock)
- * and taps a key for rhythm; the agent turns the line into the user's voice (see apps/bachduet/agent/
- * liveCanvasVoice.js) and sends, after each tick t, the user's note for t+1 (messageType.HUMAN_TOKEN).
+ * and taps a key for rhythm; the agent turns the line into the user's voice (see BachDuet's
+ * agent/liveCanvasVoice.js) and sends, after each tick t, the user's note for t+1 (messageType.HUMAN_TOKEN).
  *
  * This controller plays that note as the user's note at tick t+1, through processUserNoteEvent (eventSource
  * CANVAS), before the quantizer runs for t+1: the score, the piano roll, the audio and the agent treat it like

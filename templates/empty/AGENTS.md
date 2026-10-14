@@ -96,10 +96,10 @@ npm run smoke -- --build   # the same on the production build, served like a sta
 
 ## Agents with a neural network
 
-Two complete projects in the Euterpe repository show the pattern (model in the worker, weights in `public/`, one inference step per tick):
+Two complete Euterpe projects show the pattern (model in the worker, weights in `public/`, one inference step per tick):
 
-- [apps/realchords](https://github.com/xribene/Euterpe/tree/main/apps/realchords): ONNX transformer with a KV cache (onnxruntime-web), `defineAgent`, polyphonic output, a parity test against PyTorch.
-- [apps/bachduet](https://github.com/xribene/Euterpe/tree/main/apps/bachduet): LSTMs in TF.js (WASM backend), several models behind a dropdown, turn-taking, session logging.
+- [euterpe-realchords](https://github.com/xribene/euterpe-realchords): ONNX transformer with a KV cache (onnxruntime-web), `defineAgent`, polyphonic output, a parity test against PyTorch.
+- [euterpe-bachduet](https://github.com/xribene/euterpe-bachduet): LSTMs in TF.js (WASM backend), several models behind a dropdown (the `dev` branch), turn-taking, session logging.
 
 Add the runtime as a dependency (`npm install onnxruntime-web` or `@tensorflow/tfjs @tensorflow/tfjs-backend-wasm`) and import it in `agent/`; Euterpe's Vite plugin pre-bundles whatever the agent imports.
 
