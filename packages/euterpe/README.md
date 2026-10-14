@@ -90,6 +90,6 @@ Node 18+, Vite 5. Chrome (or another Chromium browser) is recommended. `playwrig
 
 ## Licence
 
-MIT, © Christodoulos Benetatos and Yongyi Zang. The instrument samples (piano, drums, upright bass, click) were recorded by Christodoulos Benetatos and are MIT too.
+MIT, © Christodoulos Benetatos and Yongyi Zang.
 
 Source and examples: https://github.com/xribene/Euterpe
