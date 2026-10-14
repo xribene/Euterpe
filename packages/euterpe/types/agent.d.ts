@@ -290,6 +290,14 @@ export declare class FIFOQueue<T = unknown> {
 export declare function clamp(num: number, min: number, max: number): number;
 /** Moves midi by octaves into [min, max]. */
 export declare function clampMidi(midi: number, min: number, max: number): number;
+/** Moves the last element to the front, in place (e.g. a Meyda chroma vector so that index 0 is C). */
+export declare function shiftRight(arr: number[]): void;
+/** The maximum of an array (0 if all are <= 0) and its index. */
+export declare function max1d(arr: ArrayLike<number>): [number, number];
+/** The mean of an array (0 if empty). */
+export declare function average1d(arr: number[]): number;
+/** The element-wise mean of equal-length rows (throws if `arr` is empty). */
+export declare function average2d(arr: ArrayLike<number>[]): number[];
 export declare function deinterleaveCustom(input: Float32Array, output: Float32Array[], channelCount: number): void;
 
 declare global {

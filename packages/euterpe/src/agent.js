@@ -4,7 +4,7 @@
  */
 export {NoteEvent} from './utils/NoteEvent.js';
 export {LIFOQueue, FIFOQueue} from './utils/dataStructures.js';
-export {clamp, clampMidi} from './utils/math.js';
+export {clamp, clampMidi, shiftRight, max1d, average1d, average2d} from './utils/math.js';
 export {deinterleaveCustom} from './utils/helpers.js';
 export {
     playerType, instrumentType, eventSourceType, messageType, statusType, noteType, uiParameterType, agentHookType,
