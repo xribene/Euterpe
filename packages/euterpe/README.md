@@ -2,6 +2,8 @@
 
 A browser framework for real-time interactive music agents. A person plays (laptop keyboard, MIDI keyboard or microphone) and your agent answers, in the browser, with no server. You write the agent: its hooks in JavaScript and a few YAML files. Euterpe does the rest: MIDI and audio input, the clock and quantization, samplers and audio output, and the UI (score, piano roll, keyboard, Settings widgets).
 
+[Website](https://euterpeframework.org) · [Demos](https://euterpeframework.org/guide/demos) · [Paper (JAES 2023)](https://doi.org/10.17743/jaes.2022.0117) · [Source](https://github.com/xribene/Euterpe)
+
 ## Start a project
 
 ```bash
@@ -88,8 +90,26 @@ Euterpe uses SharedArrayBuffer between the page, the agent worker and the audio 
 
 Node 18+, Vite 5. Chrome (or another Chromium browser) is recommended. `playwright-core` is optional, and only needed for `euterpe smoke`.
 
+## Citation
+
+If you use Euterpe in your research, please cite:
+
+> Y. Zang, C. Benetatos, and Z. Duan, "Euterpe: A Web Framework for Interactive Music Systems," *Journal of the Audio Engineering Society*, vol. 71, no. 11, pp. 738–752, 2023. doi:[10.17743/jaes.2022.0117](https://doi.org/10.17743/jaes.2022.0117)
+
+```bibtex
+@article{zang2023euterpe,
+  author  = {Zang, Yongyi and Benetatos, Christodoulos and Duan, Zhiyao},
+  title   = {Euterpe: A Web Framework for Interactive Music Systems},
+  journal = {Journal of the Audio Engineering Society},
+  volume  = {71},
+  number  = {11},
+  pages   = {738--752},
+  year    = {2023},
+  doi     = {10.17743/jaes.2022.0117}
+}
+```
+
 ## Licence
 
 MIT, © Christodoulos Benetatos and Yongyi Zang.
 
-Source and examples: https://github.com/xribene/Euterpe

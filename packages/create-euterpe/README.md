@@ -2,6 +2,8 @@
 
 Creates a [Euterpe](https://www.npmjs.com/package/euterpe) project: a real-time interactive music agent that runs in the browser.
 
+[Website](https://euterpeframework.org) · [Paper (JAES 2023)](https://doi.org/10.17743/jaes.2022.0117) · [Source](https://github.com/xribene/Euterpe)
+
 ```bash
 npm create euterpe@latest my-agent
 cd my-agent

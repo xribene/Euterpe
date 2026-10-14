@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use Euterpe in your research, please cite the paper below."
+title: "Euterpe"
+repository-code: "https://github.com/xribene/Euterpe"
+url: "https://euterpeframework.org"
+license: MIT
+authors:
+  - family-names: Zang
+    given-names: Yongyi
+  - family-names: Benetatos
+    given-names: Christodoulos
+  - family-names: Duan
+    given-names: Zhiyao
+preferred-citation:
+  type: article
+  title: "Euterpe: A Web Framework for Interactive Music Systems"
+  authors:
+    - family-names: Zang
+      given-names: Yongyi
+    - family-names: Benetatos
+      given-names: Christodoulos
+    - family-names: Duan
+      given-names: Zhiyao
+  journal: "Journal of the Audio Engineering Society"
+  volume: 71
+  issue: 11
+  start: 738
+  end: 752
+  year: 2023
+  doi: "10.17743/jaes.2022.0117"

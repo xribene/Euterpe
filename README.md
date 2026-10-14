@@ -1,107 +1,69 @@
 <div align="center">
     <h1>Euterpe</h1>
-    <img src="public/img/heroImage.svg" style="filter: drop-shadow(0px 1px 0px Grey);" alt="Hero Image" width="500" height="200">
+    <img src="docs/img/heroImage.svg" alt="Euterpe" width="500" height="200">
+    <p>
+        <a href="https://euterpeframework.org">Website</a> ·
+        <a href="https://euterpeframework.org/guide/demos">Demos</a> ·
+        <a href="https://doi.org/10.17743/jaes.2022.0117">Paper (JAES 2023)</a> ·
+        <a href="https://www.npmjs.com/package/euterpe">npm</a>
+    </p>
 </div>
 
-Euterpe is a framework designed to bridge the gap between music interaction and creation research and its deployment into user-friendly systems accessible to the general public on the web. Euterpe aims to be a template or starting point, from which you can develop your own music interaction system.
+Euterpe is a browser framework for real-time interactive music agents. A person plays (laptop keyboard, MIDI keyboard or microphone) and your agent answers, in the browser, with no server. You write the agent: its hooks in JavaScript and a few YAML files. Euterpe does the rest: MIDI and audio input, the clock and quantization, samplers and audio output, and the UI (score, piano roll, keyboard, Settings widgets).
 
-## Deployed Systems Using Euterpe
-- [BachDuet](https://bachduet-euterpe.netlify.app/)
-- [PianoGenie](https://piano-genie-euterpe.netlify.app/)
-- [Copycat](https://copycat-euterpe.netlify.app/)
-- [GridyCopycat]()
-- [CallAndResponse]()
-- [MeydaDemo]()
-- [JazzTrio]()
-
-
----
-## Installation
-
-### Node.js
-
-If you don't have node.js installed, we recommend using the Node environment manager NVM. If you already have node.js installed but it is older than v16, we suggest you install a newer one.
-
-In your terminal, you can check if you have Node.js or NVM installed by running
+## Start a project
 
 ```bash
-# For NVM
-nvm -v
-# For Node
-node -v
+npm create euterpe@latest my-agent
+cd my-agent
+npm install
+npm run dev
 ```
 
-Based on that, you can follow one of the options below
+Templates: `empty`, `copycat`, `call-response` and `synth` (MIDI in, audio out). Each project comes with an `AGENTS.md` that documents the whole API, for you and for coding agents. The [package README](packages/euterpe/README.md) has a short agent example, the hooks and deployment notes.
 
-- Install Node.js using NVM
-  1. Installing NVM
-     Instructions for [MacOS](https://catalins.tech/node-version-manager-macos/), [Linux](https://github.com/nvm-sh/nvm#installing-and-updating) and [Windows](https://github.com/coreybutler/nvm-windows#installation--upgrades)
-  2. Installing Node
-     ```bash
-     nvm install v21.1.0
-     nvm use 21.1.0
-     # verify that Node.js is correctly installed:
-     node -v
-     ```
-- Install Node.js without NVM
-  1. Choose the correct pre-build [installers](https://nodejs.org/en/download) for your platform
-  2. Or use some other package manager that your platform provides (i.e Homebrew for macOS)
+## Systems built with Euterpe
 
-### Euterpe
+- [BachDuet](https://bachduet.com): real-time counterpoint improvisation with a Bach-inspired agent
+- PianoGenie, Copycat, Call and Response, Whistle to Chords and more: see the [demos page](https://euterpeframework.org/guide/demos)
 
-Now that you have Node.js set up, you can proceed to install Euterpe by following these steps:
+## This repository
 
-- Getting the source code
+A pnpm workspace:
 
-  ```bash
-  git clone https://github.com/xribene/Euterpe.git
-  ```
-
-- Installing dependencies
-
-    ```bash
-    # Navigate to the Euterpe folder
-    cd Euterpe
-    # Install the package manager pnpm
-    npm install -g pnpm
-    # Use pnpm to install all dependencies
-    pnpm install
-    ```
-
-
----
-## Run Euterpe examples
-
-To confirm everything was installed correctly run the following command from the Euterpe directory:
+| Folder | What |
+|---|---|
+| `packages/euterpe` | the framework, published as [`euterpe`](https://www.npmjs.com/package/euterpe): runtime, Vite plugin, `euterpe` CLI, types and schemas |
+| `packages/create-euterpe` | the scaffolder, published as [`create-euterpe`](https://www.npmjs.com/package/create-euterpe) |
+| `templates/` | the project templates `npm create euterpe` copies |
+| `examples/` | agents from the original (pre-npm) Euterpe |
+| `tests/`, `tools/` | smoke tests and the release rehearsal |
 
 ```bash
-pnpm run dev
+pnpm install
+pnpm dev          # the empty template against the local package
+pnpm rehearse     # publish to a local registry, then create, build and smoke every template
 ```
 
-If successful, this command will start a local development server on port `5173`.
-Visit [http://localhost:5173](http://localhost:5173) and try the deployed web-app.
+## Citation
 
----
-## Deployment
+If you use Euterpe in your research, please cite:
 
-When you are ready to deploy Euterpe, you can run the following command in the root directory of the project:
-```sh
-pnpm run build
+> Y. Zang, C. Benetatos, and Z. Duan, "Euterpe: A Web Framework for Interactive Music Systems," *Journal of the Audio Engineering Society*, vol. 71, no. 11, pp. 738–752, 2023. doi:[10.17743/jaes.2022.0117](https://doi.org/10.17743/jaes.2022.0117)
+
+```bibtex
+@article{zang2023euterpe,
+  author  = {Zang, Yongyi and Benetatos, Christodoulos and Duan, Zhiyao},
+  title   = {Euterpe: A Web Framework for Interactive Music Systems},
+  journal = {Journal of the Audio Engineering Society},
+  volume  = {71},
+  number  = {11},
+  pages   = {738--752},
+  year    = {2023},
+  doi     = {10.17743/jaes.2022.0117}
+}
 ```
 
-This will by default generate a `dist` folder in the root directory of the project. You can then deploy the contents of the `dist` folder to your web server.
+## Licence
 
----
-## Made with 
-- [Vue.js](https://vuejs.org/)
-- [WebAudio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
-- [Tone.js](https://tonejs.github.io/)
-- [ringbuf.js](https://github.com/padenot/ringbuf.js/)
-- [tonaljs](tonaljs)
-- [audiokeys](https://github.com/kylestetz/AudioKeys)
-- [vexflow]()
-- [three.js](https://threejs.org/)
-- [vue-chartjs](https://vue-chartjs.org/)
-
-
-
+MIT, © Christodoulos Benetatos and Yongyi Zang.
