@@ -51,7 +51,7 @@ export default defineAgent({
 | `ctx.types` | `noteType`, `playerType`, `instrumentType`, `messageType`, `statusType` |
 | `ctx.urlParams` | The page's query parameters |
 
-`euterpe/agent` also exports `NoteEvent`, `clamp`, `clampMidi`, `LIFOQueue`, `FIFOQueue`.
+`euterpe/agent` also exports `NoteEvent`, `clamp`, `clampMidi`, `LIFOQueue`, `FIFOQueue`, `deinterleaveCustom`, and small array helpers (`shiftRight`, `max1d`, `average1d`, `average2d`).
 
 ## Audio input
 
