@@ -13,7 +13,7 @@ agent/intro.md      the text shown when the page opens
 public/             static files served as-is, e.g. model weights (fetch('/checkpoints/model.onnx'))
 ```
 
-Change these files. Do not edit `node_modules/euterpe` (see "Changing Euterpe itself").
+Change these files. Do not change Euterpe itself (see "Problems in Euterpe itself").
 
 ## The hooks (agent/hooks.js)
 
@@ -88,21 +88,18 @@ npm run smoke -- --build   # the same on the production build, served like a sta
 
 ## Checking your work
 
-- Run `npm run typecheck` and `npm run smoke` after a change. `smoke` starts the dev server, plays C5 D5 E5 F5 G5 F5 E5 D5 C5 on the laptop keyboard and reports what the agent played back, console errors and Euterpe's warnings (`--set=slider:1:40` changes a widget first, `--json` for the full report). It uses the system Chrome; without Chrome run `npx playwright install chromium` once.
+- Run `npm run typecheck` and `npm run smoke` after a change. `smoke` starts the dev server, plays C5 D5 E5 F5 G5 F5 E5 D5 C5 on the laptop keyboard and reports what the agent played back, console errors and Euterpe's warnings (`--set=slider:1:40` changes a widget first, `--json` for the full report). It uses the system Chrome; without Chrome run `npx playwright install chromium` once. A headless browser often has no Web MIDI; that is not counted as an error (the report says so in an info line).
 - The YAML files are checked against `node_modules/euterpe/schema/*.schema.json` when the dev server or the build loads them: errors (missing keys, wrong types, unknown instruments) stop the dev server with an overlay and fail the build; warnings (unknown keys, with a "did you mean") are printed in the terminal and the browser console. Editors with the YAML extension validate and autocomplete them (the first line of each file points to its schema).
-- Open the dev server URL, press the start button, play on the keyboard (rows `Z X C V ...` = C4 upward, `Q W E R ...` = C5 upward), and watch the browser console. Euterpe's own messages start with `[euterpe]`: a hook that returned something that isn't a note, an unknown key, a `processClockEvent` slower than a tick, notes dropped because they arrived after their tick.
+- Open the dev server URL, press the start button, play on the keyboard (rows `Z X C V ...` = C4 upward, `Q W E R ...` = C5 upward) or a MIDI keyboard (the first connected MIDI input is used until another one is chosen in Settings), and watch the browser console. Space starts and stops the clock (not while the intro or Settings dialog is open). Euterpe's own messages start with `[euterpe]`: a hook that returned something that isn't a note, an unknown key, a `processClockEvent` slower than a tick, notes dropped because they arrived after their tick.
 - The page must be cross-origin isolated (`self.crossOriginIsolated === true` in the console); the dev server and the provided deploy configs make sure of that.
 - Scripts and browser tests (e.g. Playwright) drive the page through `window.__euterpe` instead of clicking: `await __euterpe.whenReady()`, `__euterpe.enter()`, `__euterpe.startClock()`, `__euterpe.noteOn(60)` / `noteOff(60)`, `__euterpe.setParam('slider', 1, 40)`, `__euterpe.params`, `__euterpe.tick`, `__euterpe.agentMessages()` (what the agent sent). Controls carry `data-testid`s: `euterpe-start`, `euterpe-clock`, `euterpe-settings`, `euterpe-slider-1`, `euterpe-dropdown-1`, `euterpe-text-1`, ...
 
 ## Agents with a neural network
 
-Two complete Euterpe projects show the pattern (model in the worker, weights in `public/`, one inference step per tick):
-
-- [euterpe-realchords](https://github.com/xribene/euterpe-realchords): ONNX transformer with a KV cache (onnxruntime-web), `defineAgent`, polyphonic output, a parity test against PyTorch.
-- [euterpe-bachduet](https://github.com/xribene/euterpe-bachduet): LSTMs in TF.js (WASM backend), several models behind a dropdown (the `dev` branch), turn-taking, session logging.
+The pattern: the model runs in the agent's worker (load it in `loadAlgorithm`, which the UI waits for), its weights are static files in `public/` (fetched with `fetch('/checkpoints/...')`), and `processClockEvent` runs one inference step per tick, keeping the model's state (an RNN's hidden state, a transformer's KV cache) between ticks. Check that a step fits in a tick: the console warns when `processClockEvent` is slower than one.
 
 Add the runtime as a dependency (`npm install onnxruntime-web` or `@tensorflow/tfjs @tensorflow/tfjs-backend-wasm`) and import it in `agent/`; Euterpe's Vite plugin pre-bundles whatever the agent imports.
 
-## Changing Euterpe itself
+## Problems in Euterpe itself
 
-Euterpe's source ships readable in `node_modules/euterpe/src` (Vue 2 UI in `src/views/Euterpe.vue`, the worker runtime in `src/worker/agentWorker.js`, the Vite plugin in `vite/index.js`). Do not edit it in place: the next install discards the change. For a small fix use `npx patch-package euterpe` (npm) or `pnpm patch euterpe` (pnpm), which keep the change as a patch file in the project. For bigger changes, `npx euterpe eject` copies Euterpe into `./euterpe` and points `package.json` at it; then it is ordinary project code (and no longer updates with new releases). Fixes are welcome upstream: https://github.com/xribene/Euterpe.
+Euterpe's source ships readable in `node_modules/euterpe/src` (Vue 2 UI in `src/views/Euterpe.vue`, the worker runtime in `src/worker/agentWorker.js`, the Vite plugin in `vite/index.js`): read it to understand what Euterpe does. Do not modify Euterpe in this project (no edits in `node_modules`, no patches, no copy of it in the project): keep the work in `agent/` and `public/`. If Euterpe itself misbehaves (a bug, a missing feature, a wrong or unclear message), work around it in the agent if you can, and report it upstream at https://github.com/xribene/Euterpe/issues with the Euterpe version (`node_modules/euterpe/package.json`), what you did, what you expected and what happened (the `npm run smoke -- --json` report helps).
