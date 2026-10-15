@@ -23,6 +23,8 @@ import '../css/main.css';
 import * as Tone from 'tone';
 import {Midi} from '@tonaljs/tonal';
 import {WebMidi} from 'webmidi';
+// the id of the "None" entry of the MIDI device menus
+const NO_MIDI_DEVICE = 1123581321;
 import AudioKeys from 'audiokeys';
 
 import * as rb from 'ringbuf.js';
@@ -587,18 +589,20 @@ export default {
             const vm = this;
             if (vm.$store.getters.getClockStatus) {
                 vm.$store.commit('incrementTick');
+                // The side effects of a tick (the live canvas, the metronome and its MIDI out, the agent's
+                // sampler) run guarded: a throw in one of them must never stop the tick reaching the agent.
                 // the live canvas plays the user's note for this tick before the quantizer runs
-                vm.liveCanvas?.onTick(vm.$store.getters.getGlobalTick);
+                vm.guardedTickStep('liveCanvas', () => vm.liveCanvas?.onTick(vm.$store.getters.getGlobalTick));
 
                 // Trigger the metronome only if there is a "metronome" entry in config_players.yaml
                 if (vm.config.players.metronome) {
-                    vm.metronomeTrigger();
+                    vm.guardedTickStep('metronome', () => vm.metronomeTrigger());
                 }
 
-                vm.calculateMaxBPM();
+                vm.guardedTickStep('calculateMaxBPM', () => vm.calculateMaxBPM());
 
                 // in grid-based mode, the agent's sampler is triggered in sync with the clock
-                vm.triggerAgentSamplerSync(); // UNCOMMENT
+                vm.guardedTickStep('agentSampler', () => vm.triggerAgentSamplerSync());
 
 
                 // run the agent with a small delay of tick/4 in order to include
@@ -625,6 +629,19 @@ export default {
                     // "delayed" tick number because other parts of the code
                     // depend on it. In this case tick === delayedTick
                     vm.$store.commit('incrementTickDelayed');
+                }
+            }
+        },
+
+        // runs one step of a tick; a throw is logged (the first time per step) instead of ending the tick
+        guardedTickStep(name, step) {
+            try {
+                step();
+            } catch (error) {
+                this.tickStepErrors ??= new Set();
+                if (!this.tickStepErrors.has(name)) {
+                    this.tickStepErrors.add(name);
+                    console.error(`[euterpe] ${name} failed on a tick (the tick still reached the agent)`, error);
                 }
             }
         },
@@ -1447,54 +1464,51 @@ export default {
             });
         },
 
+        /*
+        * MIDI out. Every path goes through withMIDIOutput: without Web MIDI (permission denied, a headless
+        * browser, Safari) or without a selected output device it does nothing, and a failure to
+        * send is logged once, never thrown (the metronome and the agent's notes call it on the clock's path).
+        */
+        withMIDIOutput(send) {
+            if (!WebMidi.enabled || this.selectedMIDIOutputDevice == NO_MIDI_DEVICE) return;
+            try {
+                const outputDevice = WebMidi.getOutputById(this.selectedMIDIOutputDevice);
+                if (outputDevice) send(outputDevice);
+            } catch (error) {
+                if (!this.midiOutputWarned) {
+                    this.midiOutputWarned = true;
+                    console.warn('[euterpe] Web MIDI output failed; MIDI out is skipped', error);
+                }
+            }
+        },
+
         // Method to send MIDI messages (for example, a Note On message)
         sendNoteOn(noteEvent, channel = 1) {
-            const outputDevice = WebMidi.getOutputById(this.selectedMIDIOutputDevice);
-            if (outputDevice) {
-                // Note On message is sent as [0x90 + channel, noteNumber, velocity]
-                // outputDevice.send([0x90, noteNumber, velocity]);
+            this.withMIDIOutput((outputDevice) => {
                 outputDevice.playNote(noteEvent.midi, {channels: [channel]});
-                console.debug(`Sent Note On to external device`);
-            // } else {
-            //     console.error('No output device selected.');
-            }
+            });
         },
 
         sendNoteOnOff(noteEvent, channel = 1, duration = 1000) {
-            const outputDevice = WebMidi.getOutputById(this.selectedMIDIOutputDevice);
-            if (outputDevice) {
-                // Note On message is sent as [0x90 + channel, noteNumber, velocity]
-                // outputDevice.send([0x90, noteNumber, velocity]);
-                if (noteEvent.midi)
-                    outputDevice.playNote(noteEvent.midi, {channels: [channel], duration: duration});
-                else
-                    outputDevice.playNote(noteEvent.name, {channels: [channel], duration: duration});
-                console.debug(`Sent Note On to external device`);
-            // } else {
-            //     console.error('No output device selected.');
-            }
+            this.withMIDIOutput((outputDevice) => {
+                outputDevice.playNote(noteEvent.midi || noteEvent.name, {channels: [channel], duration: duration});
+            });
         },
 
         // Method to send MIDI messages (for example, a Note Off message)
-        sendNoteOff(noteEvent, channel = 1, after = "+0") {
-            const outputDevice = WebMidi.getOutputById(this.selectedMIDIOutputDevice);
-            if (outputDevice) {
-                // Note Off message is sent as [0x80 + channel, noteNumber, 0]
+        sendNoteOff(noteEvent, channel = 1, after = '+0') {
+            this.withMIDIOutput((outputDevice) => {
                 outputDevice.stopNote(noteEvent.midi, {time: after, channels: [channel]});
-                // console.debug(`Sent Note Off: Note ${noteEvent.midi} to external device`);
-            // } else {
-            //     console.error('No output device selected.');
-            }
+            });
         },
 
         // kill all notes on the external midi device
         killAllNotes() {
-            // use the sendNoteOff method to send a note off message to all notes
-            // that are currently playing on the external midi device
-            for (let i = 0; i < 128; i++) {
-                this.sendNoteOff({midi: i}, 1, "+200");
-            }
-            console.debug('Killed all notes on the external midi device');
+            this.withMIDIOutput((outputDevice) => {
+                for (let i = 0; i < 128; i++) {
+                    outputDevice.stopNote(i, {time: '+200', channels: [1]});
+                }
+            });
         },
 
         startRecording() {
