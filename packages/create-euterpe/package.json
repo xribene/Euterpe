@@ -1,7 +1,7 @@
 {
   "name": "create-euterpe",
-  "version": "0.1.0",
-  "euterpeVersion": "0.1.0",
+  "version": "0.1.2",
+  "euterpeVersion": "0.1.2",
   "description": "Create a Euterpe project: a real-time interactive music agent in the browser (npm create euterpe@latest)",
   "license": "MIT",
   "type": "module",
