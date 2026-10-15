@@ -393,7 +393,8 @@ export default {
         // Initialize Clock Worker (module)
         vm.clockWorker = new Worker(new URL('../worker/clock.js', import.meta.url), {type: 'module'});
         vm.clockWorker.onmessage = vm.tickBehavior;
-        vm.clockWorker.postMessage({action: 'setBPM', bpm: vm.localBPM});
+        vm.clockWorker.postMessage({action: 'setBPM', bpm: vm.localBPM, ticksPerBeat: vm.config.clockSettings.ticksPerBeat,
+            clockPeriod: vm.config.clockSettings.clockPeriod ?? null});
         vm.$store.commit('initializeClock');
 
         if (vm.config.interactionMode.audioMode) {
@@ -1673,7 +1674,7 @@ export default {
                 this.stopClock();
             }
             revertToDefault = true;
-            this.clockWorker.postMessage({action: 'setBPM', bpm: value});
+            this.clockWorker.postMessage({action: 'setBPM', bpm: value, ticksPerBeat: this.config.clockSettings.ticksPerBeat});
             if (revertToDefault) {
                 this.startClock();
             }
