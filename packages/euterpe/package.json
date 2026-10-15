@@ -1,6 +1,6 @@
 {
   "name": "euterpe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A browser framework for real-time interactive music agents: write the agent's hooks and YAML, Euterpe does MIDI and audio input, the clock, quantization, samplers and the UI.",
   "license": "MIT",
   "type": "module",
