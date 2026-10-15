@@ -13,7 +13,7 @@ agent/intro.md      the text shown when the page opens
 public/             static files served as-is, e.g. model weights (fetch('/checkpoints/model.onnx'))
 ```
 
-Change these files. Do not change Euterpe itself (see "Problems in Euterpe itself").
+Change these files. Do not edit `node_modules/euterpe` in place (see "Changing Euterpe itself").
 
 ## The hooks (agent/hooks.js)
 
@@ -100,6 +100,10 @@ The pattern: the model runs in the agent's worker (load it in `loadAlgorithm`, w
 
 Add the runtime as a dependency (`npm install onnxruntime-web` or `@tensorflow/tfjs @tensorflow/tfjs-backend-wasm`) and import it in `agent/`; Euterpe's Vite plugin pre-bundles whatever the agent imports.
 
-## Problems in Euterpe itself
+## Changing Euterpe itself
 
-Euterpe's source ships readable in `node_modules/euterpe/src` (Vue 2 UI in `src/views/Euterpe.vue`, the worker runtime in `src/worker/agentWorker.js`, the Vite plugin in `vite/index.js`): read it to understand what Euterpe does. Do not modify Euterpe in this project (no edits in `node_modules`, no patches, no copy of it in the project): keep the work in `agent/` and `public/`. If Euterpe itself misbehaves (a bug, a missing feature, a wrong or unclear message), work around it in the agent if you can, and report it upstream at https://github.com/xribene/Euterpe/issues with the Euterpe version (`node_modules/euterpe/package.json`), what you did, what you expected and what happened (the `npm run smoke -- --json` report helps).
+Euterpe's source ships readable in `node_modules/euterpe/src` (Vue 2 UI in `src/views/Euterpe.vue`, the worker runtime in `src/worker/agentWorker.js`, the Vite plugin in `vite/index.js`). Do not edit it in place: the next install discards the change. Instead:
+
+- **Report it:** a bug, a missing feature or an unclear message in Euterpe goes to https://github.com/xribene/Euterpe/issues, with the Euterpe version (`node_modules/euterpe/package.json`), what you did, what you expected and what happened (the `npm run smoke -- --json` report helps). Fixes are welcome as pull requests too.
+- **Patch it:** for a small fix in this project, `npx patch-package euterpe` (npm) or `pnpm patch euterpe` (pnpm) keeps the change as a patch file that is re-applied on every install.
+- **Copy it into the project:** `npx euterpe eject` copies Euterpe into `./euterpe` and points `package.json` at that copy. It is then ordinary project code you can change freely (and no longer updates with new Euterpe releases).
