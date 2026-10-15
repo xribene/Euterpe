@@ -1,7 +1,7 @@
 <template>
     <div>
         <modal name="settingsModal" width="90%" height="85%" :maxWidth="1200" :minWidth="320" :minHeight="300"
-            :adaptive="true">
+            :adaptive="true" @before-open="$emit('modal-open', true)" @closed="$emit('modal-open', false)">
             <div class="settingsContainer">
                 <div class="settingsHeader">
                     <p class="settingsTitle">

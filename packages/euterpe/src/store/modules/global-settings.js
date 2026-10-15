@@ -6,7 +6,8 @@ const state = {
     currentBPM: null,
     frequency: null,
     // randomness: null,
-    modalStatus: false,
+    // the names of the dialogs (vue-js-modal) that are open; the keyboard shortcuts are off while any is
+    openModals: [],
     // Key estimate from the agent ('E♭ major'), used to spell notes (C♯ vs D♭); null spells with sharps
     estimatedKey: null,
 };
@@ -27,8 +28,9 @@ const getters = {
     // getRandomness(state){
     //   return state.randomness;
     // },
+    // true while a dialog is open
     getModalStatus(state) {
-        return state.modalStatus;
+        return state.openModals.length > 0;
     },
     getEstimatedKey(state) {
         return state.estimatedKey;
@@ -82,8 +84,11 @@ const mutations = {
         console.debug('setBPM: ' + bpm);
         state.currentBPM = bpm;
     },
-    changeModalStatus(state) {
-        state.modalStatus = !state.modalStatus;
+    // a dialog opened or closed: set from its before-open and closed events, idempotent (a dialog closed
+    // during its opening transition gets no "opened" event, so a toggle would go out of step)
+    setModalOpen(state, {name, open}) {
+        const others = state.openModals.filter((n) => n !== name);
+        state.openModals = open ? [...others, name] : others;
     },
 };
 

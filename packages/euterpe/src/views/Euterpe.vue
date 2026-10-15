@@ -1665,9 +1665,9 @@ export default {
             this.keyboardMinRangeDisplayed = false;
         },
 
-        modalCallback(eventName) {
-            console.debug('modal callback', eventName);
-            this.$store.commit('changeModalStatus');
+        // a dialog's before-open / closed event: the store knows which dialogs are open (Space is off then)
+        setModalOpen(name, open) {
+            this.$store.commit('setModalOpen', {name, open});
         },
 
         calculateMaxBPM() {
@@ -1948,8 +1948,8 @@ export default {
                 :minHeight="100"
                 :resizable="true"
                 :scrollable="true"
-                @opened="modalCallback"
-                @closed="modalCallback">
+                @before-open="setModalOpen('introModal', true)"
+                @closed="setModalOpen('introModal', false)">
                 <div class="babyParent">
                     <div class="window-header">
                         <p class="modalTitle">
@@ -1979,6 +1979,7 @@ export default {
                 @midi-device-change="onMIDIDeviceSelectedChange"
                 @midi-output-device-change="onMIDIOutputDeviceSelectedChange"
                 @bpm-change="bpmValueChanged"
+                @modal-open="(open) => setModalOpen('settingsModal', open)"
             ></SettingsModal>
 
             <!-- <div v-if="config.gui.pianoRoll.status"> -->
