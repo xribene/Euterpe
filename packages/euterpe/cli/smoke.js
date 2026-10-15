@@ -5,6 +5,12 @@
  * or Playwright's own Chromium if Chrome isn't installed.
  */
 
+// A headless browser may have no Web MIDI (no devices, or the permission refused): not the agent's fault, so
+// these messages are not counted as errors (the report says report.midi = false instead).
+const MIDI_UNAVAILABLE = [/WebMidi is not enabled/i, /NotAllowedError.*MIDI/i, /WebMIDI Error/i,
+    /\[euterpe\] Web MIDI is not available/, /\[euterpe\] Web MIDI output failed/];
+const midiUnavailable = (text) => MIDI_UNAVAILABLE.some((pattern) => pattern.test(text));
+
 /** Playwright's chromium, from the project's playwright or playwright-core. */
 async function loadChromium() {
     for (const name of ['playwright', 'playwright-core']) {
@@ -51,12 +57,17 @@ export async function smoke(url, {expectAnswer = false, set = [], wait = 4000, s
         const logs = [];
         const failed = [];
         let samples = 0;
+        const midiMessages = [];
         const onConsole = (source) => (m) => {
             logs.push(`[${source}] ${m.type()}: ${m.text()}`);
-            if (m.type() === 'error') errors.push(`[${source}] ${m.text()} ${m.location()?.url ?? ''}`.trim());
+            if (midiUnavailable(m.text())) midiMessages.push(m.text());
+            else if (m.type() === 'error') errors.push(`[${source}] ${m.text()} ${m.location()?.url ?? ''}`.trim());
         };
         page.on('console', onConsole('page'));
-        page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
+        page.on('pageerror', (e) => {
+            if (midiUnavailable(e.message)) midiMessages.push(e.message);
+            else errors.push('[pageerror] ' + e.message);
+        });
         page.on('worker', (w) => w.on('console', onConsole('worker')));
         context.on('response', (r) => {
             if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`);
@@ -115,7 +126,10 @@ export async function smoke(url, {expectAnswer = false, set = [], wait = 4000, s
         report.samplesLoaded = samples;
         report.failedRequests = failed;
         report.errors = errors;
-        report.warnings = logs.filter((l) => l.includes('[euterpe]'));
+        report.warnings = logs.filter((l) => l.includes('[euterpe]') && !midiUnavailable(l));
+        // whether the page had Web MIDI; without it, the MIDI messages that were not counted as errors
+        report.midi = midiMessages.length === 0;
+        report.midiMessages = [...new Set(midiMessages)];
         report.ok = Boolean(report.crossOriginIsolated && report.started && report.ticksPerSecond > 0 &&
             failed.length === 0 && errors.length === 0 &&
             (!expectAnswer || report.agentNoteOns.length > 0 || (report.audioOut?.peakDuringPhrase ?? 0) > 0.01));

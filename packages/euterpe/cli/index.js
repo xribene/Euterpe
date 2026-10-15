@@ -89,6 +89,10 @@ async function smokeCommand() {
             `  ${options.expectAnswer ? mark(false) : yellow('-')} agent played nothing in answer to the phrase`);
         console.log(`  ${mark(report.failedRequests.length === 0)} ${report.samplesLoaded} samples loaded, ${report.failedRequests.length} failed requests`);
         for (const f of report.failedRequests) console.log(`      ${f}`);
+        if (!report.midi) {
+            console.log(`  ${dim('i')} no Web MIDI in the headless browser (not counted as errors: ` +
+                `${report.midiMessages.join('; ')})`);
+        }
         console.log(`  ${mark(report.errors.length === 0)} ${report.errors.length} console errors`);
         for (const e of report.errors) console.log(`      ${e}`);
         for (const w of [...new Set(report.warnings)]) console.log(`  ${yellow('!')} ${w.replace(/^\[\w+\] warning: /, '')}`);
