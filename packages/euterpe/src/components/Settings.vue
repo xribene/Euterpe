@@ -71,10 +71,10 @@
                             </div>
                         </div>
                         <span v-else>
-                            Currently, Using MIDI devices in browser is only supported by Google
-                            Chrome v43+, Opera v30+ and Microsoft Edge v79+. Please update to
-                            one of those browsers if you want to use Web MIDI
-                            functionalities.</span>
+                            Web MIDI is not available: this browser does not support it, or the
+                            permission to use MIDI devices was not given. Chrome, Edge, Opera and
+                            Firefox support MIDI devices; the laptop and on-screen keyboards
+                            work everywhere.</span>
                     </div>
                     <!-- <modal name="settingsModal" :minWidth="700" :minHeight="600" :adaptive="true"> -->
                     <div style="display: flex; flex-direction:column;">
@@ -238,6 +238,15 @@ export default {
             type: Boolean,
             default: false,
         },
+        // the devices in use (Euterpe.vue picks the first MIDI input until the user chooses one)
+        selectedMIDIInput: {
+            type: [String, Number],
+            default: 1123581321, // the "None" option
+        },
+        selectedMIDIOutput: {
+            type: [String, Number],
+            default: 1123581321,
+        },
         maxBPM: Number,
         initBPM: Number
     },
@@ -245,9 +254,18 @@ export default {
     data() {
         return {
             currentBPM: this.$props.initBPM,
-            selectedMIDIInputDevice: 1123581321, // id for "None" option 
-            selectedMIDIOutputDevice: 1123581321 // id for "None" option
+            selectedMIDIInputDevice: this.$props.selectedMIDIInput,
+            selectedMIDIOutputDevice: this.$props.selectedMIDIOutput,
         };
+    },
+
+    watch: {
+        selectedMIDIInput(id) {
+            this.selectedMIDIInputDevice = id;
+        },
+        selectedMIDIOutput(id) {
+            this.selectedMIDIOutputDevice = id;
+        },
     },
 
     // TODO: Use the sortedCollection to render the controls in the correct order

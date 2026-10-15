@@ -140,8 +140,11 @@ export default {
             pageLoadTime: null,
             modelLoadTime: null,
             activeDevices: [],
-            selectedMIDIDevice: 1123581321, // id for the "None" device
-            selectedMIDIOutputDevice: 1123581321, // id for the "None" device
+            selectedMIDIDevice: NO_MIDI_DEVICE,
+            selectedMIDIOutputDevice: NO_MIDI_DEVICE,
+            // the MIDI input the user chose in Settings (an id, or NO_MIDI_DEVICE); null: not chosen yet, so
+            // Euterpe uses the first connected input
+            midiInputChoice: null,
             activeMidiOutputDevices: [], // To store MIDI output devices
 
             noteOffEventForNextTick: null,
@@ -500,16 +503,11 @@ export default {
         //         .then(vm.onEnabled)
         //         .catch((err) => console.debug('WebMIDI Error: ' + err));
         // }
-        try {
-            if (navigator.requestMIDIAccess) {
-                // Await MIDI permission
-                await this.initializeMIDI();
-                console.debug('MIDI initialized');
-                vm.permissionMIDI = true;
-            }
-        } catch (error) {
-            console.error('Error initializing MIDI: ', error);
+        // MIDI devices are optional: without Web MIDI (Safari, a denied permission) the page still starts
+        if (navigator.requestMIDIAccess) {
+            await this.initializeMIDI(); // never throws
         }
+        vm.permissionMIDI = true;
 
         /*
         * Initialize computer keyboard logic
@@ -1333,90 +1331,72 @@ export default {
         */
         async initializeMIDI() {
             try {
-                const access = await navigator.requestMIDIAccess();
-                this.WebMIDISupport = true;
-
-                access.onstatechange = (event) => {
-                    this.onMidiStateChange(event);
-                };
-
                 await WebMidi.enable();
-                this.onEnabled();
+                this.WebMIDISupport = true;
+                // a device plugged in (or out) later: update the menus, and pick up a keyboard if none is chosen
+                WebMidi.addListener('portschanged', () => this.refreshMIDIDevices());
+                this.refreshMIDIDevices();
             } catch (err) {
-                console.error('WebMIDI Error:', err);
+                // permission denied, a headless browser, or no Web MIDI (Safari): MIDI devices are off,
+                // the laptop keyboard and the on-screen keyboard still work
+                console.warn(`[euterpe] Web MIDI is not available (${err?.name ?? err}): MIDI devices are off`);
             }
         },
 
-        onMidiStateChange(state) {
-            if (state.port.state === 'connected') {
-                console.debug('MIDI device connected:', state.port.name);
-            } else if (state.port.state === 'disconnected') {
-                console.debug('MIDI device disconnected:', state.port.name);
-            }
-            // this.onEnabled();
-            // Find a non-buggy way to correctly update the MIDI devices
-        },
-
-        onEnabled() {
+        // the device menus from the connected devices. MIDI input: the device the user chose in Settings
+        // (when it is connected), or, until the user chooses one, the first connected input.
+        refreshMIDIDevices() {
             const vm = this;
-            vm.activeDevices = [];
-            vm.activeDevices.push({id: 1123581321, name: 'None'})
-            WebMidi.inputs.forEach((device) => {
-                vm.activeDevices.push({id: device.id, name: device.name});
-            });
-            vm.selectedMIDIDevice = vm.activeDevices[0].id;
+            vm.activeDevices = [{id: NO_MIDI_DEVICE, name: 'None'},
+                ...WebMidi.inputs.map((device) => ({id: device.id, name: device.name}))];
+            vm.activeMidiOutputDevices = [{id: NO_MIDI_DEVICE, name: 'None'},
+                ...WebMidi.outputs.map((device) => ({id: device.id, name: device.name}))];
 
-            vm.activeMidiOutputDevices = [];
-            vm.activeMidiOutputDevices.push({id: 1123581321, name: 'None'})
-            WebMidi.outputs.forEach((device) => {
-                vm.activeMidiOutputDevices.push({id: device.id, name: device.name});
-            });
-            vm.selectedMIDIOutputDevice = vm.activeMidiOutputDevices[0].id;
+            const inputIds = WebMidi.inputs.map((device) => device.id);
+            const choice = vm.midiInputChoice;
+            let input;
+            if (choice === null) input = inputIds[0] ?? NO_MIDI_DEVICE;
+            else input = inputIds.includes(choice) ? choice : NO_MIDI_DEVICE;
+            vm.selectMIDIInput(input);
 
+            if (vm.selectedMIDIOutputDevice != NO_MIDI_DEVICE &&
+                !WebMidi.outputs.some((device) => device.id === vm.selectedMIDIOutputDevice)) {
+                vm.selectedMIDIOutputDevice = NO_MIDI_DEVICE;
+            }
         },
 
+        // listen to this MIDI input (an id, or NO_MIDI_DEVICE for none), and stop listening to the previous one
+        selectMIDIInput(id) {
+            const vm = this;
+            const device = id == NO_MIDI_DEVICE ? null : WebMidi.getInputById(id);
+            if (vm.midiInputPort && vm.midiInputPort !== device) {
+                vm.midiInputPort.removeListener();
+                vm.midiInputPort = null;
+            }
+            vm.selectedMIDIDevice = device ? id : NO_MIDI_DEVICE;
+            if (device && vm.midiInputPort !== device) {
+                vm.midiInputPort = device;
+                vm.messageListener(device);
+                console.debug(`MIDI input: ${device.name}`);
+            }
+        },
+
+        // the user chose a MIDI input in Settings: keep it (also when devices change), never auto-select over it
         onMIDIDeviceSelectedChange(state) {
-            const vm = this;
-            if (state.currentTarget.value) {
-                if (vm.selectedMIDIDevice !== state.currentTarget.value) {
-
-                    if (vm.selectedMIDIDevice != 1123581321) {
-                        const inputDevice = WebMidi.getInputById(this.selectedMIDIDevice);
-                        // iterate over all channels in inputDevice.channels
-                        // and do channel.removeListener();  
-                        for (let i = 1; i <= 16; i++) {
-                            let channel = inputDevice.channels[i];
-                            if (channel)
-                                channel.removeListener();
-                        }
-                    }
-                    vm.selectedMIDIDevice = state.currentTarget.value;
-                    if (state.currentTarget.value != 1123581321) {
-                        vm.messageListener();
-                    }
-                    
-                }
-            }
+            const value = state.currentTarget.value;
+            if (!value) return;
+            this.midiInputChoice = value == NO_MIDI_DEVICE ? NO_MIDI_DEVICE : value;
+            if (WebMidi.enabled) this.selectMIDIInput(this.midiInputChoice);
         },
         onMIDIOutputDeviceSelectedChange(state) {
-            const vm = this;
-            if (state.currentTarget.value) {
-                if (vm.selectedMIDIOutputDevice !== state.currentTarget.value) {
-                    if (state.currentTarget.value == 1123581321) {
-                        vm.selectedMIDIOutputDevice = 1123581321;
-                    } 
-                    else {
-                        vm.selectedMIDIOutputDevice = state.currentTarget.value;
-                    }
-                    // vm.sendNoteOn();
-                }
-            }
+            const value = state.currentTarget.value;
+            if (!value) return;
+            this.selectedMIDIOutputDevice = value == NO_MIDI_DEVICE ? NO_MIDI_DEVICE : value;
         },
 
         // listens for midi messages from a midi keyboard
-        messageListener() {
+        messageListener(inputDevice) {
             const vm = this;
-            const inputDevice = WebMidi.getInputById(this.selectedMIDIDevice);
             inputDevice.addListener('noteon', (message) => {
                 const newNoteEvent = new NoteEvent();
                 newNoteEvent.player = vm.playerType.HUMAN;
@@ -1974,6 +1954,8 @@ export default {
                 :WebMIDISupport="WebMIDISupport"
                 :activeDevices="activeDevices"
                 :activeMidiOutputDevices="activeMidiOutputDevices"
+                :selectedMIDIInput="selectedMIDIDevice"
+                :selectedMIDIOutput="selectedMIDIOutputDevice"
                 @button-click="buttonAction"
                 @text-change="textFieldChanged"
                 @midi-device-change="onMIDIDeviceSelectedChange"
