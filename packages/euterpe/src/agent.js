@@ -16,7 +16,7 @@ export {liveCanvasState} from './utils/liveCanvasState.js';
 export const AGENT_MARK = Symbol.for('euterpe.agent');
 
 export const HOOK_NAMES = ['loadAlgorithm', 'processClockEvent', 'processNoteEvent', 'processAudioBuffer',
-    'updateParameter', 'renderAudio'];
+    'updateParameter', 'renderAudio', 'processPageMessage'];
 
 /**
  * Declares the agent. agent/hooks.js does `export default defineAgent({...})`; every hook is optional and may be
@@ -31,8 +31,11 @@ export const HOOK_NAMES = ['loadAlgorithm', 'processClockEvent', 'processNoteEve
  *                                       updated)
  *   renderAudio(frames, ctx)            audio output (interactionMode.audioOut): return `frames` frames,
  *                                       called whenever the output queue holds less than audioOut.latency
+ *   processPageMessage(data, ctx)       the project's page code called sendToAgent(data) (the handle mount()
+ *                                       returns), e.g. from its own widget
  *
- * A hook returns the agent's output: an array of notes, or {notes, text, label, vector, key, audio}, or nothing.
+ * A hook returns the agent's output: an array of notes, or {notes, text, label, vector, key, audio, page}, or
+ * nothing. `page` goes to the page code's onAgentMessage listeners.
  * @param {Object} hooks
  * @return {Object} The agent, as the worker runtime calls it.
  */

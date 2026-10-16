@@ -25,6 +25,8 @@ let ctx = null;
 let renderLoop = null;
 // widget changes made while loadAlgorithm runs, for updateParameter once it has finished
 const pendingChanges = [];
+// page messages (sendToAgent) that arrive while loadAlgorithm runs, for processPageMessage once it has finished
+const pendingPageMessages = [];
 const missing = (name) => () => console.warn(`agent/hooks.js does not define ${name}()`);
 const hook = (name, fallback) => (typeof agent[name] === 'function' ? agent[name] : fallback ?? missing(name));
 const loadExternalFiles = hook('loadExternalFiles', () => undefined);
@@ -37,6 +39,8 @@ const updateParameter = hook('updateParameter', () => undefined);
 const processClockEvent = hook('processClockEvent', () => ({}));
 const processNoteEvent = hook('processNoteEvent', () => undefined);
 const processAudioBuffer = hook('processAudioBuffer', () => undefined);
+const processPageMessage = hook('processPageMessage', () => warnOnce('the page sent the agent a message ' +
+    '(sendToAgent), but agent/hooks.js defines no processPageMessage'));
 
 import {LIFOQueue} from '../utils/dataStructures.js';
 import {NoteEvent} from '../utils/NoteEvent.js';
@@ -79,6 +83,8 @@ let uiParameterIntervalID = null;
 let clockQueue = Promise.resolve();
 // and note events too
 let noteQueue = Promise.resolve();
+// and page messages
+let pageQueue = Promise.resolve();
 
 self.param_reader = null;
 self.param_writer = null;
@@ -145,6 +151,22 @@ function runUpdateParameter(change) {
         const message = toMessage(output, 'updateParameter', ctx);
         if (message && Object.keys(message).length) postMessage({hookType: self.agentHookType.NOTE_EVENT, message});
     }).catch((error) => console.error('updateParameter failed', error));
+}
+
+/**
+ * Passes a page message (sendToAgent on the page) to processPageMessage, in order; what the hook returns (notes,
+ * text, page, ...) is sent like any hook's.
+ * @param {*} data
+ * @return {Promise<void>}
+ */
+function runPageMessage(data) {
+    pageQueue = pageQueue.then(async () => {
+        const message = defined ?
+            toMessage(await processPageMessage(data, ctx), 'processPageMessage', ctx) :
+            await processPageMessage(data);
+        if (message && Object.keys(message).length) postMessage({hookType: self.agentHookType.NOTE_EVENT, message});
+    }).catch((error) => console.error('processPageMessage failed', error));
+    return pageQueue;
 }
 
 /**
@@ -264,6 +286,12 @@ async function onMessageFunction(obj) {
         if (defined) dispatchChange({kind: 'text', id, value});
         return;
     }
+    if (obj.data?.control === 'pageMessage') {
+        // the page's sendToAgent(data): held while a defineAgent agent loads, like widget changes
+        if (!ctx || (defined && ctx._loading)) pendingPageMessages.push(obj.data.data);
+        else runPageMessage(obj.data.data);
+        return;
+    }
     if (obj.data?.control === 'audioInStart') {
         audioInStart = obj.data.time;
         return;
@@ -376,6 +404,7 @@ async function initAgent(content) {
         } else {
             const externalFilesLoaded = loadExternalFiles();
             loadAlgorithm(externalFilesLoaded);
+            for (const data of pendingPageMessages.splice(0)) runPageMessage(data);
             initAudio(content);
             initParameterSharing(content);
         }
@@ -400,6 +429,7 @@ async function loadDefinedAgent() {
         if (typeof agent.loadAlgorithm === 'function') await agent.loadAlgorithm(ctx);
         ctx._loading = false;
         for (const change of pendingChanges.splice(0)) await runUpdateParameter(change);
+        for (const data of pendingPageMessages.splice(0)) runPageMessage(data);
         if (typeof agent.renderAudio === 'function') {
             if (ctx.audioOut) {
                 renderLoop = startRenderLoop(agent.renderAudio, ctx, (error) => console.error('renderAudio failed', error));

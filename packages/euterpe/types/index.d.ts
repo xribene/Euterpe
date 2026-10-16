@@ -1,8 +1,22 @@
 /**
  * euterpe: the UI. A project's index.html calls mount(); the agent comes from agent/ through euterpe/vite.
  */
-/** Mounts the Euterpe UI into `el` (default '#app') and returns the root Vue instance. */
-export declare function mount(el?: string | Element): unknown;
+/** Mounts the Euterpe UI into `el` (default '#app'). */
+export declare function mount(el?: string | Element): EuterpeApp;
+
+/** What mount() returns: the project's page code talks to the agent through it. */
+export interface EuterpeApp {
+    /** The root Vue instance. */
+    readonly vm: unknown;
+    /**
+     * Sends `data` to the agent's processPageMessage(data, ctx) hook, e.g. a press on the page's own widget.
+     * `data` must be structured-cloneable (plain objects, arrays, numbers, strings, typed arrays). Messages sent
+     * before the agent has loaded wait for it.
+     */
+    sendToAgent(data: unknown): void;
+    /** Calls `listener` with every `{page: data}` the agent sends (a hook's return value or ctx.send). Returns an unsubscribe. */
+    onAgentMessage(listener: (data: any) => void): () => void;
+}
 
 /** window.__euterpe: the running UI's handle for tests and scripts. */
 export interface EuterpeHandle {

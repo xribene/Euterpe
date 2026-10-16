@@ -15,7 +15,7 @@ export declare const messageType: {
     readonly STATUS: 0; readonly CLOCK_TIME: 1; readonly INFERENCE_TIME: 2; readonly NOTE_LIST: 4;
     readonly AUDIO_BUFFER: 7; readonly CHROMA_VECTOR: 10; readonly VECTOR: 11; readonly CHORD_LABEL: 12;
     readonly TEXT: 13; readonly LABEL: 14; readonly KEY: 15; readonly SESSION: 16; readonly TIMING_RESET: 18;
-    readonly HUMAN_TOKEN: 19;
+    readonly HUMAN_TOKEN: 19; readonly PAGE: 20;
 };
 export declare const statusType: {
     readonly LOADED: 0; readonly WARMUP: 1; readonly SUCCESS: 2; readonly ERROR: 3; readonly REPORT: 4;
@@ -98,6 +98,8 @@ export type HookOutput = void | null | undefined | Array<NoteEvent | PlainNote> 
     humanToken?: HumanToken;
     /** A recorded session for the UI to download. */
     session?: unknown;
+    /** Data for the project's page code: the onAgentMessage listeners of the handle mount() returns. */
+    page?: unknown;
     /** The original protocol: values keyed by messageType number. */
     [messageType: number]: unknown;
 };
@@ -260,6 +262,11 @@ export interface AgentHooks {
      * all). Called whenever less than audioOut.latency seconds are queued, one call at a time.
      */
     renderAudio?(frames: number, ctx: Ctx): Awaitable<Float32Array | Float32Array[] | void>;
+    /**
+     * The project's page code sent `data` (sendToAgent on the handle mount() returns), e.g. from a widget of its
+     * own. In order; held until loadAlgorithm has finished. Return `{page: data}` to answer the page.
+     */
+    processPageMessage?(data: any, ctx: Ctx): Awaitable<HookOutput>;
 }
 
 export declare const AGENT_MARK: unique symbol;

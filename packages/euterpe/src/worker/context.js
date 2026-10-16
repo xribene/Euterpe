@@ -14,7 +14,7 @@ const INSTRUMENTS = {piano: instrumentType.PIANO, drums: instrumentType.DRUMS, b
 const MESSAGE_KEYS = {
     notes: messageType.NOTE_LIST, text: messageType.TEXT, label: messageType.LABEL, vector: messageType.VECTOR,
     key: messageType.KEY, session: messageType.SESSION, timingReset: messageType.TIMING_RESET,
-    status: messageType.STATUS, humanToken: messageType.HUMAN_TOKEN,
+    status: messageType.STATUS, humanToken: messageType.HUMAN_TOKEN, page: messageType.PAGE,
 };
 
 // uiParameterType index -> {kind, id}, e.g. 0 -> {kind: 'slider', id: 1}

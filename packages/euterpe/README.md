@@ -61,21 +61,37 @@ The agent runs in a Web Worker, so models (TF.js, onnxruntime-web, your own WebG
 | `processAudioBuffer(frame, ctx)` | every microphone frame |
 | `renderAudio(frames, ctx)` | audio output |
 | `updateParameter(change, ctx)` | a Settings widget changed |
+| `processPageMessage(data, ctx)` | the project's page code called `sendToAgent(data)` |
 
 `agent/config.yaml`, `widgets.yaml` and `players.yaml` choose the interaction mode, the clock, the UI and the instruments. They're validated against the JSON schemas in `schema/` at dev and build time.
+
+## Page code
+
+The project owns `index.html`, so a widget of its own (a custom controller, a canvas) can talk to the agent through the handle `mount()` returns:
+
+```js
+import {mount} from 'euterpe';
+
+const euterpe = mount('#app');
+euterpe.sendToAgent({button: 3});                  // -> the agent's processPageMessage(data, ctx)
+euterpe.onAgentMessage((data) => {});               // <- {page: data} from a hook or ctx.send
+```
+
+See [docs/page-code.md](docs/page-code.md).
 
 ## What's in the package
 
 | Export / command | What it is |
 |---|---|
 | `euterpe/vite` | The Vite plugin. It loads the agent and its YAML, serves and copies the instrument samples, and sets the cross-origin isolation headers. |
+| `euterpe` | `mount()`, which returns `{vm, sendToAgent, onAgentMessage}` |
 | `euterpe/agent` | `defineAgent`, `NoteEvent`, small helpers and the type enums |
 | `npx euterpe smoke [--build]` | A headless-browser check: the page is isolated, the agent is ready, the clock ticks, the agent answers a phrase, and there are no errors |
 | `npx euterpe eject` | Copies Euterpe into the project, to change it freely |
 
 TypeScript types ship in `types/`, including the YAML config types (generated from the schemas).
 
-Short guides ship in `docs/` (`node_modules/euterpe/docs/`): [models.md](docs/models.md) (TF.js and onnxruntime-web in the agent worker), [hosting.md](docs/hosting.md) (cross-origin isolation), [testing.md](docs/testing.md) (`npm run smoke`, Playwright, `window.__euterpe`, harmless console messages).
+Short guides ship in `docs/` (`node_modules/euterpe/docs/`): [models.md](docs/models.md) (TF.js and onnxruntime-web in the agent worker), [hosting.md](docs/hosting.md) (cross-origin isolation), [testing.md](docs/testing.md) (`npm run smoke`, Playwright, `window.__euterpe`, harmless console messages), [page-code.md](docs/page-code.md) (the page's own widgets and the agent).
 
 ## Deploying
 

@@ -12,6 +12,7 @@ import 'vue-material/dist/theme/default.css';
 import 'remixicon/fonts/remixicon.css';
 import Dropdown from 'vue-simple-search-dropdown';
 import MarkdownItVue from 'markdown-it-vue'
+import {sendToAgent, onAgentMessage} from './utils/pageBridge.js';
 
 Vue.use(MdButton);
 Vue.use(MdIcon);
@@ -42,8 +43,18 @@ const FONT_STYLESHEETS = [
 
 /**
  * Mounts the Euterpe UI, running the agent in the project's agent/ folder (bundled by euterpe/vite).
+ *
+ * The handle it returns lets the project's own page code (e.g. a widget of its own in index.html) talk to the
+ * agent:
+ *
+ *   const euterpe = mount('#app');
+ *   euterpe.sendToAgent({button: 3});             // the agent's processPageMessage(data, ctx)
+ *   euterpe.onAgentMessage((data) => {...});      // what the agent sends as {page: data}; returns an unsubscribe
+ *
+ * Messages sent before the agent has loaded wait for it.
  * @param {string|Element} [el='#app'] - The element to mount into.
- * @return {Vue} The root Vue instance.
+ * @return {{vm: Vue, sendToAgent: function(*): void, onAgentMessage: function(function(*): void): function(): void}}
+ *     The handle; `vm` is the root Vue instance.
  */
 export function mount(el = '#app') {
     // problems in the agent's YAML files (also printed by the dev server and the build)
@@ -55,8 +66,9 @@ export function mount(el = '#app') {
         link.href = href;
         document.head.appendChild(link);
     }
-    return new Vue({
+    const vm = new Vue({
         store,
         render: (h) => h(App),
     }).$mount(el);
+    return {vm, sendToAgent, onAgentMessage};
 }

@@ -36,6 +36,7 @@ export const messageType = {
     SESSION: 16, // a recorded session (see src/agent/sessionLog.js), downloaded by the UI
     TIMING_RESET: 18, // the agent switched to another model: the UI restarts its max-BPM estimate
     HUMAN_TOKEN: 19, // the live canvas: the user's note for the next tick, {tick, midi, artic, candidate, ...}
+    PAGE: 20, // data for the project's page code (mount()'s onAgentMessage listeners)
     CLOCK_TIME: 1,
     INFERENCE_TIME: 2,
 };

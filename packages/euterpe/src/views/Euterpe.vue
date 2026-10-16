@@ -38,6 +38,7 @@ import {
 import {isMobile, isNotChrome} from '../utils/helpers.js';
 import {NoteEvent} from '../utils/NoteEvent.js';
 import {installHandle} from '../utils/handle.js';
+import {attachWorker, deliverToPage} from '../utils/pageBridge.js';
 // import { selectedAgent } from '../agent-examples/selectedAgent.js'
 
 // the agent's YAML configs and intro text, from the project's agent/ folder (see euterpe/vite)
@@ -378,6 +379,8 @@ export default {
                 sabLiveCanvas: vm.liveCanvas?.sab ?? null,
             },
         });
+        // the page code's sendToAgent (mount()'s handle): from now on straight to the worker, after the config
+        attachWorker(vm.agent);
         if (audioOut) {
             vm.startAudioOut(audioOut).catch((error) => {
                 // e.g. a Content-Security-Policy that blocks the worklet: tell the agent, and the user
@@ -1129,6 +1132,10 @@ export default {
                     case vm.messageType.HUMAN_TOKEN:
                         // the live canvas: the user's note for the next tick
                         vm.liveCanvas?.onHumanToken(messageValue);
+                        break;
+                    case vm.messageType.PAGE:
+                        // {page: data}: for the project's page code (mount()'s onAgentMessage)
+                        deliverToPage(messageValue);
                         break;
                     case vm.messageType.CLOCK_TIME:
                         break;

@@ -11,6 +11,7 @@ agent/widgets.yaml  what the UI shows (score, piano roll, ...) and the Settings 
 agent/players.yaml  players (user, agent, metronome) and their instruments
 agent/intro.md      the text shown when the page opens
 public/             static files served as-is, e.g. model weights (fetch('/checkpoints/model.onnx'))
+index.html          the page: calls mount() from 'euterpe'; the project's own page code (e.g. a custom widget) goes here
 ```
 
 Change these files. Do not edit `node_modules/euterpe` in place (see "Changing Euterpe itself").
@@ -27,13 +28,14 @@ export default defineAgent({
     processAudioBuffer(channels, ctx) {},     // every microphone frame, if interactionMode.audioMode: true
     updateParameter({kind, id, value}, ctx) {}, // a Settings widget changed
     renderAudio(frames, ctx) {},              // audio output, if interactionMode.audioOut: true (see below)
+    processPageMessage(data, ctx) {},         // the page's own code called sendToAgent(data) (see docs/page-code.md)
 });
 ```
 
 - Every hook is optional and may be `async`. The hooks run in a Web Worker: no DOM, no `window`.
 - `clock`: `tick` (position in the bar), `globalTick`, `barReset` (the bar restarted), `userQuantizedNotes` (the user's notes on this tick, if `gridBased.quantizedEvents: true`), `userNotes` (raw notes since the last tick, if `gridBased.eventBuffer: true`).
 - A note (`NoteEvent`): `midi`, `type` (`ctx.types.noteType`: `NOTE_ON` 1, `NOTE_OFF` -1, `NOTE_HOLD` 0), `velocity`, `createdAt` (`{tick, seconds}`: when it was played; `seconds` is on the page's clock, the same as `ctx.now()`).
-- `processClockEvent`, `processNoteEvent`, `processAudioBuffer` and `updateParameter` return what the agent plays and shows: an array of notes, or `{notes, text, label, vector, key, audio}`, or nothing (`loadAlgorithm` uses `ctx.send` instead).
+- `processClockEvent`, `processNoteEvent`, `processAudioBuffer`, `updateParameter` and `processPageMessage` return what the agent plays and shows: an array of notes, or `{notes, text, label, vector, key, audio, page}`, or nothing (`loadAlgorithm` uses `ctx.send` instead). `page` goes to the page code's `onAgentMessage` listeners.
 - The time budget of `processClockEvent` is one tick (150 ms at 100 BPM in 16ths). A note scheduled for a tick that has already passed is dropped.
 
 ## ctx
@@ -80,6 +82,7 @@ Read these before doing the thing they cover:
 - `models.md`: loading a model in the agent worker (TF.js WASM backend, onnxruntime-web, `.wasm` files through Vite `?url` imports, `public/` paths, warm-up).
 - `hosting.md`: cross-origin isolation (COOP/COEP), which hosts set it, coi-serviceworker for hosts that can't.
 - `testing.md`: `npm run smoke`, Playwright with the system Chrome, the full `window.__euterpe` API, console messages that look like errors but aren't (no Web MIDI in headless Chrome, the intro dialog, the icon font offline).
+- `page-code.md`: a widget of the project's own in `index.html` that sends input to the agent (`mount()` returns `sendToAgent` / `onAgentMessage`; the agent's `processPageMessage` hook), and which laptop keys Euterpe already uses.
 
 ## Commands
 
