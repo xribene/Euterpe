@@ -75,6 +75,8 @@ The agent runs in a Web Worker, so models (TF.js, onnxruntime-web, your own WebG
 
 TypeScript types ship in `types/`, including the YAML config types (generated from the schemas).
 
+Short guides ship in `docs/` (`node_modules/euterpe/docs/`): [models.md](docs/models.md) (TF.js and onnxruntime-web in the agent worker), [hosting.md](docs/hosting.md) (cross-origin isolation), [testing.md](docs/testing.md) (`npm run smoke`, Playwright, `window.__euterpe`, harmless console messages).
+
 ## Deploying
 
 A built project (`npm run build`, then `dist/`) is a static site. It must be served with these headers:
@@ -84,7 +86,7 @@ Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: require-corp
 ```
 
-Euterpe uses SharedArrayBuffer between the page, the agent worker and the audio thread. The templates include `netlify.toml` and `vercel.json` with these headers.
+Euterpe uses SharedArrayBuffer between the page, the agent worker and the audio thread. The templates include `netlify.toml` and `vercel.json` with these headers; for hosts without custom headers see [docs/hosting.md](docs/hosting.md).
 
 ## Requirements
 

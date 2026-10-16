@@ -73,6 +73,14 @@ audioOutSettings:
 
 Then either let Euterpe ask for audio (`renderAudio(frames, ctx)` is called whenever less than `latency` seconds are queued; return one `Float32Array` per channel, or one for all), or push it yourself (`ctx.audioOut.write(channels)` anywhere, or `{audio: channels}` returned from `processClockEvent`, `processNoteEvent`, `processAudioBuffer` or `updateParameter`; `ctx.audioOut.space()` and `.buffered()` say how much fits / is queued). The audio plays through the agent's mixer channel, from the start button on, at `ctx.audioOut.sampleRate`. Euterpe keeps at least two audio blocks (256 frames) queued whatever `latency` says. If the agent doesn't keep up, the output plays silence until `latency / 2` is queued again and the console says `[euterpe] the agent's audio output ran dry`. The sound lags by about `latency`.
 
+## Guides in node_modules/euterpe/docs
+
+Read these before doing the thing they cover:
+
+- `models.md`: loading a model in the agent worker (TF.js WASM backend, onnxruntime-web, `.wasm` files through Vite `?url` imports, `public/` paths, warm-up).
+- `hosting.md`: cross-origin isolation (COOP/COEP), which hosts set it, coi-serviceworker for hosts that can't.
+- `testing.md`: `npm run smoke`, Playwright with the system Chrome, the full `window.__euterpe` API, console messages that look like errors but aren't (no Web MIDI in headless Chrome, the intro dialog, the icon font offline).
+
 ## Commands
 
 ```bash
