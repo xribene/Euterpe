@@ -647,6 +647,7 @@ export default {
         async toggleClock() {
             const vm = this;
             if (!vm.localSyncClockStatus) {
+                vm.clearUserInput();
                 vm.startRecording();
                 vm.clockWorker.postMessage({action: 'startClock'});
             } else {
@@ -669,7 +670,14 @@ export default {
             this.$store.commit('clearPianoState');
         },
 
+        // Notes played while the clock was stopped must not reach the first ticks of the take
+        clearUserInput() {
+            this.$store.commit('clearContinuousBuffers');
+            this.noteOffEventForNextTick = null;
+        },
+
         startClock() {
+            this.clearUserInput();
             this.startRecording();
             this.clockWorker.postMessage({action: 'startClock'});
             this.localSyncClockStatus = true;
