@@ -65,11 +65,19 @@
             "inKey": {"type": "boolean", "description": "ONNX: pitches only from the current key's scale (the agent's key estimate)."}
           }
         },
+        "mixer": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "open": {"type": "boolean", "description": "Show the mixer panel when the page opens (default false: its button opens it)."}
+          }
+        },
         "monitor": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "status": {"type": "boolean"},
+            "open": {"type": "boolean", "description": "Show the monitor panel when the page opens (default false: its button opens it)."},
             "title": {"type": "string"},
             "structure": {
               "type": ["array", "null"],

@@ -47,7 +47,7 @@ export default defineAgent({
 | `ctx.now()` | Seconds on the page's clock (compare with a note's `createdAt.seconds`) |
 | `ctx.config` | The merged YAML files |
 | `ctx.send({text})` | Send output outside a hook's return (e.g. loading progress) |
-| `ctx.monitor(id, value)` | Plot a value in the Monitor widget (widgets.yaml `gui.monitor`) |
+| `ctx.monitor(id, value)` | Plot a value in the Monitor widget (widgets.yaml `gui.monitor`; the Monitor and the Mixer start closed, `gui.monitor.open` / `gui.mixer.open: true` show them at load) |
 | `ctx.audio` | `{sampleRate, channelCount}` once the microphone runs |
 | `ctx.audioOut` | The agent's audio output (see below), or `null` |
 | `ctx.types` | `noteType`, `playerType`, `instrumentType`, `messageType`, `statusType` |

@@ -241,8 +241,18 @@ export interface WidgetsYaml {
        */
       inKey?: boolean;
     };
+    mixer?: {
+      /**
+       * Show the mixer panel when the page opens (default false: its button opens it).
+       */
+      open?: boolean;
+    };
     monitor?: {
       status?: boolean;
+      /**
+       * Show the monitor panel when the page opens (default false: its button opens it).
+       */
+      open?: boolean;
       title?: string;
       structure?:
         | {

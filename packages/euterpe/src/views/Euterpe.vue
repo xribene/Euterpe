@@ -293,8 +293,12 @@ export default {
         if (vm.showMonitor) {
             console.debug('MA DEN EPREPE');
             vm.$root.$refs.monitor.loadMonitorConfig(vm.config.gui.monitor);
+            // closed until its button is pressed, unless gui.monitor.open
+            vm.$root.$refs.monitor.pane.hidden = !vm.config.gui.monitor.open;
         }
         vm.$root.$refs.mixer.loadMixerConfig(vm.config.players);
+        // closed until its button is pressed, unless gui.mixer.open
+        vm.$root.$refs.mixer.pane.hidden = !vm.config.gui.mixer?.open;
 
         /*
             * Loading Animation: set initial status of both div
